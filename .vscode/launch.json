@@ -1,0 +1,79 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        // configuration to start the gws
+        {
+            "args": [
+                "--runserver"
+            ],
+            "name": "Starts GWS server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/lab/.sys/app/manage.py",
+            "console": "integratedTerminal"
+        },
+        // configuration to start the gws
+        {
+            "args": [
+                "--runserver",
+                "--log_level=DEBUG"
+            ],
+            "name": "Starts GWS server - DEBUG log",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "console": "integratedTerminal"
+        },
+        // config to run test on GWS
+        {
+            "args": [
+                "--test",
+                "all"
+            ],
+            "name": "Test all",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "console": "integratedTerminal"
+        },
+        // config to run test on GWS
+        {
+            "args": [
+                "--test",
+                "${input:testFileName}"
+            ],
+            "name": "Test single",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "console": "integratedTerminal",
+        },
+        // reset the dev env
+        {
+            "args": [
+                "--reset_env",
+                "${input:resetKey}"
+            ],
+            "name": "Reset dev env",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "console": "integratedTerminal",
+        },
+    ],
+    "inputs": [
+        {
+            "id": "testFileName",
+            "type": "promptString",
+            "description": "Name of the test files to run (separated with space)",
+        },
+        {
+            "id": "resetKey",
+            "type": "promptString",
+            "description": "/!\\ This delete all the data of the dev env (prod env will not be affected). Please type 'reset-dev-env' to confirm./!\\",
+        }
+    ]
+}

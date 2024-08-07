@@ -5,20 +5,21 @@ from typing import Generator, List
 import grpc
 from google.protobuf.empty_pb2 import Empty
 from google.protobuf.wrappers_pb2 import BoolValue, StringValue
+from gws_core import FileHelper, Settings
 
-from gws_core.core.utils.settings import Settings
-from gws_core.external_source.biolector_xt.biolector_xt_dto import \
+from gws_biolector.biolector_xt.biolector_xt_dto import \
     CredentialsDataBiolector
-from gws_core.external_source.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
-    ContinueProtocolResponse, FileChunk, GetExperimentListResponse, MetaData,
+from gws_biolector.biolector_xt.biolector_xt_service_i import \
+    BiolectorXTServiceI
+from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
+    ContinueProtocolResponse, ExperimentInfo, FileChunk, MetaData,
     ProtocolInfo, StartProtocolResponse, StatusUpdateStreamResponse,
     StdResponse, StopProtocolResponse)
-from gws_core.external_source.biolector_xt.grpc.biolectorxtremotecontrol_pb2_grpc import \
+from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2_grpc import \
     BioLectorXtRemoteControlStub
-from gws_core.impl.file.file_helper import FileHelper
 
 
-class BiolectorXTService():
+class BiolectorXTService(BiolectorXTServiceI):
     """Service to interact with the Biolector XT device using gRPC
     """
 
@@ -34,7 +35,7 @@ class BiolectorXTService():
             stub = BioLectorXtRemoteControlStub(channel)
             return stub.GetProtocols(Empty(), timeout=self.timeout)
 
-    def get_experiments(self) -> GetExperimentListResponse:
+    def get_experiments(self) -> List[ExperimentInfo]:
         with self.get_grpc_channed() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
             return stub.GetExperimentList(Empty(), timeout=self.timeout)

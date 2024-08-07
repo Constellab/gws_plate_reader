@@ -1,0 +1,10 @@
+{
+    "app_dir_path": "/lab/user/bricks/gws_biolector/src/gws_biolector/biolector_xt/_streamlit_dashboard",
+    "source_ids": [],
+    "params": {
+        "biolector_credentials": {
+            "endpoint_url": "http://127.0.0.1",
+            "secure_channel": false
+        }
+    }
+}

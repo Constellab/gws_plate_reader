@@ -25,10 +25,10 @@ from gws_core.task.task_decorator import task_decorator
 from gws_core.task.task_io import TaskInputs, TaskOutputs
 
 
-@task_decorator(unique_name="BiolectorDownloadExperiment",
+@task_decorator(unique_name="BiolectorDownloadExperiment2",
                 short_description="Download the reuslt of an experiment from Biolector XT",
                 style=TypingStyle.community_icon("bioreactor"), hide=True)
-class BiolectorDownloadExperiment(Task):
+class BiolectorDownloadExperiment2(Task):
 
     config_specs: ConfigSpecs = {
         'experiment_id': StrParam(human_name="Experiment ID",

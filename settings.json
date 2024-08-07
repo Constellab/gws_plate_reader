@@ -15,7 +15,9 @@
         "pip": [
             {
                 "source": "https://pypi.python.org/simple",
-                "packages": []
+                "packages": [
+                  {"name": "grpcio", "version": "1.64.1"}
+                ]
             }
         ],
         "git": [

@@ -13,7 +13,7 @@ from gws_biolector.biolector_xt.biolector_xt_dto import \
 
 @task_decorator(unique_name="BiolectorDashboard",
                 human_name="Biolector Dashboard",
-                short_description="Task to generate a dahsboard to interact with Biolector XT",
+                short_description="Task to generate a dashboard to interact with Biolector XT",
                 style=TypingStyle.community_icon("bioreactor"))
 class BiolectorDashboard(Task):
 

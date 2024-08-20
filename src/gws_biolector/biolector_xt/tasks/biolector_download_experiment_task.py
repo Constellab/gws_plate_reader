@@ -18,11 +18,10 @@ from gws_biolector.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
 
 
-# TODO RENAME
-@task_decorator(unique_name="BiolectorDownloadExperiment2",
+@task_decorator(unique_name="BiolectorDownloadExperiment",
                 short_description="Download the reuslt of an experiment from Biolector XT",
                 style=TypingStyle.community_icon("bioreactor"))
-class BiolectorDownloadExperiment2(Task):
+class BiolectorDownloadExperiment(Task):
 
     config_specs: ConfigSpecs = {
         'experiment_id': StrParam(human_name="Experiment ID",
@@ -34,8 +33,10 @@ class BiolectorDownloadExperiment2(Task):
     }
     input_specs: InputSpecs = InputSpecs()
     output_specs: OutputSpecs = OutputSpecs({
-        'result': OutputSpec(Table),
-        'raw_data': OutputSpec(Folder)
+        'result': OutputSpec(Table, human_name="Result Table",
+                             short_description="The result of the experiment in a table format"),
+        'raw_data': OutputSpec(Folder, human_name="Raw Data Folder",
+                               short_description="The unzipped raw data of the experiment")
     })
 
     zip_path = None

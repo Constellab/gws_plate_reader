@@ -7,7 +7,7 @@ from gws_core import (Experiment, ExperimentCreationType,
                       IExperiment, Tag)
 
 from gws_biolector.biolector_xt.tasks.biolector_download_experiment_task import \
-    BiolectorDownloadExperiment2
+    BiolectorDownloadExperiment
 
 DOWNLOAD_TAG_KEY = "biolector_download"
 
@@ -67,7 +67,7 @@ def download_experiment(biolector_exp_id: str,
         experiment.add_tag(Tag(DOWNLOAD_TAG_KEY, biolector_exp_id))
         protocol = experiment.get_protocol()
 
-        download_task = protocol.add_task(BiolectorDownloadExperiment2, 'download', {
+        download_task = protocol.add_task(BiolectorDownloadExperiment, 'download', {
             'experiment_id': biolector_exp_id,
             'credentials': credentials_name,
             'mock_service': mock_service

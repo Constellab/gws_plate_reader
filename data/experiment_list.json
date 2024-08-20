@@ -1,0 +1,121 @@
+[
+    {
+        "experiment_id": "ec308493-b1f1-44af-8e52-953c37bee14c",
+        "protocol_id": "2edd70a8-3f73-490a-b836-1d870d268fa4",
+        "start_time": "2023-10-24T17:04:10+02:00",
+        "file_path": "sdcard/results/10_2edd70a8-3f73-490a-b836-1d870d268fa4",
+        "finished": true
+    },
+    {
+        "experiment_id": "5267a415-8835-4f79-82d9-66b3b96ca9f7",
+        "protocol_id": "aec88c95-79ae-4543-a3a2-4ed32516e112",
+        "start_time": "2023-12-07T18:11:41+02:00",
+        "file_path": "sdcard/results/13_aec88c95-79ae-4543-a3a2-4ed32516e112",
+        "finished": true
+    },
+    {
+        "experiment_id": "b19dcf73-6ef5-4d01-accf-674eebc0d051",
+        "protocol_id": "89a8ff7a-1334-4a67-9606-6ab4a6b17e23",
+        "start_time": "2023-12-12T09:56:39+02:00",
+        "file_path": "sdcard/results/14_89a8ff7a-1334-4a67-9606-6ab4a6b17e23",
+        "finished": true
+    },
+    {
+        "experiment_id": "fad693f9-b600-48ef-be31-5402cb600ed3",
+        "protocol_id": "f3f87e6d-f98e-481b-8c22-cd89af81ba64",
+        "start_time": "2023-12-20T17:29:00+02:00",
+        "file_path": "sdcard/results/15_f3f87e6d-f98e-481b-8c22-cd89af81ba64",
+        "finished": true
+    },
+    {
+        "experiment_id": "8423becf-0951-4d3d-a491-3d54a56696f4",
+        "protocol_id": "eb6027c3-7cff-4a68-9ec8-1450b77ff154",
+        "start_time": "2024-01-10T10:15:52+02:00",
+        "file_path": "sdcard/results/16_eb6027c3-7cff-4a68-9ec8-1450b77ff154",
+        "finished": true
+    },
+    {
+        "experiment_id": "140e9ebf-16f7-4caf-8595-26faf5955837",
+        "protocol_id": "2b44efbf-9a38-4085-ade6-3857dd1a59db",
+        "start_time": "2024-01-17T10:16:33+02:00",
+        "file_path": "sdcard/results/17_2b44efbf-9a38-4085-ade6-3857dd1a59db",
+        "finished": true
+    },
+    {
+        "experiment_id": "e42695bf-87b8-41f3-8543-3b28b79504c0",
+        "protocol_id": "d8f55cf8-429c-4f52-8798-d5c39b9467b8",
+        "start_time": "2024-01-19T16:24:30+02:00",
+        "file_path": "sdcard/results/18_d8f55cf8-429c-4f52-8798-d5c39b9467b8",
+        "finished": true
+    },
+    {
+        "experiment_id": "80201473-9034-41c5-bf9b-0adb58faa952",
+        "protocol_id": "08cf35b6-f110-4a04-9f84-cce3af5e784e",
+        "start_time": "2024-01-25T10:30:16+02:00",
+        "file_path": "sdcard/results/19_08cf35b6-f110-4a04-9f84-cce3af5e784e",
+        "finished": true
+    },
+    {
+        "experiment_id": "7fb06503-1a32-4e1b-9c62-85230c5de658",
+        "protocol_id": "cb257c9f-5ae1-4529-9788-b107b08d1e60",
+        "start_time": "2024-01-31T15:00:06+02:00",
+        "file_path": "sdcard/results/20_cb257c9f-5ae1-4529-9788-b107b08d1e60",
+        "finished": true
+    },
+    {
+        "experiment_id": "93d268de-49fc-4266-97aa-09c659550ab7",
+        "protocol_id": "4e3a6a8f-486f-423b-8247-323c9d673347",
+        "start_time": "2024-02-07T09:44:14+02:00",
+        "file_path": "sdcard/results/21_4e3a6a8f-486f-423b-8247-323c9d673347",
+        "finished": true
+    },
+    {
+        "experiment_id": "d34fa4fb-b941-4940-9fcd-064fd3b5bc90",
+        "protocol_id": "f8bec41c-d4c9-494d-a533-b3281643fcdb",
+        "start_time": "2024-02-12T10:42:50+02:00",
+        "file_path": "sdcard/results/22_f8bec41c-d4c9-494d-a533-b3281643fcdb",
+        "finished": true
+    },
+    {
+        "experiment_id": "5606ffd2-0b3c-4625-9849-a70429552cee",
+        "protocol_id": "f136d682-238f-4c7d-bdaa-a571b5b8f627",
+        "start_time": "2024-02-28T15:07:27+02:00",
+        "file_path": "sdcard/results/23_f136d682-238f-4c7d-bdaa-a571b5b8f627",
+        "finished": true
+    },
+    {
+        "experiment_id": "8e05e6f5-f3a5-4453-91c2-e51690f7f400",
+        "protocol_id": "ca447cc1-dd41-4148-9794-bd77fe37e842",
+        "start_time": "2024-03-06T10:33:26+02:00",
+        "file_path": "sdcard/results/24_ca447cc1-dd41-4148-9794-bd77fe37e842",
+        "finished": true
+    },
+    {
+        "experiment_id": "00d7f046-ec1d-4f7a-95bc-03da2a93b011",
+        "protocol_id": "69b14851-51b6-4c3e-82f4-0912e0671364",
+        "start_time": "2024-03-19T09:31:12+02:00",
+        "file_path": "sdcard/results/25_69b14851-51b6-4c3e-82f4-0912e0671364",
+        "finished": true
+    },
+    {
+        "experiment_id": "0e105ec3-fddb-411f-8338-9471065a325e",
+        "protocol_id": "5b2569c1-21c1-4733-bd0e-d8105755ee76",
+        "start_time": "2024-03-20T11:14:21+02:00",
+        "file_path": "sdcard/results/26_5b2569c1-21c1-4733-bd0e-d8105755ee76",
+        "finished": true
+    },
+    {
+        "experiment_id": "9a6a17ef-1432-4bcf-88ad-51fa3af7b881",
+        "protocol_id": "5b1d21b1-f02d-4441-826a-1fd689c166df",
+        "start_time": "2024-03-25T10:43:03+02:00",
+        "file_path": "sdcard/results/27_5b1d21b1-f02d-4441-826a-1fd689c166df",
+        "finished": true
+    },
+    {
+        "experiment_id": "6e44f159-8dd9-4a2d-b2f0-2c1db7b20a9e",
+        "protocol_id": "7ec4c2e7-83e0-4c3e-8bb0-0d542e1dbf33",
+        "start_time": "2024-03-28T09:54:09+02:00",
+        "file_path": "sdcard/results/28_7ec4c2e7-83e0-4c3e-8bb0-0d542e1dbf33",
+        "finished": true
+    }
+]

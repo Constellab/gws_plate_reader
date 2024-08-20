@@ -2,7 +2,7 @@
 
 import os
 
-from gws_core import (ConfigParams, ConfigSpecs, CredentialsParam,
+from gws_core import (BoolParam, ConfigParams, ConfigSpecs, CredentialsParam,
                       CredentialsType, OutputSpec, OutputSpecs,
                       StreamlitResource, Task, TaskInputs, TaskOutputs,
                       TypingStyle, task_decorator)
@@ -19,6 +19,9 @@ class BiolectorDashboard(Task):
 
     config_specs: ConfigSpecs = {
         'credentials': CredentialsParam(credentials_type=CredentialsType.OTHER),
+        'mock_service': BoolParam(human_name="Mock Service",
+                                  short_description="Use the mock service to simulate the interaction with Biolector XT (for development purpose)",
+                                  default_value=False, visibility="protected")
     }
 
     output_specs: OutputSpecs = OutputSpecs({'dashboard': OutputSpec(StreamlitResource)})
@@ -40,6 +43,8 @@ class BiolectorDashboard(Task):
 
         streamlit_resource.set_streamlit_folder(self.app_path)
         streamlit_resource.set_param("biolector_credentials", biolector_credentials.to_json_dict())
+        streamlit_resource.set_param("credentials_name", params.get_value('credentials').get('__meta__').get('name'))
+        streamlit_resource.set_param("mock_service", params.get_value('mock_service'))
 
         streamlit_resource.style = TypingStyle.community_icon("bioreactor", background_color='#ff4b4b')
 

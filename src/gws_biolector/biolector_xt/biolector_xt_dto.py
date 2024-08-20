@@ -1,6 +1,6 @@
 
 
-from gws_core.core.model.model_dto import BaseModelDTO
+from gws_core import BaseModelDTO
 
 
 class CredentialsDataBiolector(BaseModelDTO):

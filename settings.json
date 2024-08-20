@@ -3,13 +3,14 @@
     "author": "Gencovery",
     "version": "0.1.0",
     "variables": {
-        "skeleton:testdata_dir": "${CURRENT_DIR}/tests/testdata"
+        "gws_biolector:testdata_dir": "${CURRENT_DIR}/tests/testdata",
+        "gws_biolector:data_dir": "${CURRENT_DIR}/data"
     },
     "environment": {
         "bricks": [
             {
                 "name": "gws_core",
-                "version": "0.7.0"
+                "version": "0.8.4"
             }
         ],
         "pip": [

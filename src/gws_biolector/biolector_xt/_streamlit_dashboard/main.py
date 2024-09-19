@@ -3,6 +3,7 @@ from datetime import datetime
 
 import streamlit as st
 from app.download_exp import download_exp_main
+from app.run_exp import run_exp_main
 from gws_biolector.biolector_xt.biolector_xt_dto import \
     CredentialsDataBiolector
 from gws_biolector.biolector_xt.biolector_xt_mock_service import \
@@ -15,7 +16,7 @@ from pandas import DataFrame
 params: dict
 
 """ run in local :
-streamlit run /lab/user/bricks/gws_core/src/gws_core/streamlit/_main_streamlit_app.py -- --dev_config_file /lab/user/bricks/gws_biolector/src/gws_biolector/biolector_xt/_streamlit_dashboard/dev_config.json --dev_mode true
+gws streamlit run-dev dev_config.json
 """
 
 
@@ -65,13 +66,16 @@ def get_protocols(_service: BiolectorXTServiceI) -> DataFrame:
 
 st.header("Biolector XT Dashboard")
 
-exp_table, exp_list_tab, protocol_tab = st.tabs(
+exp_tab, exp_list_tab, protocol_tab = st.tabs(
     ["Import Biolector experiment", "Biolector experiments", "Biolector protocols"])
 
 service = get_service(params)
 
-with exp_table:
+with exp_tab:
     download_exp_main(params.get('credentials_name'), params.get('mock_service'))
+
+# with run_exp_tab:
+#     run_exp_main()
 
 with exp_list_tab:
     experiments_df = get_experiments(service)

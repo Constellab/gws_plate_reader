@@ -16,6 +16,22 @@ from gws_biolector.biolector_xt.biolector_xt_dto import \
                 short_description="Task to generate a dashboard to interact with Biolector XT",
                 style=TypingStyle.community_icon("bioreactor"))
 class BiolectorDashboard(Task):
+    """Generate a dahsboard to interact with Biolector XT.
+
+    With the dashbaord the user can:
+    - Download the data from a Biolector XT experiment and extract the table
+    - List the available experiments
+    - List the available protocols
+
+    To work, this task requires the credentials to access the Biolector XT API. The credentials must be provided in the
+    Monitoring Credentials section. The credentials must be of type 'Other' and must contain the following fields:
+    - endpoint_url: The URL of the Biolector XT API
+    - secure_channel: A boolean ('true' or 'false') to indicate if the connection is secure (HTTPS) or not
+
+    The task also has an advanced parameter 'Mock Service' that can be used to simulate the interaction with Biolector XT. This
+    parameter is useful for development purposes when the Biolector XT API is not available.
+
+    """
 
     config_specs: ConfigSpecs = {
         'credentials': CredentialsParam(credentials_type=CredentialsType.OTHER),
@@ -37,7 +53,9 @@ class BiolectorDashboard(Task):
         try:
             biolector_credentials = CredentialsDataBiolector.from_json(params.get_value('credentials'))
         except Exception as e:
-            raise ValueError("Invalid credentials data: " + str(e))
+            self.log_error_message("Invalid credentials data: " + str(e))
+            raise ValueError(
+                "Invalid credentials data. The credentials must be of type 'Other' and must contain the fields 'endpoint_url' and 'secure_channel'. Please update your credentials.")
 
         streamlit_resource = StreamlitResource()
 

@@ -4,76 +4,77 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        // configuration to start the gws
-        {
-            "args": [
-                "--runserver"
-            ],
-            "name": "Starts GWS server",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "/lab/.sys/app/manage.py",
-            "console": "integratedTerminal"
-        },
-        // configuration to start the gws
-        {
-            "args": [
-                "--runserver",
-                "--log_level=DEBUG"
-            ],
-            "name": "Starts GWS server - DEBUG log",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "console": "integratedTerminal"
-        },
-        // config to run test on GWS
-        {
-            "args": [
-                "--test",
-                "all"
-            ],
-            "name": "Test all",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "console": "integratedTerminal"
-        },
-        // config to run test on GWS
-        {
-            "args": [
-                "--test",
-                "${input:testFileName}"
-            ],
-            "name": "Test single",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "console": "integratedTerminal",
-        },
-        // reset the dev env
-        {
-            "args": [
-                "--reset_env",
-                "${input:resetKey}"
-            ],
-            "name": "Reset dev env",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "console": "integratedTerminal",
-        },
+      // configuration to start the gws
+      {
+        "args": [
+          "server",
+          "run"
+        ],
+        "name": "Start and debug dev server",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "/lab/.sys/bricks/gws_core/gws_cli/gws_cli/main_cli.py",
+        "console": "integratedTerminal"
+      },
+      // configuration to start the gws with debug log
+      {
+        "args": [
+          "server",
+          "run",
+          "--log-level=DEBUG"
+        ],
+        "name": "Starts and debug dev server - DEBUG log",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "/lab/.sys/bricks/gws_core/gws_cli/gws_cli/main_cli.py",
+        "console": "integratedTerminal"
+      },
+      // config to run test on GWS
+      {
+        "args": [
+          "server",
+          "test",
+          "all",
+          "--brick-name",
+          "${input:brickNameAllTest}"
+        ],
+        "name": "Test and debug all files",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "/lab/.sys/bricks/gws_core/gws_cli/gws_cli/main_cli.py",
+        "console": "integratedTerminal"
+      },
+      // config to run test on GWS
+      {
+        "args": [
+          "server",
+          "test",
+          "${input:testFileName}",
+          "--brick-name",
+          "${input:brickName}"
+        ],
+        "name": "Test and debug a single file",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "/lab/.sys/bricks/gws_core/gws_cli/gws_cli/main_cli.py",
+        "console": "integratedTerminal"
+      }
     ],
     "inputs": [
-        {
-            "id": "testFileName",
-            "type": "promptString",
-            "description": "Name of the test files to run (separated with space)",
-        },
-        {
-            "id": "resetKey",
-            "type": "promptString",
-            "description": "/!\\ This delete all the data of the dev env (prod env will not be affected). Please type 'reset-dev-env' to confirm./!\\",
-        }
+      {
+        "id": "brickNameAllTest",
+        "type": "promptString",
+        "description": "Name of the brick to test. It will run all the test file of this brick"
+      },
+      {
+        "id": "testFileName",
+        "type": "promptString",
+        "description": "Name of the test files to run. It supports multiple filenames separated with space"
+      },
+      {
+        "id": "brickName",
+        "type": "promptString",
+        "description": "Name of the brick that contains the tests file."
+      }
     ]
-}
+  }

@@ -1,7 +1,7 @@
 {
     "name": "gws_biolector",
     "author": "Gencovery",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "variables": {
         "gws_biolector:testdata_dir": "${CURRENT_DIR}/tests/testdata",
         "gws_biolector:data_dir": "${CURRENT_DIR}/data"
@@ -10,7 +10,7 @@
         "bricks": [
             {
                 "name": "gws_core",
-                "version": "0.9.0"
+                "version": "0.9.1"
             }
         ],
         "pip": [

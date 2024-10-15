@@ -17,8 +17,6 @@ class BiolectorXTParser:
 
         self.metadata_folder = metadata_folder
 
-        self.metadata = {}
-
     def get_filter_name(self):
         filter_names = []
         for file_name in os.listdir(self.metadata_folder.path):
@@ -30,6 +28,64 @@ class BiolectorXTParser:
                     filter_names.append(channel["Name"])
                 break
         return filter_names
+
+    def get_wells_cultivation(self):
+        wells_names = []
+        for file_name in os.listdir(self.metadata_folder.path):
+            if file_name.endswith('BXT.json'):
+                file_path = os.path.join(self.metadata_folder.path, file_name)
+                with open(file_path, 'r') as json_file:
+                    metadata_well = json.load(json_file)
+                microplate = metadata_well.get("Microplate", {})
+                wells_names = microplate.get("CultivationLabels", [])
+                break
+        return wells_names
+
+    def get_wells_reservoir(self):
+        wells_names = []
+        for file_name in os.listdir(self.metadata_folder.path):
+            if file_name.endswith('BXT.json'):
+                file_path = os.path.join(self.metadata_folder.path, file_name)
+                with open(file_path, 'r') as json_file:
+                    metadata_well = json.load(json_file)
+                microplate = metadata_well.get("Microplate", {})
+                wells_names = microplate.get("ReservoirLabels", [])
+                break
+        return wells_names
+
+    def get_wells(self):
+        wells_names = []
+        # Get the cultivation wells
+        cultivation_wells = self.get_wells_cultivation()
+        # Get the reservoir wells
+        reservoir_wells = self.get_wells_reservoir()
+        # Merge the two lists
+        wells_names.extend(cultivation_wells)
+        wells_names.extend(reservoir_wells)
+        return wells_names
+
+    def get_wells_label_description(self):
+        wells = self.get_wells()
+        # Initialize the wells_label dictionary with all well labels and default value as None
+        wells_label = {well: "" for well in wells}
+        for file_name in os.listdir(self.metadata_folder.path):
+            if file_name.endswith('BXT.json'):
+                file_path = os.path.join(self.metadata_folder.path, file_name)
+                with open(file_path, 'r') as json_file:
+                    metadata_well = json.load(json_file)
+                microplate = metadata_well.get("Layout", {})
+                cultivation_map = microplate.get("CultivationLabelDescriptionsMap", {})
+                reservoir_map = microplate.get("ReservoirLabelDescriptionsMap", {})
+
+                # Strip and update values for existing wells
+                for well, description in cultivation_map.items():
+                    if well in wells_label:
+                        wells_label[well] = description.strip() or wells_label[well]
+                for well, description in reservoir_map.items():
+                    if well in wells_label:
+                        wells_label[well] = description.strip() or wells_label[well]
+                break
+        return wells_label
 
     def is_microfluidics(self):
         #if data is microfluidics, then there is no value in the wells A01 to B08

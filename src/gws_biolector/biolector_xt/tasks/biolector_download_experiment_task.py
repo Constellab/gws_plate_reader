@@ -3,12 +3,6 @@
 import os
 from time import sleep
 
-from gws_core import (BoolParam, ConfigParams, ConfigSpecs, CredentialsParam,
-                      CredentialsType, File, FileHelper, Folder, InputSpecs,
-                      OutputSpec, OutputSpecs, StrParam, Table, TableImporter,
-                      Task, TaskInputs, TaskOutputs, TypingStyle, ZipCompress,
-                      task_decorator)
-
 from gws_biolector.biolector_xt.biolector_xt_dto import \
     CredentialsDataBiolector
 from gws_biolector.biolector_xt.biolector_xt_mock_service import \
@@ -16,6 +10,11 @@ from gws_biolector.biolector_xt.biolector_xt_mock_service import \
 from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
 from gws_biolector.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
+from gws_core import (BoolParam, ConfigParams, ConfigSpecs, CredentialsParam,
+                      CredentialsType, File, FileHelper, Folder, InputSpecs,
+                      OutputSpec, OutputSpecs, StrParam, Table, TableImporter,
+                      Task, TaskInputs, TaskOutputs, TypingStyle, ZipCompress,
+                      task_decorator)
 
 
 @task_decorator(unique_name="BiolectorDownloadExperiment",
@@ -43,7 +42,8 @@ class BiolectorDownloadExperiment(Task):
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
         # Get the experiment ID
-        experiment_id = params.get_value('experiment_id')
+        experiment_id: str = params.get_value('experiment_id')
+        experiment_id = experiment_id.strip()
 
         service = self.get_service(params.get_value('credentials'), params.get_value('mock_service'))
 
@@ -65,7 +65,7 @@ class BiolectorDownloadExperiment(Task):
                 break
 
         if csv_file is None:
-            raise ValueError("No CSV file found in the downloaded experiment")
+            raise ValueError("No CSV file found in the downloaded experiment zip file")
 
         self.log_info_message(f"Importing csv file: {csv_file}")
 

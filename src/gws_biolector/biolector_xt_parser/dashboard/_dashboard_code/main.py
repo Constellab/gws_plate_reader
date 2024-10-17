@@ -1,8 +1,10 @@
+import os 
 from typing import List
 import plotly.express as px
 import streamlit as st #TODO : j'ai du l'updater vers la version 1.39
 from gws_biolector.biolector_xt_parser.biolectorxt_parser import BiolectorXTParser
 from streamlit_extras.stylable_container import stylable_container
+import pandas as pd
 
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
@@ -24,7 +26,7 @@ def show_content(microplate_object : BiolectorXTParser):
         #Select wells : all by default; otherwise those selected in the microplate
         selected_wells = st.selectbox('$\\text{\large{Sélectionnez les puits à afficher}}$',["Tous", "Sélection sur la plaque de puits"], index = 0, key = "table_wells")
         if selected_wells == "Sélection sur la plaque de puits":
-            st.write(f"L'ensemble des puits cliqués sont : {st.session_state['well_clicked']}")
+            st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
         for filter_selection in selected_filters :
             st.write(f"$\\text{{\Large{{{filter_selection}}}}}$")
             df = microplate.get_table_by_filter(filter_selection)
@@ -39,7 +41,7 @@ def show_content(microplate_object : BiolectorXTParser):
         #Select wells : all by default; otherwise those selected in the microplate
         selected_wells = st.selectbox('$\\text{\large{Sélectionnez les puits à afficher}}$',["Tous", "Sélection sur la plaque de puits"], index = 0, key = "plot_wells")
         if selected_wells == "Sélection sur la plaque de puits":
-            st.write(f"L'ensemble des puits cliqués sont : {st.session_state['well_clicked']}")
+            st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
         selected_time = st.selectbox("$\\text{\large{Sélectionnez l'unité de temps}}$",["Heures", "Minutes", "Secondes"], index = 0, key = "plot_time")
         selected_mode = st.selectbox("$\\text{\large{Sélectionnez le mode d'affichage}}$",["Courbes individuelles", "Moyenne des puits sélectionnés"], index = 0, key = "plot_mode")
 
@@ -63,7 +65,7 @@ def show_content(microplate_object : BiolectorXTParser):
                 for col in cols_y:
                     fig.add_scatter(x=df['time'], y=df[col], mode='lines', name=f"{filter} - {col}", line= {'shape': 'spline', 'smoothing': 1})
             elif selected_mode == "Moyenne des puits sélectionnés":
-                legend_mean = f"(Moyenne de {st.session_state['well_clicked']})"
+                legend_mean = f"(Moyenne de {', '.join(st.session_state['well_clicked'])})"
                 df_mean = df[cols_y].mean(axis = 1)
                 fig.add_scatter(x=df['time'], y=df_mean, mode='lines', name=f"{filter} - moyenne", line= {'shape': 'spline', 'smoothing': 1})
 
@@ -75,6 +77,18 @@ def show_content(microplate_object : BiolectorXTParser):
 
     with tab_analysis:
         st.write("Analysis")
+        # Créer un exemple de DataFrame
+        data = {
+            'Nom': ['Alice', 'Bob', 'Charlie', 'David', 'Emma'],
+            'Âge': [25, 30, 35, 40, 28],
+            'Ville': ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice'],
+            'Score': [85, 90, 88, 92, 87]
+        }
+
+        df = pd.DataFrame(data)
+        st.dataframe(df.style.format(thousands=" ", precision=4))
+        df.to_csv(os.path.join(growth_rate_folder, "growth_rate.csv"))
+
 
 #-------------------------------------------------------------------------------------------#
 
@@ -83,6 +97,7 @@ if not sources:
 
 raw_data = sources[0]
 folder_metadata = sources[1]
+growth_rate_folder = sources[2].path
 microplate = BiolectorXTParser(data_file = raw_data, metadata_folder = folder_metadata)
 
 # Initialize the session state for clicked wells if it doesn't exist
@@ -157,7 +172,7 @@ with st.sidebar:
                             st.session_state['well_clicked'].append(well)
                             st.rerun(scope="app")
 
-            st.write(f"L'ensemble des puits cliqués sont : {st.session_state['well_clicked']}")
+            st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
 
     fragment_sidebar_function()
 

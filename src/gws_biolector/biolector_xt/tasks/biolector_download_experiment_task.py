@@ -1,20 +1,20 @@
 
 
 import os
-from time import sleep
 
-from gws_biolector.biolector_xt.biolector_xt_dto import \
-    CredentialsDataBiolector
-from gws_biolector.biolector_xt.biolector_xt_mock_service import \
-    BiolectorXTMockService
-from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
-from gws_biolector.biolector_xt.biolector_xt_service_i import \
-    BiolectorXTServiceI
 from gws_core import (BoolParam, ConfigParams, ConfigSpecs, CredentialsParam,
                       CredentialsType, File, FileHelper, Folder, InputSpecs,
                       OutputSpec, OutputSpecs, StrParam, Table, TableImporter,
                       Task, TaskInputs, TaskOutputs, TypingStyle, ZipCompress,
                       task_decorator)
+
+from gws_biolector.biolector_xt.biolector_xt_mock_service import \
+    BiolectorXTMockService
+from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
+from gws_biolector.biolector_xt.biolector_xt_service_i import \
+    BiolectorXTServiceI
+from gws_biolector.biolector_xt.biolector_xt_types import \
+    CredentialsDataBiolector
 
 
 @task_decorator(unique_name="BiolectorDownloadExperiment",
@@ -44,6 +44,15 @@ class BiolectorDownloadExperiment(Task):
         # Get the experiment ID
         experiment_id: str = params.get_value('experiment_id')
         experiment_id = experiment_id.strip()
+
+        # Set { at the beginning and } at the end of the experiment ID if not present
+        if not experiment_id.startswith('{'):
+            self.log_info_message("Adding missing '{' at the beginning of the experiment ID")
+            experiment_id = '{' + experiment_id
+
+        if not experiment_id.endswith('}'):
+            self.log_info_message("Adding missing '}' at the end of the experiment ID")
+            experiment_id = experiment_id + '}'
 
         service = self.get_service(params.get_value('credentials'), params.get_value('mock_service'))
 

@@ -5,18 +5,41 @@ from typing import Generator, List
 import grpc
 from google.protobuf.empty_pb2 import Empty
 from google.protobuf.wrappers_pb2 import BoolValue, StringValue
-from gws_core import FileHelper, Settings
-
-from gws_biolector.biolector_xt.biolector_xt_dto import \
-    CredentialsDataBiolector
+from gws_biolector.biolector_xt.biolector_xt_exception import \
+    BiolectorXTConnectException
 from gws_biolector.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
+from gws_biolector.biolector_xt.biolector_xt_types import \
+    CredentialsDataBiolector
 from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
     ContinueProtocolResponse, ExperimentInfo, FileChunk, MetaData,
     ProtocolInfo, StartProtocolResponse, StatusUpdateStreamResponse,
     StdResponse, StopProtocolResponse)
 from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2_grpc import \
     BioLectorXtRemoteControlStub
+from gws_core import FileHelper, Settings
+
+
+class BiolectorXTGrpcChannel():
+    """Class to handle generic gRPC channel exceptions
+    """
+
+    endpoint: str
+    channel: grpc.Channel
+
+    def __init__(self, endpoint: str):
+        self.endpoint = endpoint
+        self.channel = grpc.insecure_channel(endpoint)
+
+    def __enter__(self):
+        return self.channel.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        result = self.channel.__exit__(exc_type, exc_val, exc_tb)
+        if isinstance(exc_val, grpc._channel._InactiveRpcError):
+            raise BiolectorXTConnectException()
+
+        return result
 
 
 class BiolectorXTService(BiolectorXTServiceI):
@@ -25,26 +48,26 @@ class BiolectorXTService(BiolectorXTServiceI):
 
     _credentials: CredentialsDataBiolector
 
-    timeout = 10
+    timeout = 20
 
     def __init__(self, credentials: CredentialsDataBiolector) -> None:
         self._credentials = credentials
 
     def get_protocols(self) -> List[ProtocolInfo]:
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
-            return stub.GetProtocols(Empty(), timeout=self.timeout)
+            return stub.GetProtocols(Empty(), timeout=self.timeout).protocols
 
     def get_experiments(self) -> List[ExperimentInfo]:
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
-            return stub.GetExperimentList(Empty(), timeout=self.timeout)
+            return stub.GetExperimentList(Empty(), timeout=self.timeout).experiment
 
     def upload_protocol(self, file_path: str) -> StdResponse:
         if not FileHelper.exists_on_os(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
 
             return stub.UploadProtocol(self._upload_protocol_chunker(file_path), timeout=self.timeout)
@@ -78,22 +101,22 @@ class BiolectorXTService(BiolectorXTServiceI):
                 yield file_chunk
 
     def start_protocol(self, protocol_id: str) -> StartProtocolResponse:
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
             return stub.StartProtocol(StringValue(value=protocol_id), timeout=self.timeout)
 
     def stop_current_protocol(self) -> StopProtocolResponse:
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
             return stub.StopProtocol(Empty(), timeout=self.timeout)
 
     def pause_current_protocol(self) -> None:
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
             return stub.PauseProtocol(BoolValue(value=True), timeout=self.timeout)
 
     def resume_current_protocol(self) -> ContinueProtocolResponse:
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
             return stub.ContinueProtocol(Empty(), timeout=self.timeout)
 
@@ -105,26 +128,27 @@ class BiolectorXTService(BiolectorXTServiceI):
         :return: path to the downloaded file
         :rtype: str
         """
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
-            chunk: FileChunk = stub.DownloadExperiment(StringValue(value=experiment_id), timeout=self.timeout)
+            response = stub.DownloadExperiment(StringValue(value=experiment_id), timeout=self.timeout)
 
             tmp_dir = Settings.make_temp_dir()
             file_path = os.path.join(tmp_dir, f"{experiment_id}.zip")
 
-            with open(file_path, "wb") as file:
-                file.write(chunk.chunk_data)
+            try:
+                with open(file_path, "wb") as file:
+                    for chunk in response:
+                        file.write(chunk.chunk_data)
+            except Exception as e:
+                raise Exception(
+                    f"Error during the download of biolector experiment. Error : '{e.details()}'. Status : '{e.code().name}'")
 
             return file_path
 
     def get_status_update_stream(self) -> StatusUpdateStreamResponse:
-        with self.get_grpc_channed() as channel:
+        with self.get_grpc_channel() as channel:
             stub = BioLectorXtRemoteControlStub(channel)
             return stub.StatusUpdateStream(Empty(), timeout=self.timeout)
 
-    def get_grpc_channed(self) -> grpc.Channel:
-        if self._credentials.secure_channel:
-            # TODO DEFINE CREDENTIALS
-            return grpc.secure_channel(self._credentials.endpoint_url, credentials=None)
-        else:
-            return grpc.insecure_channel(self._credentials.endpoint_url)
+    def get_grpc_channel(self) -> BiolectorXTGrpcChannel:
+        return BiolectorXTGrpcChannel(self._credentials.endpoint_url)

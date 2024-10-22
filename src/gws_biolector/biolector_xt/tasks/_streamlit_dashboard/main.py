@@ -3,21 +3,24 @@ from datetime import datetime
 
 import streamlit as st
 from app.download_exp import download_exp_main
-from app.run_exp import run_exp_main
-from gws_biolector.biolector_xt.biolector_xt_dto import \
-    CredentialsDataBiolector
+from pandas import DataFrame
+
 from gws_biolector.biolector_xt.biolector_xt_mock_service import \
     BiolectorXTMockService
 from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
 from gws_biolector.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
-from pandas import DataFrame
+from gws_biolector.biolector_xt.biolector_xt_types import \
+    CredentialsDataBiolector
 
 params: dict
 
 """ run in local :
-gws streamlit run-dev dev_config.json
+gws streamlit run-dev dev_config.json --server.runOnSave
 """
+
+# TODO : handle error when biolector is off or not reachable
+# TODO : if get experiment didn't work, don't break the app, same for protocol
 
 
 def get_service(params: dict) -> BiolectorXTServiceI:
@@ -30,15 +33,16 @@ def get_service(params: dict) -> BiolectorXTServiceI:
 
 @st.cache_data
 def get_experiments(_service: BiolectorXTServiceI) -> DataFrame:
-    experiments = _service.get_experiments()
+    experiments = _service.get_biolector_experiments()
     exp_dict = []
-    for exp_folder in experiments:
+    for exp in experiments:
         # date format : 2023-12-07T18:11:41+02:00, convert to datetime
-        exp_dict.append({'Id': exp_folder.experiment_id,
-                         'Protocol id': exp_folder.protocol_id,
-                         'Start Date': datetime.fromisoformat(exp_folder.start_time),
-                         'File path': exp_folder.file_path,
-                         'Finished': 'Yes' if exp_folder.finished else 'No'
+        exp_dict.append({'Id': exp.id,
+                         'Protocol id': exp.protocol.id,
+                         'Protocol name': exp.protocol.name,
+                         'Start Date': exp.start_time,
+                         'File path': exp.file_path,
+                         'Finished': 'Yes' if exp.finished else 'No'
                          })
 
     df = DataFrame(exp_dict)
@@ -78,13 +82,21 @@ with exp_tab:
 #     run_exp_main()
 
 with exp_list_tab:
-    experiments_df = get_experiments(service)
 
-    st.table(experiments_df)
+    try:
+        experiments_df = get_experiments(service)
+        st.dataframe(experiments_df, use_container_width=True,
+                     hide_index=True, height=600)
+    except Exception as e:
+        st.error(f"An error occurred while fetching experiments: {str(e)}")
 
 with protocol_tab:
-    protocols_df = get_protocols(service)
-    st.table(protocols_df)
+    try:
+        protocols_df = get_protocols(service)
+        st.dataframe(protocols_df, use_container_width=True,
+                     hide_index=True, height=600)
+    except Exception as e:
+        st.error(f"An error occurred while fetching protocols: {str(e)}")
 
 
 # Initialize session state for current directory

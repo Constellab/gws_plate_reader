@@ -7,7 +7,7 @@ from gws_core import (BoolParam, ConfigParams, ConfigSpecs, CredentialsParam,
                       StreamlitResource, Task, TaskInputs, TaskOutputs,
                       TypingStyle, task_decorator)
 
-from gws_biolector.biolector_xt.biolector_xt_dto import \
+from gws_biolector.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
 
 

@@ -2,11 +2,12 @@
 from typing import List, Optional
 
 import streamlit as st
-from gws_biolector.biolector_xt.tasks.biolector_download_experiment_task import \
-    BiolectorDownloadExperiment
 from gws_core import (FrontService, Scenario, ScenarioCreationType,
                       ScenarioProxy, ScenarioSearchBuilder, ScenarioStatus,
                       Tag)
+
+from gws_biolector.biolector_xt.tasks.biolector_download_experiment_task import \
+    BiolectorDownloadExperiment
 
 DOWNLOAD_TAG_KEY = "biolector_download"
 
@@ -23,24 +24,33 @@ def download_exp_main(credentials_name: str, mock_service: bool):
     # Handle form submission
     if submit_button:
 
+        if not exp_id:
+            st.error('Please provide the biolector experiment id')
+            return
+
         # check if the biolector experiment was already downloaded
         st.session_state.existing_scenario = get_biolector_download_experiment(exp_id)
 
         # If there is no existing scenario, download the experiment
         if not st.session_state.existing_scenario:
-            download_experiment(exp_id, credentials_name, mock_service)
+            scenario = download_experiment(exp_id, credentials_name, mock_service)
+            st.session_state.scenario_model = scenario
 
     if st.session_state.existing_scenario:
-        st.text('The biolector experiment result was already donwnloaded')
+        st.text('The biolector experiment result was already downloaded')
         if st.button('Force download'):
-            download_experiment(exp_id, credentials_name, mock_service)
+            scenario = download_experiment(exp_id, credentials_name, mock_service)
+            st.session_state.scenario_model = scenario
+
         else:
-            st.session_state.exp_model_id = st.session_state.existing_scenario
+            st.session_state.scenario_model = st.session_state.existing_scenario
 
     # Show a link to open the scenario
-    if 'exp_model_id' in st.session_state:
+    if 'scenario_model' in st.session_state:
 
-        exp_url = FrontService.get_scenario_url(st.session_state.exp_model_id)
+        scenario: Scenario = st.session_state.scenario_model
+
+        exp_url = FrontService.get_scenario_url(scenario.id)
 
         # show a link with target=_blank to open the scenario in a new tab
         st.link_button("Open constellab scenario", exp_url)
@@ -48,7 +58,7 @@ def download_exp_main(credentials_name: str, mock_service: bool):
 
 def download_experiment(biolector_exp_id: str,
                         credentials_name: str,
-                        mock_service: bool) -> str:
+                        mock_service: bool) -> Scenario:
     """
     Method that creates a scenario to download the biolector experiment data.
 
@@ -58,7 +68,7 @@ def download_experiment(biolector_exp_id: str,
     :rtype: str
     """
 
-    st.session_state.exp_model_id = None
+    st.session_state.scenario_model = None
 
     with st.spinner('Downloading experiment file'):
         scenario = ScenarioProxy(title=f"Download Biolector experiment {biolector_exp_id}",
@@ -75,13 +85,15 @@ def download_experiment(biolector_exp_id: str,
         protocol.add_sink('result', download_task >> 'result')
         protocol.add_sink('raw_data', download_task >> 'raw_data', False)
 
-        scenario.run()
+        try:
+            scenario.run()
+        except Exception as e:
+            st.error(f'An error occurred while downloading the experiment : {str(e)}')
 
-        st.session_state.exp_model_id = scenario.get_model_id()
-        return scenario.get_model_id()
+        return scenario.refresh().get_model()
 
 
-def get_biolector_download_experiment(biolector_exp_id: str) -> Optional[str]:
+def get_biolector_download_experiment(biolector_exp_id: str) -> Optional[Scenario]:
     """Method to retrieve the downloader scenario for a biolector exp id
 
     :param biolector_exp_id: _description_
@@ -97,6 +109,6 @@ def get_biolector_download_experiment(biolector_exp_id: str) -> Optional[str]:
     scenarios: List[Scenario] = list(search_builder.build_search())
 
     if len(scenarios) > 0:
-        return scenarios[0].id
+        return scenarios[0]
 
     return None

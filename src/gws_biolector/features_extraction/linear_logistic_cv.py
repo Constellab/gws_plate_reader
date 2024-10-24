@@ -20,9 +20,9 @@ class LogisticGrowthFitter:
         self.df_params = pd.DataFrame()
         self.df_fitted_curves = pd.DataFrame()
 
-    def logistic_growth(self, time, max_absorbance, growth_rate, lag_time):
+    def logistic_growth(self, time, max_absorbance, growth_rate, lag_time,initial_absorbance):
         """Logistic growth function."""
-        return max_absorbance / (1 + np.exp(-growth_rate * (time - lag_time)))
+        return initial_absorbance + (max_absorbance - initial_absorbance) / (1 + np.exp(-growth_rate * (time - lag_time)))
 
     def fit_logistic_growth_with_cv(self):
         """Fit logistic growth model using cross-validation for each well."""
@@ -34,19 +34,25 @@ class LogisticGrowthFitter:
 
         for well in self.data.columns[1:]:
             well_data = self.data[well].values
+            initial_max_abs=np.max(well_data)
+            initial_growth_rate= np.max(np.diff(well_data))
+            initial_absorbance=well_data[0]
             r2_scores = []
             best_fit_params = None
             best_fit_r2 = -np.inf
+
+            initial_guesses=[initial_max_abs,initial_growth_rate,0,initial_absorbance]
+
 
             for train_index, test_index in kf.split(time):
                 time_train, time_test = time[train_index], time[test_index]
                 well_data_train, well_data_test = well_data[train_index], well_data[test_index]
 
                 initial_guesses = [2, 0.8, 1]
-                params, _ = curve_fit(self.logistic_growth, time_train, well_data_train, p0=initial_guesses, maxfev= 5000)
+                params, _ = curve_fit(self.logistic_growth, time_train, well_data_train, p0=initial_guesses, maxfev= 5000,bounds=(0,np.inf))
                 max_absorbance, growth_rate, lag_time = params
 
-                well_data_pred = self.logistic_growth(time_test, max_absorbance, growth_rate, lag_time)
+                well_data_pred = self.logistic_growth(time_test, max_absorbance, growth_rate, lag_time, initial_absorbance)
                 r2 = r2_score(well_data_test, well_data_pred)
                 r2_scores.append(r2)
 
@@ -54,12 +60,13 @@ class LogisticGrowthFitter:
                     best_fit_params = params
                     best_fit_r2 = np.mean(r2_scores)
 
-            fitted_max_absorbance, fitted_growth_rate, fitted_lag_time = best_fit_params
+            fitted_max_absorbance, fitted_growth_rate, fitted_lag_time,fitted_initial_absorbance = best_fit_params
             df_params_list.append(pd.DataFrame({
                 'Well': [well],
                 'Max_Absorbance': [fitted_max_absorbance],
                 'Growth_Rate': [fitted_growth_rate],
                 'Lag_Time': [fitted_lag_time],
+                'Initial_Absorbance': [fitted_initial_absorbance],
                 'Avg_R2': [best_fit_r2]
             }))
 

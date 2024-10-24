@@ -43,7 +43,7 @@ class LogisticGrowthFitter:
                 well_data_train, well_data_test = well_data[train_index], well_data[test_index]
 
                 initial_guesses = [2, 0.8, 1]
-                params, _ = curve_fit(self.logistic_growth, time_train, well_data_train, p0=initial_guesses)
+                params, _ = curve_fit(self.logistic_growth, time_train, well_data_train, p0=initial_guesses, maxfev= 5000)
                 max_absorbance, growth_rate, lag_time = params
 
                 well_data_pred = self.logistic_growth(time_test, max_absorbance, growth_rate, lag_time)

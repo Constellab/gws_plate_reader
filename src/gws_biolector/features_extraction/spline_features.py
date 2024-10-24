@@ -1,9 +1,3 @@
-import BiolectorXTParser
-import numpy as np
-import pandas as pd
-from scipy.interpolate import UnivariateSpline
-from sklearn.model_selection import KFold
-
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 from sklearn.model_selection import KFold

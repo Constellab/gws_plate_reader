@@ -1,10 +1,10 @@
-import os 
+import os
 from typing import List
 import plotly.express as px
-import streamlit as st #TODO : j'ai du l'updater vers la version 1.39
+import streamlit as st
 from gws_biolector.biolector_xt_parser.biolectorxt_parser import BiolectorXTParser
 from streamlit_extras.stylable_container import stylable_container
-import pandas as pd
+from gws_biolector.features_extraction.linear_logistic_cv import LogisticGrowthFitter
 
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
@@ -42,8 +42,11 @@ def show_content(microplate_object : BiolectorXTParser):
         selected_wells = st.selectbox('$\\text{\large{Sélectionnez les puits à afficher}}$',["Tous", "Sélection sur la plaque de puits"], index = 0, key = "plot_wells")
         if selected_wells == "Sélection sur la plaque de puits":
             st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
-        selected_time = st.selectbox("$\\text{\large{Sélectionnez l'unité de temps}}$",["Heures", "Minutes", "Secondes"], index = 0, key = "plot_time")
-        selected_mode = st.selectbox("$\\text{\large{Sélectionnez le mode d'affichage}}$",["Courbes individuelles", "Moyenne des puits sélectionnés"], index = 0, key = "plot_mode")
+        col1, col2 = st.columns([1,1])
+        with col1:
+            selected_time = st.selectbox("$\\text{\large{Sélectionnez l'unité de temps}}$",["Heures", "Minutes", "Secondes"], index = 0, key = "plot_time")
+        with col2:
+            selected_mode = st.selectbox("$\\text{\large{Sélectionnez le mode d'affichage}}$",["Courbes individuelles", "Moyenne des puits sélectionnés"], index = 0, key = "plot_mode")
 
         # Create an empty Plotly figure to add all the curves
         fig = px.line()
@@ -76,18 +79,34 @@ def show_content(microplate_object : BiolectorXTParser):
 
 
     with tab_analysis:
-        st.write("Analysis")
-        # Créer un exemple de DataFrame
-        data = {
-            'Nom': ['Alice', 'Bob', 'Charlie', 'David', 'Emma'],
-            'Âge': [25, 30, 35, 40, 28],
-            'Ville': ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice'],
-            'Score': [85, 90, 88, 92, 87]
-        }
+        filters = microplate_object.get_filter_name()
+        # Récupération des filtres contenant le mot "Biomass"
+        biomass_filters = [f for f in filters if "Biomass" in f]
+        # Vérification s'il y a des filtres correspondant
+        if biomass_filters:
+            filter_selection: List[str] = st.selectbox('$\\text{\large{Sélectionnez les observateurs à afficher}}$', biomass_filters, index = 0, key="analysis_filters")
+        else:
+            st.error("Aucun filtre contenant 'Biomass' n'est disponible.")
+        #Select wells : all by default; otherwise those selected in the microplate
+        selected_wells = st.selectbox('$\\text{\large{Sélectionnez les puits à afficher}}$',["Sélection sur la plaque de puits","Tous"], index = 0, key = "analysis_wells")
+        if selected_wells == "Sélection sur la plaque de puits":
+            st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
+        #Get number of splits
+        n_splits_selected = st.number_input(label = "Number of splits", value=5, step = 1, min_value = 5)
+        #Get the dataframe
+        df = microplate.get_table_by_filter(filter_selection)
+        df = df.drop(["time"], axis=1)
+        if selected_wells == "Sélection sur la plaque de puits":
+            df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
+        #Features extraction functions
+        logistic_fitter = LogisticGrowthFitter(df, n_splits=n_splits_selected)
+        logistic_fitter.fit_logistic_growth_with_cv()
+        fig = logistic_fitter.plot_fitted_curves_with_r2()
+        st.dataframe(logistic_fitter.df_params)
+        logistic_fitter.df_params.to_csv(os.path.join(growth_rate_folder, "growth_rate.csv"))
+        st.plotly_chart(fig)
 
-        df = pd.DataFrame(data)
-        st.dataframe(df.style.format(thousands=" ", precision=4))
-        df.to_csv(os.path.join(growth_rate_folder, "growth_rate.csv"))
+
 
 
 #-------------------------------------------------------------------------------------------#

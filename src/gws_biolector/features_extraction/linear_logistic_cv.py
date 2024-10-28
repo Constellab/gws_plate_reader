@@ -1,13 +1,16 @@
 import numpy as np
 import pandas as pd
+import streamlit as st
 from scipy.optimize import curve_fit
 from sklearn.model_selection import KFold
+
+from scipy.interpolate import interp1d, UnivariateSpline, LSQUnivariateSpline
 from sklearn.metrics import r2_score
 import plotly.graph_objs as go
 import plotly.express as px
 
 class LogisticGrowthFitter:
-    def __init__(self, data: pd.DataFrame, n_splits: int = 5):
+    def __init__(self, data: pd.DataFrame, n_splits: int = 3):
         """
         Initialize the LogisticGrowthFitter class.
 
@@ -34,22 +37,37 @@ class LogisticGrowthFitter:
 
         for well in self.data.columns[1:]:
             well_data = self.data[well].values
-            initial_max_abs=np.max(well_data)
-            initial_growth_rate= np.max(np.diff(well_data))
-            initial_absorbance=well_data[0]
             r2_scores = []
             best_fit_params = None
             best_fit_r2 = -np.inf
+            #weights = np.ones_like(well_data)
+            #weights[0] = 10
+            #spline_interp = LSQUnivariateSpline(time, well_data, t=time[1:-1], w=weights)
+            spline_interp =UnivariateSpline(time, well_data,s=0.045)
+            #spline_derivative = spline_interp.derivative()
+            #derivative_values_max = np.max(spline_derivative(time))
 
+            #time_fine = np.linspace(time.min(), time.max(), 500)
+            well_data=spline_interp(time)
+            initial_max_abs=np.max(well_data)
+            initial_growth_rate= np.max(np.diff(well_data))
+            initial_absorbance=well_data[0]
             initial_guesses=[initial_max_abs,initial_growth_rate,0,initial_absorbance]
+            upperbound_initial_absorbance= initial_absorbance*1.1
+            lowerbound_initial_absorbance= initial_absorbance*0.90
+
+
 
 
             for train_index, test_index in kf.split(time):
                 time_train, time_test = time[train_index], time[test_index]
                 well_data_train, well_data_test = well_data[train_index], well_data[test_index]
 
-                
-                params, _ = curve_fit(self.logistic_growth, time_train, well_data_train, p0=initial_guesses, maxfev= 5000,bounds=(0,np.inf))
+
+
+
+                bounds = ([0, 0, 0,lowerbound_initial_absorbance], [np.inf,np.inf , np.inf,upperbound_initial_absorbance])
+                params, _ = curve_fit(self.logistic_growth, time_train, well_data_train, p0=initial_guesses, maxfev= 5000,bounds=bounds)
                 max_absorbance, growth_rate, lag_time,initial_absorbance = params
 
                 well_data_pred = self.logistic_growth(time_test, max_absorbance, growth_rate, lag_time, initial_absorbance)

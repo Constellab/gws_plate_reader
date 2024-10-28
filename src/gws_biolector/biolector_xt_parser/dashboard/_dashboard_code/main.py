@@ -98,7 +98,10 @@ def show_content(microplate_object : BiolectorXTParser):
         #Select wells : all by default; otherwise those selected in the microplate
         selected_wells = st.selectbox('$\\text{\large{Sélectionnez les puits à afficher}}$',["Sélection sur la plaque de puits","Tous"], index = 0, key = "analysis_wells")
         if selected_wells == "Sélection sur la plaque de puits":
-            st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
+            if len(st.session_state['well_clicked'])==0 :
+                st.write("Please select at least one well in the microplate on the left.")
+            else: 
+                st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
         #Get number of splits
         n_splits_selected = st.number_input(label = "Number of splits", value=5, step = 1, min_value = 5)
         #Get the dataframe
@@ -107,12 +110,13 @@ def show_content(microplate_object : BiolectorXTParser):
         if selected_wells == "Sélection sur la plaque de puits":
             df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
         #Features extraction functions
-        logistic_fitter = LogisticGrowthFitter(df, n_splits=n_splits_selected)
-        logistic_fitter.fit_logistic_growth_with_cv()
-        fig = logistic_fitter.plot_fitted_curves_with_r2()
-        st.dataframe(logistic_fitter.df_params.style.format(thousands=" ", precision=4))
-        logistic_fitter.df_params.to_csv(os.path.join(growth_rate_folder, "growth_rate.csv"))
-        st.plotly_chart(fig)
+        if selected_wells == "Tous" or len(st.session_state['well_clicked'])>=1 :
+            logistic_fitter = LogisticGrowthFitter(df, n_splits=n_splits_selected)
+            logistic_fitter.fit_logistic_growth_with_cv()
+            fig = logistic_fitter.plot_fitted_curves_with_r2()
+            st.dataframe(logistic_fitter.df_params.style.format(thousands=" ", precision=4))
+            logistic_fitter.df_params.to_csv(os.path.join(growth_rate_folder, "growth_rate.csv"))
+            st.plotly_chart(fig)
 
 
 

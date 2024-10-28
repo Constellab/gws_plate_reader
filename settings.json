@@ -1,7 +1,7 @@
 {
     "name": "gws_biolector",
     "author": "Gencovery",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "variables": {
         "gws_biolector:testdata_dir": "${CURRENT_DIR}/tests/testdata",
         "gws_biolector:data_dir": "${CURRENT_DIR}/data"

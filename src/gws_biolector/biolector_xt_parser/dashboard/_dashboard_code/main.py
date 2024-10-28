@@ -47,6 +47,8 @@ def show_content(microplate_object : BiolectorXTParser):
             selected_time = st.selectbox("$\\text{\large{Sélectionnez l'unité de temps}}$",["Heures", "Minutes", "Secondes"], index = 0, key = "plot_time")
         with col2:
             selected_mode = st.selectbox("$\\text{\large{Sélectionnez le mode d'affichage}}$",["Courbes individuelles", "Moyenne des puits sélectionnés"], index = 0, key = "plot_mode")
+        if selected_mode == "Moyenne des puits sélectionnés":
+            error_band = st.checkbox("Error band")
 
         # Create an empty Plotly figure to add all the curves
         fig = px.line()
@@ -70,7 +72,13 @@ def show_content(microplate_object : BiolectorXTParser):
             elif selected_mode == "Moyenne des puits sélectionnés":
                 legend_mean = f"(Moyenne de {', '.join(st.session_state['well_clicked'])})"
                 df_mean = df[cols_y].mean(axis = 1)
+                df_std = df[cols_y].std(axis = 1)
                 fig.add_scatter(x=df['time'], y=df_mean, mode='lines', name=f"{filter} - moyenne", line= {'shape': 'spline', 'smoothing': 1})
+                if error_band:
+                    # Add the error band (mean ± standard deviation)
+                    fig.add_scatter(x=df['time'], y=df_mean + df_std, mode='lines', line=dict(width=0), showlegend=False)
+                    fig.add_scatter(x=df['time'], y=df_mean - df_std, mode='lines', line=dict(width=0), fill='tonexty', name=f'Error Band {filter} (±1 SD)')
+
 
         selected_filters_str = ', '.join(selected_filters)
         fig.update_layout(title=f'Graphique des {selected_filters_str} {legend_mean}', xaxis_title=f'Temps ({selected_time})', yaxis_title=f'{selected_filters_str}')
@@ -102,7 +110,7 @@ def show_content(microplate_object : BiolectorXTParser):
         logistic_fitter = LogisticGrowthFitter(df, n_splits=n_splits_selected)
         logistic_fitter.fit_logistic_growth_with_cv()
         fig = logistic_fitter.plot_fitted_curves_with_r2()
-        st.dataframe(logistic_fitter.df_params)
+        st.dataframe(logistic_fitter.df_params.style.format(thousands=" ", precision=4))
         logistic_fitter.df_params.to_csv(os.path.join(growth_rate_folder, "growth_rate.csv"))
         st.plotly_chart(fig)
 

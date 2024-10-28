@@ -22,32 +22,32 @@ def show_content(microplate_object : BiolectorXTParser):
 
     with tab_table:
         filters = microplate_object.get_filter_name()
-        selected_filters : List[str] = st.multiselect('$\\text{\large{Sélectionnez les observateurs à afficher}}$', filters, default=filters, key = "table_filters")
+        selected_filters : List[str] = st.multiselect('$\\text{\large{Select the observers to be displayed}}$', filters, default=filters, key = "table_filters")
         #Select wells : all by default; otherwise those selected in the microplate
-        selected_wells = st.selectbox('$\\text{\large{Sélectionnez les puits à afficher}}$',["Tous", "Sélection sur la plaque de puits"], index = 0, key = "table_wells")
-        if selected_wells == "Sélection sur la plaque de puits":
-            st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
+        selected_wells = st.selectbox('$\\text{\large{Select the wells to display}}$',["All", "Selection on the well plate"], index = 0, key = "table_wells")
+        if selected_wells == "Selection on the well plate":
+            st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
         for filter_selection in selected_filters :
             st.write(f"$\\text{{\Large{{{filter_selection}}}}}$")
             df = microplate.get_table_by_filter(filter_selection)
-            if selected_wells == "Sélection sur la plaque de puits":
+            if selected_wells == "Selection on the well plate":
                 df = df[["time", "Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
             st.dataframe(df.style.format(thousands=" ", precision=4))
 
 
     with tab_plot:
         legend_mean = ""
-        selected_filters = st.multiselect('$\\text{\large{Sélectionnez les observateurs à afficher}}$', filters, default=filters, key = "plot_filters")
+        selected_filters = st.multiselect('$\\text{\large{Select the observers to be displayed}}$', filters, default=filters, key = "plot_filters")
         #Select wells : all by default; otherwise those selected in the microplate
-        selected_wells = st.selectbox('$\\text{\large{Sélectionnez les puits à afficher}}$',["Tous", "Sélection sur la plaque de puits"], index = 0, key = "plot_wells")
-        if selected_wells == "Sélection sur la plaque de puits":
-            st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
+        selected_wells = st.selectbox('$\\text{\large{Select the wells to display}}$',["All", "Selection on the well plate"], index = 0, key = "plot_wells")
+        if selected_wells == "Selection on the well plate":
+            st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
         col1, col2 = st.columns([1,1])
         with col1:
-            selected_time = st.selectbox("$\\text{\large{Sélectionnez l'unité de temps}}$",["Heures", "Minutes", "Secondes"], index = 0, key = "plot_time")
+            selected_time = st.selectbox("$\\text{\large{Select the time unit}}$",["Hours", "Minutes", "Seconds"], index = 0, key = "plot_time")
         with col2:
-            selected_mode = st.selectbox("$\\text{\large{Sélectionnez le mode d'affichage}}$",["Courbes individuelles", "Moyenne des puits sélectionnés"], index = 0, key = "plot_mode")
-        if selected_mode == "Moyenne des puits sélectionnés":
+            selected_mode = st.selectbox("$\\text{\large{Select the display mode}}$",["Individual curves", "Mean of selected wells"], index = 0, key = "plot_mode")
+        if selected_mode == "Mean of selected wells":
             error_band = st.checkbox("Error band")
 
         # Create an empty Plotly figure to add all the curves
@@ -55,25 +55,25 @@ def show_content(microplate_object : BiolectorXTParser):
         for filter in selected_filters :
             df = microplate.get_table_by_filter(filter)
             df = df.iloc[:, 1:]
-            if selected_wells == "Sélection sur la plaque de puits":
+            if selected_wells == "Selection on the well plate":
                 df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
             cols_y = [col for col in df.columns if col != 'Temps_en_h']
             #Adapt unit of time
-            if selected_time == "Heures":
+            if selected_time == "Hours":
                 df["time"] = df["Temps_en_h"]
             elif selected_time == "Minutes":
                 df["time"] = df["Temps_en_h"]*60
-            elif selected_time == "Secondes":
+            elif selected_time == "Seconds":
                 df["time"] = df["Temps_en_h"]*3600
-            if selected_mode == "Courbes individuelles":
+            if selected_mode == "Individual curves":
                 # Adding curves to the figure for each filter
                 for col in cols_y:
                     fig.add_scatter(x=df['time'], y=df[col], mode='lines', name=f"{filter} - {col}", line= {'shape': 'spline', 'smoothing': 1})
-            elif selected_mode == "Moyenne des puits sélectionnés":
-                legend_mean = f"(Moyenne de {', '.join(st.session_state['well_clicked'])})"
+            elif selected_mode == "Mean of selected wells":
+                legend_mean = f"(Mean of  {', '.join(st.session_state['well_clicked'])})"
                 df_mean = df[cols_y].mean(axis = 1)
                 df_std = df[cols_y].std(axis = 1)
-                fig.add_scatter(x=df['time'], y=df_mean, mode='lines', name=f"{filter} - moyenne", line= {'shape': 'spline', 'smoothing': 1})
+                fig.add_scatter(x=df['time'], y=df_mean, mode='lines', name=f"{filter} - mean", line= {'shape': 'spline', 'smoothing': 1})
                 if error_band:
                     # Add the error band (mean ± standard deviation)
                     fig.add_scatter(x=df['time'], y=df_mean + df_std, mode='lines', line=dict(width=0), showlegend=False)
@@ -81,7 +81,7 @@ def show_content(microplate_object : BiolectorXTParser):
 
 
         selected_filters_str = ', '.join(selected_filters)
-        fig.update_layout(title=f'Graphique des {selected_filters_str} {legend_mean}', xaxis_title=f'Temps ({selected_time})', yaxis_title=f'{selected_filters_str}')
+        fig.update_layout(title=f'Plot of {selected_filters_str} {legend_mean}', xaxis_title=f'Time ({selected_time})', yaxis_title=f'{selected_filters_str}')
         # Show the plot
         st.plotly_chart(fig)
 
@@ -92,25 +92,25 @@ def show_content(microplate_object : BiolectorXTParser):
         biomass_filters = [f for f in filters if "Biomass" in f]
         # Vérification s'il y a des filtres correspondant
         if biomass_filters:
-            filter_selection: List[str] = st.selectbox('$\\text{\large{Sélectionnez les observateurs à afficher}}$', biomass_filters, index = 0, key="analysis_filters")
+            filter_selection: List[str] = st.selectbox('$\\text{\large{Select the observers to be displayed}}$', biomass_filters, index = 0, key="analysis_filters")
         else:
-            st.error("Aucun filtre contenant 'Biomass' n'est disponible.")
+            st.error("No filter containing 'Biomass' is available.")
         #Select wells : all by default; otherwise those selected in the microplate
-        selected_wells = st.selectbox('$\\text{\large{Sélectionnez les puits à afficher}}$',["Sélection sur la plaque de puits","Tous"], index = 0, key = "analysis_wells")
-        if selected_wells == "Sélection sur la plaque de puits":
+        selected_wells = st.selectbox('$\\text{\large{Select the wells to display}}$',["Selection on the well plate","All"], index = 0, key = "analysis_wells")
+        if selected_wells == "Selection on the well plate":
             if len(st.session_state['well_clicked'])==0 :
                 st.write("Please select at least one well in the microplate on the left.")
-            else: 
-                st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
+            else:
+                st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
         #Get number of splits
         n_splits_selected = st.number_input(label = "Number of splits", value=5, step = 1, min_value = 5)
         #Get the dataframe
         df = microplate.get_table_by_filter(filter_selection)
         df = df.drop(["time"], axis=1)
-        if selected_wells == "Sélection sur la plaque de puits":
+        if selected_wells == "Selection on the well plate":
             df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
         #Features extraction functions
-        if selected_wells == "Tous" or len(st.session_state['well_clicked'])>=1 :
+        if selected_wells == "All" or len(st.session_state['well_clicked'])>=1 :
             logistic_fitter = LogisticGrowthFitter(df, n_splits=n_splits_selected)
             logistic_fitter.fit_logistic_growth_with_cv()
             fig = logistic_fitter.plot_fitted_curves_with_r2()
@@ -203,7 +203,7 @@ with st.sidebar:
                             st.session_state['well_clicked'].append(well)
                             st.rerun(scope="app")
 
-            st.write(f"L'ensemble des puits cliqués sont : {', '.join(st.session_state['well_clicked'])}")
+            st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
 
     fragment_sidebar_function()
 

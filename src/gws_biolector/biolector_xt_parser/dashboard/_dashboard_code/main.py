@@ -102,8 +102,6 @@ def show_content(microplate_object : BiolectorXTParser):
                 st.write("Please select at least one well in the microplate on the left.")
             else:
                 st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
-        #Get number of splits
-        n_splits_selected = st.number_input(label = "Number of splits", value=5, step = 1, min_value = 5)
         #Get the dataframe
         df = microplate.get_table_by_filter(filter_selection)
         df = df.drop(["time"], axis=1)
@@ -111,7 +109,7 @@ def show_content(microplate_object : BiolectorXTParser):
             df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
         #Features extraction functions
         if selected_wells == "All" or len(st.session_state['well_clicked'])>=1 :
-            logistic_fitter = LogisticGrowthFitter(df, n_splits=n_splits_selected)
+            logistic_fitter = LogisticGrowthFitter(df)
             logistic_fitter.fit_logistic_growth_with_cv()
             fig = logistic_fitter.plot_fitted_curves_with_r2()
             st.dataframe(logistic_fitter.df_params.style.format(thousands=" ", precision=4))

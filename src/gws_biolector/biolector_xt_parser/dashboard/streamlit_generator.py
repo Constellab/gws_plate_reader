@@ -1,19 +1,18 @@
 
 import os
 from gws_core import (ConfigParams, InputSpec, InputSpecs,
-                      OutputSpec, OutputSpecs, Task, TaskInputs, TaskOutputs, task_decorator, Table, Folder,
-                      resource_decorator, TypingStyle, TypingIconColor)
+                      OutputSpec, OutputSpecs, Task, TaskInputs, TaskOutputs, task_decorator, Table, Folder, TypingStyle)
 from gws_core.streamlit.streamlit_resource import StreamlitResource
+
 
 @task_decorator("StreamlitGeneratorVisualisation", human_name="Generate dashboard to visualise data from BiolectorXT",
                 short_description="Task to generate a custom Streamlit dashboard to visualise data from BiolectorXT",
-                style=TypingStyle.community_icon(icon_technical_name="dashboard",
-                                                     background_color="#c3fa7f"))
+                style=TypingStyle.community_icon(icon_technical_name="dashboard", background_color="#c3fa7f"))
 class StreamlitGenerator(Task):
 
     input_specs: InputSpecs = InputSpecs({'raw_data': InputSpec(Table, human_name="Table containing the raw data"),
-                                'folder_metadata': InputSpec(Folder, human_name="Folder containing the metadata")})
-    output_specs: OutputSpecs = OutputSpecs({'streamlit_app': OutputSpec(StreamlitResource, human_name="Streamlit app")})
+                                          'folder_metadata': InputSpec(Folder, human_name="Folder containing the metadata")})
+    output_specs: OutputSpecs = OutputSpecs({'streamlit_app': OutputSpec( StreamlitResource, human_name="Microplate dashboard")})
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded

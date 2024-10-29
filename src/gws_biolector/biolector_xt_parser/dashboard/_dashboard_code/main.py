@@ -11,10 +11,6 @@ from gws_biolector.features_extraction.linear_logistic_cv import LogisticGrowthF
 sources: list
 params: dict
 
-# Your Streamlit app code here
-st.title("Microplate Dashboard")
-
-
 def show_content(microplate_object : BiolectorXTParser):
 
     #Create tabs
@@ -24,13 +20,12 @@ def show_content(microplate_object : BiolectorXTParser):
         filters = microplate_object.get_filter_name()
         selected_filters : List[str] = st.multiselect('$\\text{\large{Select the observers to be displayed}}$', filters, default=filters, key = "table_filters")
         #Select wells : all by default; otherwise those selected in the microplate
-        selected_wells = st.selectbox('$\\text{\large{Select the wells to display}}$',["All", "Selection on the well plate"], index = 0, key = "table_wells")
-        if selected_wells == "Selection on the well plate":
+        if len(st.session_state['well_clicked'])>0:
             st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
         for filter_selection in selected_filters :
             st.write(f"$\\text{{\Large{{{filter_selection}}}}}$")
             df = microplate.get_table_by_filter(filter_selection)
-            if selected_wells == "Selection on the well plate":
+            if len(st.session_state['well_clicked'])>0:
                 df = df[["time", "Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
             st.dataframe(df.style.format(thousands=" ", precision=4))
 
@@ -39,8 +34,7 @@ def show_content(microplate_object : BiolectorXTParser):
         legend_mean = ""
         selected_filters = st.multiselect('$\\text{\large{Select the observers to be displayed}}$', filters, default=filters, key = "plot_filters")
         #Select wells : all by default; otherwise those selected in the microplate
-        selected_wells = st.selectbox('$\\text{\large{Select the wells to display}}$',["All", "Selection on the well plate"], index = 0, key = "plot_wells")
-        if selected_wells == "Selection on the well plate":
+        if len(st.session_state['well_clicked'])>0:
             st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
         col1, col2 = st.columns([1,1])
         with col1:
@@ -55,7 +49,7 @@ def show_content(microplate_object : BiolectorXTParser):
         for filter in selected_filters :
             df = microplate.get_table_by_filter(filter)
             df = df.iloc[:, 1:]
-            if selected_wells == "Selection on the well plate":
+            if len(st.session_state['well_clicked'])>0:
                 df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
             cols_y = [col for col in df.columns if col != 'Temps_en_h']
             #Adapt unit of time
@@ -96,25 +90,23 @@ def show_content(microplate_object : BiolectorXTParser):
         else:
             st.error("No filter containing 'Biomass' is available.")
         #Select wells : all by default; otherwise those selected in the microplate
-        selected_wells = st.selectbox('$\\text{\large{Select the wells to display}}$',["Selection on the well plate","All"], index = 0, key = "analysis_wells")
-        if selected_wells == "Selection on the well plate":
-            if len(st.session_state['well_clicked'])==0 :
-                st.write("Please select at least one well in the microplate on the left.")
-            else:
-                st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
+        if len(st.session_state['well_clicked'])>0:
+            st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
         #Get the dataframe
         df = microplate.get_table_by_filter(filter_selection)
         df = df.drop(["time"], axis=1)
-        if selected_wells == "Selection on the well plate":
+        if len(st.session_state['well_clicked'])>0:
             df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
         #Features extraction functions
-        if selected_wells == "All" or len(st.session_state['well_clicked'])>=1 :
+        try :
             logistic_fitter = LogisticGrowthFitter(df)
             logistic_fitter.fit_logistic_growth_with_cv()
             fig = logistic_fitter.plot_fitted_curves_with_r2()
             st.dataframe(logistic_fitter.df_params.style.format(thousands=" ", precision=4))
             logistic_fitter.df_params.to_csv(os.path.join(growth_rate_folder, "growth_rate.csv"))
             st.plotly_chart(fig)
+        except:
+            st.error("Optimal parameters not found for some wells, try deselecting some wells.")
 
 
 

@@ -2,12 +2,11 @@
 from typing import List, Optional
 
 import streamlit as st
+from gws_biolector.biolector_xt.tasks.biolector_download_experiment_task import \
+    BiolectorDownloadExperiment
 from gws_core import (FrontService, Scenario, ScenarioCreationType,
                       ScenarioProxy, ScenarioSearchBuilder, ScenarioStatus,
                       Tag)
-
-from gws_biolector.biolector_xt.tasks.biolector_download_experiment_task import \
-    BiolectorDownloadExperiment
 
 DOWNLOAD_TAG_KEY = "biolector_download"
 
@@ -82,8 +81,8 @@ def download_experiment(biolector_exp_id: str,
             'mock_service': mock_service
         })
 
-        protocol.add_sink('result', download_task >> 'result')
-        protocol.add_sink('raw_data', download_task >> 'raw_data', False)
+        protocol.add_output('result', download_task >> 'result')
+        protocol.add_output('raw_data', download_task >> 'raw_data', False)
 
         try:
             scenario.run()

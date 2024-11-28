@@ -4,6 +4,8 @@ from typing import List, Optional
 import streamlit as st
 from gws_biolector.biolector_xt.tasks.biolector_download_experiment_task import \
     BiolectorDownloadExperiment
+from gws_biolector.biolector_xt_parser.dashboard.streamlit_generator import \
+    StreamlitGenerator
 from gws_core import (FrontService, Scenario, ScenarioCreationType,
                       ScenarioProxy, ScenarioSearchBuilder, ScenarioStatus,
                       Tag)
@@ -81,8 +83,16 @@ def download_experiment(biolector_exp_id: str,
             'mock_service': mock_service
         })
 
-        protocol.add_output('result', download_task >> 'result')
-        protocol.add_output('raw_data', download_task >> 'raw_data', False)
+        protocol.add_output('result', download_task.get_output_port('result'))
+        protocol.add_output('raw_data', download_task.get_output_port('raw_data'), False)
+
+        streamlit_generator = protocol.add_task(StreamlitGenerator, 'streamlit_generator')
+
+        protocol.add_connector(download_task.get_output_port('result'), streamlit_generator.get_input_port('raw_data'))
+        protocol.add_connector(
+            download_task.get_output_port('raw_data'),
+            streamlit_generator.get_input_port('folder_metadata'))
+        protocol.add_output('streamlit_app', streamlit_generator.get_output_port('streamlit_app'))
 
         try:
             scenario.run()

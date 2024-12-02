@@ -1,125 +1,42 @@
-import os
-from typing import List
-import plotly.express as px
+
 import streamlit as st
-from gws_biolector.biolector_xt_parser.biolectorxt_parser import BiolectorXTParser
+from analysis_tab import render_analysis_tab, set_run_analysis
+from gws_biolector.biolector_xt_parser.biolectorxt_parser import \
+    BiolectorXTParser
+from plot_tab import render_plot_tab
 from streamlit_extras.stylable_container import stylable_container
-from gws_biolector.features_extraction.linear_logistic_cv import LogisticGrowthFitter
+from table_tab import render_table_tab
 
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
 sources: list
 params: dict
 
-def show_content(microplate_object : BiolectorXTParser):
 
-    #Create tabs
+def show_content(microplate_object: BiolectorXTParser):
+    # Create tabs
     tab_table, tab_plot, tab_analysis = st.tabs(["Table", "Plot", "Analysis"])
 
-    with tab_table:
-        filters = microplate_object.get_filter_name()
-        selected_filters : List[str] = st.multiselect('$\\text{\large{Select the observers to be displayed}}$', filters, default=filters, key = "table_filters")
-        #Select wells : all by default; otherwise those selected in the microplate
-        if len(st.session_state['well_clicked'])>0:
-            st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
-        for filter_selection in selected_filters :
-            st.write(f"$\\text{{\Large{{{filter_selection}}}}}$")
-            df = microplate.get_table_by_filter(filter_selection)
-            if len(st.session_state['well_clicked'])>0:
-                df = df[["time", "Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
-            st.dataframe(df.style.format(thousands=" ", precision=4))
+    filters = microplate_object.get_filter_name()
 
+    with tab_table:
+        render_table_tab(microplate_object, filters)
 
     with tab_plot:
-        legend_mean = ""
-        selected_filters = st.multiselect('$\\text{\large{Select the observers to be displayed}}$', filters, default=filters, key = "plot_filters")
-        #Select wells : all by default; otherwise those selected in the microplate
-        if len(st.session_state['well_clicked'])>0:
-            st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
-        col1, col2 = st.columns([1,1])
-        with col1:
-            selected_time = st.selectbox("$\\text{\large{Select the time unit}}$",["Hours", "Minutes", "Seconds"], index = 0, key = "plot_time")
-        with col2:
-            selected_mode = st.selectbox("$\\text{\large{Select the display mode}}$",["Individual curves", "Mean of selected wells"], index = 0, key = "plot_mode")
-        if selected_mode == "Mean of selected wells":
-            error_band = st.checkbox("Error band")
-
-        # Create an empty Plotly figure to add all the curves
-        fig = px.line()
-        for filter in selected_filters :
-            df = microplate.get_table_by_filter(filter)
-            df = df.iloc[:, 1:]
-            if len(st.session_state['well_clicked'])>0:
-                df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
-            cols_y = [col for col in df.columns if col != 'Temps_en_h']
-            #Adapt unit of time
-            if selected_time == "Hours":
-                df["time"] = df["Temps_en_h"]
-            elif selected_time == "Minutes":
-                df["time"] = df["Temps_en_h"]*60
-            elif selected_time == "Seconds":
-                df["time"] = df["Temps_en_h"]*3600
-            if selected_mode == "Individual curves":
-                # Adding curves to the figure for each filter
-                for col in cols_y:
-                    fig.add_scatter(x=df['time'], y=df[col], mode='lines', name=f"{filter} - {col}", line= {'shape': 'spline', 'smoothing': 1})
-            elif selected_mode == "Mean of selected wells":
-                legend_mean = f"(Mean of  {', '.join(st.session_state['well_clicked'])})"
-                df_mean = df[cols_y].mean(axis = 1)
-                df_std = df[cols_y].std(axis = 1)
-                fig.add_scatter(x=df['time'], y=df_mean, mode='lines', name=f"{filter} - mean", line= {'shape': 'spline', 'smoothing': 1})
-                if error_band:
-                    # Add the error band (mean ± standard deviation)
-                    fig.add_scatter(x=df['time'], y=df_mean + df_std, mode='lines', line=dict(width=0), showlegend=False)
-                    fig.add_scatter(x=df['time'], y=df_mean - df_std, mode='lines', line=dict(width=0), fill='tonexty', name=f'Error Band {filter} (±1 SD)')
-
-
-        selected_filters_str = ', '.join(selected_filters)
-        fig.update_layout(title=f'Plot of {selected_filters_str} {legend_mean}', xaxis_title=f'Time ({selected_time})', yaxis_title=f'{selected_filters_str}')
-        # Show the plot
-        st.plotly_chart(fig)
-
+        render_plot_tab(microplate_object, filters)
 
     with tab_analysis:
-        filters = microplate_object.get_filter_name()
-        # Récupération des filtres contenant le mot "Biomass"
-        biomass_filters = [f for f in filters if "Biomass" in f]
-        # Vérification s'il y a des filtres correspondant
-        if biomass_filters:
-            filter_selection: List[str] = st.selectbox('$\\text{\large{Select the observers to be displayed}}$', biomass_filters, index = 0, key="analysis_filters")
-        else:
-            st.error("No filter containing 'Biomass' is available.")
-        #Select wells : all by default; otherwise those selected in the microplate
-        if len(st.session_state['well_clicked'])>0:
-            st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
-        #Get the dataframe
-        df = microplate.get_table_by_filter(filter_selection)
-        df = df.drop(["time"], axis=1)
-        if len(st.session_state['well_clicked'])>0:
-            df = df[["Temps_en_h"] + st.session_state['well_clicked']] #TODO: voir si il faut les classer par ordre croissant ?
-        #Features extraction functions
-        try :
-            logistic_fitter = LogisticGrowthFitter(df)
-            logistic_fitter.fit_logistic_growth_with_cv()
-            fig = logistic_fitter.plot_fitted_curves_with_r2()
-            st.dataframe(logistic_fitter.df_params.style.format(thousands=" ", precision=4))
-            logistic_fitter.df_params.to_csv(os.path.join(growth_rate_folder, "growth_rate.csv"))
-            st.plotly_chart(fig)
-        except:
-            st.error("Optimal parameters not found for some wells, try deselecting some wells.")
+        render_analysis_tab(microplate_object, filters, growth_rate_folder)
 
 
-
-
-#-------------------------------------------------------------------------------------------#
-
+# -------------------------------------------------------------------------------------------#
 if not sources:
     raise Exception("Source paths are not provided.")
 
 raw_data = sources[0]
 folder_metadata = sources[1]
 growth_rate_folder = sources[2].path
-microplate = BiolectorXTParser(data_file = raw_data, metadata_folder = folder_metadata)
+microplate = BiolectorXTParser(data_file=raw_data, metadata_folder=folder_metadata)
 
 # Initialize the session state for clicked wells if it doesn't exist
 if 'well_clicked' not in st.session_state:
@@ -141,7 +58,7 @@ with st.sidebar:
     @st.fragment
     def fragment_sidebar_function():
         st.write("Microplate")
-        with stylable_container(key="well_button", css_styles = """
+        with stylable_container(key="well_button", css_styles="""
             button{
                 display: inline-block;
                 width: 44px;  /* Adjust width and height as needed */
@@ -167,7 +84,8 @@ with st.sidebar:
             COLS = 8
             crossed_out_wells = []
             if microplate.is_microfluidics():
-                crossed_out_wells = [f"{chr(65 + row)}{col + 1:02d}" for row in range(2) for col in range(8)]  # A01-B08 crossed out
+                crossed_out_wells = [f"{chr(65 + row)}{col + 1:02d}" for row in range(2)
+                                     for col in range(8)]  # A01-B08 crossed out
 
             # Define the structure of the 48-well microplate
             wells = [[f"{chr(65 + row)}{col + 1:02d}" for col in range(COLS)] for row in range(ROWS)]
@@ -182,15 +100,18 @@ with st.sidebar:
 
                     # Check if the well should be crossed out
                     if well in crossed_out_wells:
-                        cols_object[col].button(f":gray[{well}]", key=well, help=well_data[well], disabled = True)
-                        #cols_object[col].markdown(f"<p style='text-align:center;'><font size='3.2'>  ❌{well}  </font></p>", unsafe_allow_html=True)
+                        cols_object[col].button(f":gray[{well}]", key=well, help=well_data[well], disabled=True)
                     elif well in st.session_state['well_clicked']:
-                        if cols_object[col].button(f"**:green[{well}]**", key=well, help = well_data[well]):
+                        if cols_object[col].button(f"**:green[{well}]**", key=well, help=well_data[well]):
                             st.session_state['well_clicked'].remove(well)
+                            # when the selection changes, we clear the analysis
+                            set_run_analysis(False)
                             st.rerun(scope="app")
                     else:
                         if cols_object[col].button(well, key=well, help=well_data[well]):
                             st.session_state['well_clicked'].append(well)
+                            # when the selection changes, we clear the analysis
+                            set_run_analysis(False)
                             st.rerun(scope="app")
 
             st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
@@ -202,4 +123,4 @@ with st.sidebar:
     # Add the reset button
     st.button("Reset Wells", on_click=reset_wells)
 
-show_content(microplate_object = microplate)
+show_content(microplate_object=microplate)

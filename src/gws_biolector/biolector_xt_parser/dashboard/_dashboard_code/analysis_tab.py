@@ -8,14 +8,6 @@ from gws_biolector.features_extraction.linear_logistic_cv import \
     LogisticGrowthFitter
 
 
-def get_run_analysis() -> bool:
-    return st.session_state.get('run_analysis', False)
-
-
-def set_run_analysis(value: bool):
-    st.session_state['run_analysis'] = value
-
-
 def render_analysis_tab(microplate_object: BiolectorXTParser, filters: list,
                         growth_rate_folder: str):
     # Récupération des filtres contenant le mot "Biomass"
@@ -33,11 +25,7 @@ def render_analysis_tab(microplate_object: BiolectorXTParser, filters: list,
     if len(st.session_state['well_clicked']) > 0:
         st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
 
-    if not get_run_analysis() and st.button("Run Analysis"):
-        set_run_analysis(True)
-
-    if get_run_analysis():
-        _run_analysis_tab(microplate_object, filter_selection, growth_rate_folder)
+    _run_analysis_tab(microplate_object, filter_selection, growth_rate_folder)
 
 
 def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: List[str],

@@ -1,10 +1,5 @@
-
-from datetime import datetime
-
 import streamlit as st
-from app.download_exp import download_exp_main
-from pandas import DataFrame
-
+from app.download_exp import render_download_exp_main
 from gws_biolector.biolector_xt.biolector_xt_mock_service import \
     BiolectorXTMockService
 from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
@@ -12,6 +7,7 @@ from gws_biolector.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
 from gws_biolector.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
+from pandas import DataFrame
 
 params: dict
 
@@ -68,30 +64,22 @@ def get_protocols(_service: BiolectorXTServiceI) -> DataFrame:
     return df
 
 
-st.header("Biolector XT Dashboard")
-
-exp_tab, exp_list_tab, protocol_tab = st.tabs(
-    ["Import Biolector experiment", "Biolector experiments", "Biolector protocols"])
-
 service = get_service(params)
 
-with exp_tab:
-    download_exp_main(params.get('credentials_name'), params.get('mock_service'))
 
-# with run_exp_tab:
-#     run_exp_main()
-
-with exp_list_tab:
-
+def experiments_page():
     try:
+        st.header("Biolector experiments")
         experiments_df = get_experiments(service)
         st.dataframe(experiments_df, use_container_width=True,
                      hide_index=True, height=600)
     except Exception as e:
         st.error(f"An error occurred while fetching experiments: {str(e)}")
 
-with protocol_tab:
+
+def protocols_page():
     try:
+        st.header("Bioxlector protocols")
         protocols_df = get_protocols(service)
         st.dataframe(protocols_df, use_container_width=True,
                      hide_index=True, height=600)
@@ -99,12 +87,11 @@ with protocol_tab:
         st.error(f"An error occurred while fetching protocols: {str(e)}")
 
 
-# Initialize session state for current directory
-# if 'current_dir' not in st.session_state:
-#     st.session_state.current_dir = '/lab/user/bricks'
+def render_download_exp_page():
+    render_download_exp_main(params.get('credentials_name'), params.get('mock_service'))
 
 
-# def switch_directory(path):
-#     st.session_state.current_dir = path
-
-# Function to display directory contents
+pg = st.navigation([st.Page(render_download_exp_page, title='Import Biolector experiment', url_path='import'),
+                    st.Page(experiments_page, title='Experiments', url_path='experiments'),
+                    st.Page(protocols_page, title='Protocols', url_path='protocols')])
+pg.run()

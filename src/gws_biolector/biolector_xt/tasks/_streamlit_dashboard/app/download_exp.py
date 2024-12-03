@@ -13,7 +13,8 @@ from gws_core import (FrontService, Scenario, ScenarioCreationType,
 DOWNLOAD_TAG_KEY = "biolector_download"
 
 
-def download_exp_main(credentials_name: str, mock_service: bool):
+def render_download_exp_main(credentials_name: str, mock_service: bool):
+    st.header("Import Biolector experiment")
     if 'existing_scenario' not in st.session_state:
         st.session_state.existing_scenario = None
 

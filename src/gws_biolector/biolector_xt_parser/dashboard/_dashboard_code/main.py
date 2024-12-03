@@ -1,6 +1,6 @@
 
 import streamlit as st
-from analysis_tab import render_analysis_tab, set_run_analysis
+from analysis_tab import render_analysis_tab
 from gws_biolector.biolector_xt_parser.biolectorxt_parser import \
     BiolectorXTParser
 from plot_tab import render_plot_tab
@@ -12,26 +12,32 @@ from table_tab import render_table_tab
 sources: list
 params: dict
 
-
-def show_content(microplate_object: BiolectorXTParser):
-    # Create tabs
-    tab_table, tab_plot, tab_analysis = st.tabs(["Table", "Plot", "Analysis"])
-
-    filters = microplate_object.get_filter_name()
-
-    with tab_table:
-        render_table_tab(microplate_object, filters)
-
-    with tab_plot:
-        render_plot_tab(microplate_object, filters)
-
-    with tab_analysis:
-        render_analysis_tab(microplate_object, filters, growth_rate_folder)
-
-
 # -------------------------------------------------------------------------------------------#
 if not sources:
     raise Exception("Source paths are not provided.")
+
+
+def show_content(microplate_object: BiolectorXTParser):
+
+    filters = microplate_object.get_filter_name()
+
+    def render_table_page():
+        render_table_tab(microplate_object, filters)
+
+    def render_plot_page():
+        render_plot_tab(microplate_object, filters)
+
+    def render_analysis_page():
+        render_analysis_tab(microplate_object, filters, growth_rate_folder)
+
+    tables_page = st.Page(render_table_page, title='Tables', url_path='tables', icon='📄')
+    plots_page = st.Page(render_plot_page, title='Plots', url_path='plots', icon='📈')
+    analysis_page = st.Page(render_analysis_page, title='Analysis', url_path='protocols', icon='🔍')
+
+    pg = st.navigation([tables_page, plots_page, analysis_page])
+
+    pg.run()
+
 
 raw_data = sources[0]
 folder_metadata = sources[1]
@@ -92,6 +98,7 @@ with st.sidebar:
             # Define well data (e.g., volume information for each well)
             well_data = microplate.get_wells_label_description()
 
+            has_changed = False
             # Loop over the wells and create a grid of buttons
             for row in range(ROWS):
                 cols_object = st.columns(COLS)
@@ -104,15 +111,15 @@ with st.sidebar:
                     elif well in st.session_state['well_clicked']:
                         if cols_object[col].button(f"**:green[{well}]**", key=well, help=well_data[well]):
                             st.session_state['well_clicked'].remove(well)
-                            # when the selection changes, we clear the analysis
-                            set_run_analysis(False)
-                            st.rerun(scope="app")
+                            has_changed = True
                     else:
                         if cols_object[col].button(well, key=well, help=well_data[well]):
                             st.session_state['well_clicked'].append(well)
-                            # when the selection changes, we clear the analysis
-                            set_run_analysis(False)
-                            st.rerun(scope="app")
+                            has_changed = True
+
+            if has_changed:
+                # when the selection changes, we rerun the app to update the content
+                st.rerun(scope="app")
 
             st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
 

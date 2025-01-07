@@ -7,6 +7,7 @@ from gws_biolector.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
 from gws_biolector.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
+from gws_core import Credentials, CredentialsType
 from pandas import DataFrame
 
 params: dict
@@ -19,12 +20,17 @@ gws streamlit run-dev dev_config.json --server.runOnSave
 # TODO : if get experiment didn't work, don't break the app, same for protocol
 
 
+@st.cache_data
 def get_service(params: dict) -> BiolectorXTServiceI:
-
     if params.get('mock_service'):
         return BiolectorXTMockService()
     else:
-        return BiolectorXTService(CredentialsDataBiolector.from_json(params.get('biolector_credentials')))
+        credentials_name = params.get('credentials_name')
+
+        credentials = Credentials.find_by_name_and_check(credentials_name, CredentialsType.OTHER)
+
+        data = CredentialsDataBiolector.from_json(credentials.get_data_object().data)
+        return BiolectorXTService(data)
 
 
 @st.cache_data

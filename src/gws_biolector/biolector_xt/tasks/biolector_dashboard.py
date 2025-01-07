@@ -50,9 +50,9 @@ class BiolectorDashboard(Task):
 
         credentials_data: CredentialsDataOther = params.get_value('credentials')
 
-        biolector_credentials: CredentialsDataBiolector
+        # check the credentials data
         try:
-            biolector_credentials = CredentialsDataBiolector.from_json(credentials_data.data)
+            CredentialsDataBiolector.from_json(credentials_data.data)
         except Exception as e:
             self.log_error_message("Invalid credentials data: " + str(e))
             raise ValueError(
@@ -61,7 +61,6 @@ class BiolectorDashboard(Task):
         streamlit_resource = StreamlitResource()
 
         streamlit_resource.set_streamlit_folder(self.app_path)
-        streamlit_resource.set_param("biolector_credentials", biolector_credentials.to_json_dict())
         streamlit_resource.set_param("credentials_name", credentials_data.meta.name)
         streamlit_resource.set_param("mock_service", params.get_value('mock_service'))
 

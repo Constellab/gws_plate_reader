@@ -2,12 +2,6 @@
 
 import os
 
-from gws_core import (BoolParam, ConfigParams, ConfigSpecs, CredentialsParam,
-                      CredentialsType, File, FileHelper, Folder, InputSpecs,
-                      OutputSpec, OutputSpecs, StrParam, Table, TableImporter,
-                      Task, TaskInputs, TaskOutputs, TypingStyle, ZipCompress,
-                      task_decorator)
-
 from gws_biolector.biolector_xt.biolector_xt_mock_service import \
     BiolectorXTMockService
 from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
@@ -15,6 +9,12 @@ from gws_biolector.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
 from gws_biolector.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
+from gws_core import (BoolParam, ConfigParams, ConfigSpecs,
+                      CredentialsDataOther, CredentialsParam, CredentialsType,
+                      File, FileHelper, Folder, InputSpecs, OutputSpec,
+                      OutputSpecs, StrParam, Table, TableImporter, Task,
+                      TaskInputs, TaskOutputs, TypingStyle, ZipCompress,
+                      task_decorator)
 
 
 @task_decorator(unique_name="BiolectorDownloadExperiment",
@@ -95,12 +95,12 @@ class BiolectorDownloadExperiment(Task):
         if self.zip_path:
             FileHelper.delete_file(self.zip_path)
 
-    def get_service(self, credentials: dict, mock_service: bool) -> BiolectorXTServiceI:
+    def get_service(self, credentials: CredentialsDataOther, mock_service: bool) -> BiolectorXTServiceI:
         if mock_service:
             return BiolectorXTMockService()
         else:
             try:
-                biolector_credentials = CredentialsDataBiolector.from_json(credentials)
+                biolector_credentials = CredentialsDataBiolector.from_json(credentials.data)
             except Exception as e:
                 raise ValueError("Invalid credentials data: " + str(e))
             return BiolectorXTService(biolector_credentials)

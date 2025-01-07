@@ -2,13 +2,12 @@
 
 import os
 
-from gws_core import (BoolParam, ConfigParams, ConfigSpecs, CredentialsParam,
-                      CredentialsType, OutputSpec, OutputSpecs,
-                      StreamlitResource, Task, TaskInputs, TaskOutputs,
-                      TypingStyle, task_decorator)
-
 from gws_biolector.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
+from gws_core import (BoolParam, ConfigParams, ConfigSpecs,
+                      CredentialsDataOther, CredentialsParam, CredentialsType,
+                      OutputSpec, OutputSpecs, StreamlitResource, Task,
+                      TaskInputs, TaskOutputs, TypingStyle, task_decorator)
 
 
 @task_decorator(unique_name="BiolectorDashboard",
@@ -49,9 +48,11 @@ class BiolectorDashboard(Task):
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
 
+        credentials_data: CredentialsDataOther = params.get_value('credentials')
+
         biolector_credentials: CredentialsDataBiolector
         try:
-            biolector_credentials = CredentialsDataBiolector.from_json(params.get_value('credentials'))
+            biolector_credentials = CredentialsDataBiolector.from_json(credentials_data.data)
         except Exception as e:
             self.log_error_message("Invalid credentials data: " + str(e))
             raise ValueError(
@@ -61,7 +62,7 @@ class BiolectorDashboard(Task):
 
         streamlit_resource.set_streamlit_folder(self.app_path)
         streamlit_resource.set_param("biolector_credentials", biolector_credentials.to_json_dict())
-        streamlit_resource.set_param("credentials_name", params.get_value('credentials').get('__meta__').get('name'))
+        streamlit_resource.set_param("credentials_name", credentials_data.meta.name)
         streamlit_resource.set_param("mock_service", params.get_value('mock_service'))
 
         streamlit_resource.style = TypingStyle.community_icon("bioreactor", background_color='#ff4b4b')

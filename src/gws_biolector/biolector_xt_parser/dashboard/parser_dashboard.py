@@ -1,8 +1,9 @@
 
 import os
-from gws_core import (ConfigParams, InputSpec, InputSpecs,
-                      OutputSpec, OutputSpecs, Task, TaskInputs, TaskOutputs, task_decorator, Table, Folder, TypingStyle)
-from gws_core.streamlit.streamlit_resource import StreamlitResource
+
+from gws_core import (ConfigParams, Folder, InputSpec, InputSpecs, OutputSpec,
+                      OutputSpecs, StreamlitResource, Table, Task, TaskInputs,
+                      TaskOutputs, TypingStyle, task_decorator)
 
 
 @task_decorator("StreamlitGeneratorVisualisation", human_name="Generate dashboard to visualise data from BiolectorXT",
@@ -10,9 +11,11 @@ from gws_core.streamlit.streamlit_resource import StreamlitResource
                 style=TypingStyle.community_icon(icon_technical_name="dashboard", background_color="#c3fa7f"))
 class StreamlitGenerator(Task):
 
-    input_specs: InputSpecs = InputSpecs({'raw_data': InputSpec(Table, human_name="Table containing the raw data"),
-                                          'folder_metadata': InputSpec(Folder, human_name="Folder containing the metadata")})
-    output_specs: OutputSpecs = OutputSpecs({'streamlit_app': OutputSpec( StreamlitResource, human_name="Microplate dashboard")})
+    input_specs: InputSpecs = InputSpecs(
+        {'raw_data': InputSpec(Table, human_name="Table containing the raw data"),
+         'folder_metadata': InputSpec(Folder, human_name="Folder containing the metadata")})
+    output_specs: OutputSpecs = OutputSpecs(
+        {'streamlit_app': OutputSpec(StreamlitResource, human_name="Microplate dashboard")})
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
@@ -20,6 +23,7 @@ class StreamlitGenerator(Task):
         os.path.abspath(os.path.dirname(__file__)),
         "_dashboard_code"
     )
+# /lab/user/bricks/gws_biolector/src/gws_biolector/biolector_xt_parser/dashboard/_dashboard_code
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
 

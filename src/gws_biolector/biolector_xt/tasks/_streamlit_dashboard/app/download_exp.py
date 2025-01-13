@@ -4,12 +4,11 @@ from typing import List, Optional
 import streamlit as st
 from gws_biolector.biolector_xt.tasks.biolector_download_experiment_task import \
     BiolectorDownloadExperiment
+from gws_biolector.biolector_xt_parser.dashboard.parser_dashboard import \
+    StreamlitGenerator
 from gws_core import (FrontService, Scenario, ScenarioCreationType,
                       ScenarioProxy, ScenarioSearchBuilder, ScenarioStatus,
                       Tag)
-
-from bricks.gws_biolector.src.gws_biolector.biolector_xt_parser.dashboard.parser_dashboard import \
-    StreamlitGenerator
 
 DOWNLOAD_TAG_KEY = "biolector_download"
 

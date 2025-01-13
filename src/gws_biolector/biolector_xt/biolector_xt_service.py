@@ -17,7 +17,7 @@ from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
     StdResponse, StopProtocolResponse)
 from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2_grpc import \
     BioLectorXtRemoteControlStub
-from gws_core import FileHelper, Settings
+from gws_core import FileHelper, MessageDispatcher, Settings
 
 
 class BiolectorXTGrpcChannel():
@@ -50,7 +50,9 @@ class BiolectorXTService(BiolectorXTServiceI):
 
     timeout = 20
 
-    def __init__(self, credentials: CredentialsDataBiolector) -> None:
+    def __init__(self, credentials: CredentialsDataBiolector,
+                 message_dispatcher: MessageDispatcher = None) -> None:
+        super().__init__(message_dispatcher)
         self._credentials = credentials
 
     def get_protocols(self) -> List[ProtocolInfo]:

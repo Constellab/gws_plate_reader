@@ -9,11 +9,20 @@ from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
     ContinueProtocolResponse, ExperimentInfo, ProtocolInfo,
     StartProtocolResponse, StatusUpdateStreamResponse, StdResponse,
     StopProtocolResponse)
+from gws_core import MessageDispatcher
 
 
 class BiolectorXTServiceI():
     """Interface for Biolector XT Service
     """
+
+    message_dispatcher: MessageDispatcher = None
+
+    def __init__(self, message_dispatcher: MessageDispatcher = None) -> None:
+        if message_dispatcher:
+            self.message_dispatcher = message_dispatcher
+        else:
+            self.message_dispatcher = MessageDispatcher()
 
     @abstractmethod
     def get_protocols(self) -> List[ProtocolInfo]:

@@ -97,10 +97,10 @@ class BiolectorDownloadExperiment(Task):
 
     def get_service(self, credentials: CredentialsDataOther, mock_service: bool) -> BiolectorXTServiceI:
         if mock_service:
-            return BiolectorXTMockService()
+            return BiolectorXTMockService(self.message_dispatcher)
         else:
             try:
                 biolector_credentials = CredentialsDataBiolector.from_json(credentials.data)
             except Exception as e:
                 raise ValueError("Invalid credentials data: " + str(e))
-            return BiolectorXTService(biolector_credentials)
+            return BiolectorXTService(biolector_credentials, self.message_dispatcher)

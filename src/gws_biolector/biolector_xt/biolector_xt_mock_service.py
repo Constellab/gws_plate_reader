@@ -1,10 +1,7 @@
 
 import json
 import os
-import shutil
 from typing import List
-
-from gws_core import Settings
 
 from gws_biolector.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
@@ -12,6 +9,7 @@ from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
     ContinueProtocolResponse, ExperimentInfo, ProtocolInfo,
     StartProtocolResponse, StatusUpdateStreamResponse, StdResponse,
     StopProtocolResponse)
+from gws_core import FileDownloader, Settings
 
 
 class BiolectorXTMockService(BiolectorXTServiceI):
@@ -20,7 +18,7 @@ class BiolectorXTMockService(BiolectorXTServiceI):
 
     PROTOCOL_LIST = 'protocol_list.json'
     EXPERIMENT_LIST = 'experiment_list.json'
-    EXPERIMENT_ZIP = 'experiment_example.zip'
+    EXPERIMENT_ZIP_LOCATION = 'https://storage.gra.cloud.ovh.net/v1/AUTH_a0286631d7b24afba3f3cdebed2992aa/opendata/gws_biolector/BIolector_xt_example_data.zip'
 
     def get_protocols(self) -> List[ProtocolInfo]:
 
@@ -66,12 +64,13 @@ class BiolectorXTMockService(BiolectorXTServiceI):
         pass
 
     def download_experiment(self, experiment_id: str) -> str:
-        dest_zip = os.path.join(Settings.make_temp_dir(), self.EXPERIMENT_ZIP)
 
-        # copy the directory content to the temp dir
-        shutil.copyfile(os.path.join(self._get_data_folder(), self.EXPERIMENT_ZIP), dest_zip)
+        dest_folder = os.path.join(Settings.make_temp_dir())
+        downloader = FileDownloader(dest_folder, self.message_dispatcher)
 
-        return dest_zip
+        dest_file = os.path.join(dest_folder, 'experiment.zip')
+
+        return downloader.download_file_if_missing(self.EXPERIMENT_ZIP_LOCATION, dest_file)
 
     def get_status_update_stream(self) -> StatusUpdateStreamResponse:
         pass

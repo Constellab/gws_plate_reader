@@ -1,7 +1,8 @@
 
 import os
+from datetime import datetime
 from io import StringIO
-from json import loads
+from json import dump, load, loads
 
 import streamlit as st
 from gws_biolector.biolector_xt.biolector_xt_mock_service import \
@@ -21,6 +22,9 @@ It is a standalone dashboard where user can upload their zip biolector XT data
 and get the analysis of the data.
 """
 
+stats_folder = sources[0]
+stats_file = os.path.join(stats_folder.path, 'stats.json')
+
 
 def import_table(table_file):
     table = read_table(table_file, sep=";", header=0, index_col=None)
@@ -32,6 +36,28 @@ def find_file(file_end: str, folder_path: str):
         if file_name.endswith(file_end):
             return os.path.join(folder_path, file_name)
     return None
+
+
+def save_new_stats(mock_data: bool):
+    try:
+        new_stat = {
+            "mock_data": mock_data,
+            "timestamps": datetime.now().isoformat()
+        }
+
+        stats = []
+        if os.path.exists(stats_file):
+            try:
+                with open(stats_file, 'r', encoding='UTF-8') as f:
+                    stats = load(f)
+            except Exception as e:
+                print(f"Error while loading the stats file: {e}")
+
+        stats.append(new_stat)
+        with open(stats_file, 'w', encoding='UTF-8') as f:
+            dump(stats, f)
+    except Exception as e:
+        print(f"Error while saving the new stats: {e}")
 
 
 if 'growth_rate_folder_path' not in st.session_state:
@@ -80,6 +106,7 @@ Refresh the page to upload new data.""")
     st.header("Or")
     # Button to use mock data
     if st.button("Use test data"):
+        save_new_stats(True)
         with st.spinner("Importing test data..."):
             mock_service = BiolectorXTMockService()
             experiment_zip = mock_service.download_experiment('Test')
@@ -109,6 +136,7 @@ Refresh the page to upload new data.""")
 # after the selection of the second file, we rerun all the app to display only the dashboard
 # and not the file uploader
 if (table_file or json_file) and 'table' in st.session_state and 'metadata' in st.session_state:
+    save_new_stats(False)
     st.rerun()
 
 

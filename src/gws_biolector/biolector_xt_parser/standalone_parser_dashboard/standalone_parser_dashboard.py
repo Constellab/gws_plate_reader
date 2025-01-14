@@ -1,9 +1,9 @@
 
 import os
 
-from gws_core import (ConfigParams, InputSpecs, OutputSpec, OutputSpecs,
-                      StreamlitResource, Task, TaskInputs, TaskOutputs,
-                      TypingStyle, task_decorator)
+from gws_core import (ConfigParams, Folder, InputSpecs, OutputSpec,
+                      OutputSpecs, StreamlitResource, Task, TaskInputs,
+                      TaskOutputs, TypingStyle, task_decorator)
 
 
 @task_decorator("BiolectorParserStandalone",
@@ -28,5 +28,9 @@ class BiolectorParserStandalone(Task):
         # build the streamlit resource with the code and the resources
         streamlit_resource = StreamlitResource()
         streamlit_resource.set_streamlit_folder(self.streamlit_app_folder)
+
+        stats_folder: Folder = Folder(self.create_tmp_dir())
+        stats_folder.name = "Stats"
+        streamlit_resource.add_resource(stats_folder, create_new_resource=True)
 
         return {'streamlit_app': streamlit_resource}

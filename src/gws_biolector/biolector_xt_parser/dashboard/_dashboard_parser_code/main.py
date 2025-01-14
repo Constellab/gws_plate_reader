@@ -14,7 +14,6 @@ params: dict
 if not sources:
     raise Exception("Source paths are not provided.")
 
-
 raw_data = sources[0]
 folder_metadata = sources[1]
 growth_rate_folder = sources[2].path

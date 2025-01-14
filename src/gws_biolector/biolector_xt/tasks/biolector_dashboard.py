@@ -6,8 +6,21 @@ from gws_biolector.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
 from gws_core import (BoolParam, ConfigParams, ConfigSpecs,
                       CredentialsDataOther, CredentialsParam, CredentialsType,
-                      OutputSpec, OutputSpecs, StreamlitResource, Task,
-                      TaskInputs, TaskOutputs, TypingStyle, task_decorator)
+                      Dashboard, DashboardType, OutputSpec, OutputSpecs,
+                      StreamlitResource, Task, TaskInputs, TaskOutputs,
+                      TypingStyle, dashboard_decorator, task_decorator)
+
+
+@dashboard_decorator("BiolectorDashboard", dashboard_type=DashboardType.STREAMLIT)
+class BiolectorDashboardClass(Dashboard):
+
+    # retrieve the path of the app folder, relative to this file
+    # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
+    def get_folder_path(self):
+        return os.path.join(
+            os.path.abspath(os.path.dirname(__file__)),
+            "_streamlit_dashboard"
+        )
 
 
 @task_decorator(unique_name="BiolectorDashboard",
@@ -41,11 +54,6 @@ class BiolectorDashboard(Task):
 
     output_specs: OutputSpecs = OutputSpecs({'dashboard': OutputSpec(StreamlitResource)})
 
-    app_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)),
-        "_streamlit_dashboard"
-    )
-
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
 
         credentials_data: CredentialsDataOther = params.get_value('credentials')
@@ -60,7 +68,7 @@ class BiolectorDashboard(Task):
 
         streamlit_resource = StreamlitResource()
 
-        streamlit_resource.set_streamlit_folder(self.app_path)
+        streamlit_resource.set_dashboard(BiolectorDashboardClass())
         streamlit_resource.set_param("credentials_name", credentials_data.meta.name)
         streamlit_resource.set_param("mock_service", params.get_value('mock_service'))
 

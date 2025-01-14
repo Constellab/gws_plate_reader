@@ -5,10 +5,11 @@ from io import StringIO
 from json import dump, load, loads
 
 import streamlit as st
-from gws_biolector.biolector_xt.biolector_xt_mock_service import \
-    BiolectorXTMockService
-from gws_biolector.biolector_xt_parser.biolectorxt_parser_dashboard import run
 from gws_core import Compress, FileHelper, Settings
+from gws_plate_reader.biolector_xt.biolector_xt_mock_service import \
+    BiolectorXTMockService
+from gws_plate_reader.biolector_xt_parser.biolectorxt_parser_dashboard import \
+    run
 from pandas import DataFrame, read_table
 
 # thoses variable will be set by the streamlit app

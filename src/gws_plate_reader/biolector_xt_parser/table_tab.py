@@ -1,7 +1,7 @@
 from typing import List
 
 import streamlit as st
-from gws_biolector.biolector_xt_parser.biolectorxt_parser import \
+from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
     BiolectorXTParser
 
 

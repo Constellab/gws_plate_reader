@@ -1,13 +1,14 @@
 import streamlit as st
 from app.download_exp import render_download_exp_main
-from gws_biolector.biolector_xt.biolector_xt_mock_service import \
-    BiolectorXTMockService
-from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
-from gws_biolector.biolector_xt.biolector_xt_service_i import \
-    BiolectorXTServiceI
-from gws_biolector.biolector_xt.biolector_xt_types import \
-    CredentialsDataBiolector
 from gws_core import Credentials, CredentialsType
+from gws_plate_reader.biolector_xt.biolector_xt_mock_service import \
+    BiolectorXTMockService
+from gws_plate_reader.biolector_xt.biolector_xt_service import \
+    BiolectorXTService
+from gws_plate_reader.biolector_xt.biolector_xt_service_i import \
+    BiolectorXTServiceI
+from gws_plate_reader.biolector_xt.biolector_xt_types import \
+    CredentialsDataBiolector
 from pandas import DataFrame
 
 params: dict

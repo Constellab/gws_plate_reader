@@ -23,7 +23,7 @@ class StreamlitGenerator(Task):
         os.path.abspath(os.path.dirname(__file__)),
         "_dashboard_code"
     )
-# /lab/user/bricks/gws_biolector/src/gws_biolector/biolector_xt_parser/dashboard/_dashboard_code
+# /lab/user/bricks/gws_plate_reader/src/gws_plate_reader/biolector_xt_parser/dashboard/_dashboard_code
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
 

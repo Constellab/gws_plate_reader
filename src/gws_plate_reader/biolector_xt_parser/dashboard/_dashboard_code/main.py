@@ -3,7 +3,8 @@ import json
 import os
 
 import streamlit as st
-from gws_biolector.biolector_xt_parser.biolectorxt_parser_dashboard import run
+from gws_plate_reader.biolector_xt_parser.biolectorxt_parser_dashboard import \
+    run
 
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE

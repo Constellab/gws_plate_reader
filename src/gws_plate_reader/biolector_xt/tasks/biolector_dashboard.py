@@ -2,12 +2,12 @@
 
 import os
 
-from gws_biolector.biolector_xt.biolector_xt_types import \
-    CredentialsDataBiolector
 from gws_core import (BoolParam, ConfigParams, ConfigSpecs,
                       CredentialsDataOther, CredentialsParam, CredentialsType,
                       OutputSpec, OutputSpecs, StreamlitResource, Task,
                       TaskInputs, TaskOutputs, TypingStyle, task_decorator)
+from gws_plate_reader.biolector_xt.biolector_xt_types import \
+    CredentialsDataBiolector
 
 
 @task_decorator(unique_name="BiolectorDashboard",

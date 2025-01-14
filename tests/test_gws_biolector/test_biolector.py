@@ -2,9 +2,9 @@ import json
 
 from google.protobuf.json_format import MessageToJson
 from gws_core import BaseTestCase
-
-from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
-from gws_biolector.biolector_xt.biolector_xt_types import \
+from gws_plate_reader.biolector_xt.biolector_xt_service import \
+    BiolectorXTService
+from gws_plate_reader.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
 
 

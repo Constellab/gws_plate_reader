@@ -3,13 +3,13 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import List
 
-from gws_biolector.biolector_xt.biolector_xt_types import (
+from gws_core import MessageDispatcher
+from gws_plate_reader.biolector_xt.biolector_xt_types import (
     BiolectorXTExperiment, BiolectorXTProtocol)
-from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
+from gws_plate_reader.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
     ContinueProtocolResponse, ExperimentInfo, ProtocolInfo,
     StartProtocolResponse, StatusUpdateStreamResponse, StdResponse,
     StopProtocolResponse)
-from gws_core import MessageDispatcher
 
 
 class BiolectorXTServiceI():

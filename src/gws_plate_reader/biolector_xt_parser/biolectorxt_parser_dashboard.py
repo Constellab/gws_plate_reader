@@ -1,7 +1,7 @@
 
 
 import streamlit as st
-from gws_biolector.biolector_xt_parser.biolectorxt_parser import \
+from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
     BiolectorXTParser
 from pandas import DataFrame
 from streamlit_extras.stylable_container import stylable_container

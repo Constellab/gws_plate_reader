@@ -2,13 +2,13 @@
 from typing import List, Optional
 
 import streamlit as st
-from gws_biolector.biolector_xt.tasks.biolector_download_experiment_task import \
-    BiolectorDownloadExperiment
-from gws_biolector.biolector_xt_parser.dashboard.parser_dashboard import \
-    ParserDashboard
 from gws_core import (FrontService, Scenario, ScenarioCreationType,
                       ScenarioProxy, ScenarioSearchBuilder, ScenarioStatus,
                       Tag)
+from gws_plate_reader.biolector_xt.tasks.biolector_download_experiment_task import \
+    BiolectorDownloadExperiment
+from gws_plate_reader.biolector_xt_parser.dashboard.parser_dashboard import \
+    ParserDashboard
 
 DOWNLOAD_TAG_KEY = "biolector_download"
 

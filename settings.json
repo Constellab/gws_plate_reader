@@ -1,10 +1,10 @@
 {
-    "name": "gws_biolector",
+    "name": "gws_plate_reader",
     "author": "Gencovery",
     "version": "0.5.4",
     "variables": {
-        "gws_biolector:testdata_dir": "${CURRENT_DIR}/tests/testdata",
-        "gws_biolector:data_dir": "${CURRENT_DIR}/data"
+        "gws_plate_reader:testdata_dir": "${CURRENT_DIR}/tests/testdata",
+        "gws_plate_reader:data_dir": "${CURRENT_DIR}/data"
     },
     "environment": {
         "bricks": [

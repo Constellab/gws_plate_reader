@@ -2,19 +2,20 @@
 
 import os
 
-from gws_biolector.biolector_xt.biolector_xt_mock_service import \
-    BiolectorXTMockService
-from gws_biolector.biolector_xt.biolector_xt_service import BiolectorXTService
-from gws_biolector.biolector_xt.biolector_xt_service_i import \
-    BiolectorXTServiceI
-from gws_biolector.biolector_xt.biolector_xt_types import \
-    CredentialsDataBiolector
 from gws_core import (BoolParam, ConfigParams, ConfigSpecs,
                       CredentialsDataOther, CredentialsParam, CredentialsType,
                       File, FileHelper, Folder, InputSpecs, OutputSpec,
                       OutputSpecs, StrParam, Table, TableImporter, Task,
                       TaskInputs, TaskOutputs, TypingStyle, ZipCompress,
                       task_decorator)
+from gws_plate_reader.biolector_xt.biolector_xt_mock_service import \
+    BiolectorXTMockService
+from gws_plate_reader.biolector_xt.biolector_xt_service import \
+    BiolectorXTService
+from gws_plate_reader.biolector_xt.biolector_xt_service_i import \
+    BiolectorXTServiceI
+from gws_plate_reader.biolector_xt.biolector_xt_types import \
+    CredentialsDataBiolector
 
 
 @task_decorator(unique_name="BiolectorDownloadExperiment",

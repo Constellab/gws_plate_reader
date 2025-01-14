@@ -5,19 +5,19 @@ from typing import Generator, List
 import grpc
 from google.protobuf.empty_pb2 import Empty
 from google.protobuf.wrappers_pb2 import BoolValue, StringValue
-from gws_biolector.biolector_xt.biolector_xt_exception import \
+from gws_core import FileHelper, MessageDispatcher, Settings
+from gws_plate_reader.biolector_xt.biolector_xt_exception import \
     BiolectorXTConnectException
-from gws_biolector.biolector_xt.biolector_xt_service_i import \
+from gws_plate_reader.biolector_xt.biolector_xt_service_i import \
     BiolectorXTServiceI
-from gws_biolector.biolector_xt.biolector_xt_types import \
+from gws_plate_reader.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
-from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
+from gws_plate_reader.biolector_xt.grpc.biolectorxtremotecontrol_pb2 import (
     ContinueProtocolResponse, ExperimentInfo, FileChunk, MetaData,
     ProtocolInfo, StartProtocolResponse, StatusUpdateStreamResponse,
     StdResponse, StopProtocolResponse)
-from gws_biolector.biolector_xt.grpc.biolectorxtremotecontrol_pb2_grpc import \
+from gws_plate_reader.biolector_xt.grpc.biolectorxtremotecontrol_pb2_grpc import \
     BioLectorXtRemoteControlStub
-from gws_core import FileHelper, MessageDispatcher, Settings
 
 
 class BiolectorXTGrpcChannel():

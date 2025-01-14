@@ -1,12 +1,12 @@
 
-from gws_biolector.biolector_xt.tasks.biolector_dashboard import (
-    BiolectorDashboard, BiolectorDashboardClass)
-from gws_biolector.biolector_xt_parser.dashboard.parser_dashboard import (
-    ParserDashboard, ParserDashboardClass)
-from gws_biolector.biolector_xt_parser.standalone_parser_dashboard.standalone_parser_dashboard import (
-    BiolectorParserStandalone, BiolectorParserStandaloneClass)
 from gws_core import (BrickMigration, StreamlitResource, Version,
                       brick_migration)
+from gws_plate_reader.biolector_xt.tasks.biolector_dashboard import (
+    BiolectorDashboard, BiolectorDashboardClass)
+from gws_plate_reader.biolector_xt_parser.dashboard.parser_dashboard import (
+    ParserDashboard, ParserDashboardClass)
+from gws_plate_reader.biolector_xt_parser.standalone_parser_dashboard.standalone_parser_dashboard import (
+    BiolectorParserStandalone, BiolectorParserStandaloneClass)
 
 
 @brick_migration('0.5.4', short_description='Migrate dashboard resources')

@@ -2,9 +2,9 @@ import os
 from typing import List
 
 import streamlit as st
-from gws_biolector.biolector_xt_parser.biolectorxt_parser import \
+from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
     BiolectorXTParser
-from gws_biolector.features_extraction.linear_logistic_cv import \
+from gws_plate_reader.features_extraction.linear_logistic_cv import \
     LogisticGrowthFitter
 
 

@@ -16,7 +16,7 @@ class BiolectorDashboardClass(Dashboard):
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
-    def get_folder_path(self):
+    def get_app_folder_path(self):
         return os.path.join(
             os.path.abspath(os.path.dirname(__file__)),
             "_streamlit_dashboard"
@@ -52,11 +52,13 @@ class BiolectorDashboard(Task):
                                   default_value=False, visibility="protected")
     }
 
-    output_specs: OutputSpecs = OutputSpecs({'dashboard': OutputSpec(StreamlitResource)})
+    output_specs: OutputSpecs = OutputSpecs(
+        {'dashboard': OutputSpec(StreamlitResource)})
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
 
-        credentials_data: CredentialsDataOther = params.get_value('credentials')
+        credentials_data: CredentialsDataOther = params.get_value(
+            'credentials')
 
         # check the credentials data
         try:
@@ -69,9 +71,12 @@ class BiolectorDashboard(Task):
         streamlit_resource = StreamlitResource()
 
         streamlit_resource.set_dashboard(BiolectorDashboardClass())
-        streamlit_resource.set_param("credentials_name", credentials_data.meta.name)
-        streamlit_resource.set_param("mock_service", params.get_value('mock_service'))
+        streamlit_resource.set_param(
+            "credentials_name", credentials_data.meta.name)
+        streamlit_resource.set_param(
+            "mock_service", params.get_value('mock_service'))
 
-        streamlit_resource.style = TypingStyle.community_icon("bioreactor", background_color='#ff4b4b')
+        streamlit_resource.style = TypingStyle.community_icon(
+            "bioreactor", background_color='#ff4b4b')
 
         return {'dashboard': streamlit_resource}

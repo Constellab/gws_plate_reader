@@ -12,7 +12,7 @@ class ParserDashboardClass(Dashboard):
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
-    def get_folder_path(self):
+    def get_app_folder_path(self):
         return os.path.join(
             os.path.abspath(os.path.dirname(__file__)),
             "_dashboard_parser_code"
@@ -74,11 +74,13 @@ class ParserDashboard(Task):
         raw_data: Table = inputs.get('raw_data')
         folder_metadata: Folder = inputs.get('folder_metadata')
         streamlit_resource.add_resource(raw_data, create_new_resource=False)
-        streamlit_resource.add_resource(folder_metadata, create_new_resource=False)
+        streamlit_resource.add_resource(
+            folder_metadata, create_new_resource=False)
 
         folder_growth_rate: Folder = Folder(self.create_tmp_dir())
         folder_growth_rate.name = "Growth Rate"
-        streamlit_resource.add_resource(folder_growth_rate, create_new_resource=True)
+        streamlit_resource.add_resource(
+            folder_growth_rate, create_new_resource=True)
         # set the app folder
         streamlit_resource.set_dashboard(ParserDashboardClass())
 

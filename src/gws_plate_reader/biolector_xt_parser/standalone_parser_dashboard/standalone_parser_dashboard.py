@@ -12,7 +12,7 @@ class BiolectorParserStandaloneClass(Dashboard):
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
-    def get_folder_path(self):
+    def get_app_folder_path(self):
         return os.path.join(
             os.path.abspath(os.path.dirname(__file__)),
             "_standalone_dashboard_parser_code"

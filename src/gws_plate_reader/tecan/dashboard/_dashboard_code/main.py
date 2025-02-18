@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 import pytz
 from gws_core import Table
-from gws_biolector.tecan.tecan_parser import TecanParser
+from gws_plate_reader.tecan.tecan_parser import TecanParser
 from streamlit_extras.stylable_container import stylable_container
 
 # thoses variable will be set by the streamlit app

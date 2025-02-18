@@ -11,7 +11,7 @@ from .plot_tab import render_plot_tab
 from .table_tab import render_table_tab
 
 
-def show_content(microplate_object: BiolectorXTParser, growth_rate_folder_path: str):
+def show_content(microplate_object: BiolectorXTParser):
 
     filters = microplate_object.get_filter_name()
 
@@ -22,7 +22,7 @@ def show_content(microplate_object: BiolectorXTParser, growth_rate_folder_path: 
         render_plot_tab(microplate_object, filters)
 
     def render_analysis_page():
-        render_analysis_tab(microplate_object, filters, growth_rate_folder_path)
+        render_analysis_tab(microplate_object, filters)
 
     tables_page = st.Page(render_table_page, title='Tables', url_path='tables', icon='📄')
     plots_page = st.Page(render_plot_page, title='Plots', url_path='plots', icon='📈')
@@ -37,7 +37,7 @@ def reset_wells():
     st.session_state['well_clicked'] = []
 
 
-def run(raw_data: DataFrame, metadata: dict, growth_rate_folder_path: str):
+def run(raw_data: DataFrame, metadata: dict):
 
     microplate = BiolectorXTParser(data=raw_data, metadata=metadata)
 
@@ -125,4 +125,4 @@ def run(raw_data: DataFrame, metadata: dict, growth_rate_folder_path: str):
         # Add the reset button
         st.button("Reset Wells", on_click=reset_wells)
 
-    show_content(microplate_object=microplate, growth_rate_folder_path=growth_rate_folder_path)
+    show_content(microplate_object=microplate)

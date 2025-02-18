@@ -77,10 +77,6 @@ class ParserDashboard(Task):
         streamlit_resource.add_resource(
             folder_metadata, create_new_resource=False)
 
-        folder_growth_rate: Folder = Folder(self.create_tmp_dir())
-        folder_growth_rate.name = "Growth Rate"
-        streamlit_resource.add_resource(
-            folder_growth_rate, create_new_resource=True)
         # set the app folder
         streamlit_resource.set_dashboard(ParserDashboardClass())
 

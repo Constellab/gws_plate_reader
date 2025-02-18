@@ -17,7 +17,6 @@ if not sources:
 
 raw_data = sources[0]
 folder_metadata = sources[1]
-growth_rate_folder = sources[2].path
 
 metadata: dict = None
 for file_name in os.listdir(folder_metadata.path):
@@ -35,4 +34,4 @@ if metadata is None:
     st.error("No metadata file found in the provided folder. The folder must contain a file that ends with 'BXT.json'")
     st.stop()
 
-run(raw_data.get_data(), metadata, growth_rate_folder)
+run(raw_data.get_data(), metadata)

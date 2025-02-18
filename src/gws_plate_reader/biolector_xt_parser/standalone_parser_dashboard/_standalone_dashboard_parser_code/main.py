@@ -61,8 +61,6 @@ def save_new_stats(mock_data: bool):
         print(f"Error while saving the new stats: {e}")
 
 
-if 'growth_rate_folder_path' not in st.session_state:
-    st.session_state['growth_rate_folder_path'] = Settings.make_temp_dir()
 
 table_file = None
 json_file = None
@@ -145,7 +143,6 @@ if 'table' in st.session_state and 'metadata' in st.session_state:
     table: DataFrame = st.session_state['table']
 
     metadata = st.session_state['metadata']
-    growth_rate_folder_path = st.session_state['growth_rate_folder_path']
 
     # run the dashboard
-    run(table, metadata, growth_rate_folder_path)
+    run(table, metadata)

@@ -3,11 +3,20 @@ import json
 import streamlit as st
 import pandas as pd
 from streamlit_extras.stylable_container import stylable_container
-
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
 sources: list
 params: dict
+
+# Initialize session state variable
+if "success_message" not in st.session_state:
+    st.session_state["success_message"] = None
+
+# Function to display success message after rerun
+def show_success_message():
+    if st.session_state["success_message"]:
+        st.success(st.session_state["success_message"])
+        st.session_state["success_message"] = None  # Clear message after displaying
 
 def show_content():
 
@@ -44,40 +53,46 @@ def show_content():
             with open(file_dict_dilutions_path, "w") as json_file:
                 json.dump(st.session_state.dilutions, json_file, indent=4)
 
-            st.success("Information saved successfully!")
+            st.success("Information saved successfully! ✅")
 
 
     with tab_plate_layout:
-        if st.session_state['well_clicked'] :
-            st.write(f"Fill informations for {', '.join(st.session_state['well_clicked'])}:")
+        if not st.session_state['compounds'] and not st.session_state['dilutions']:
+            st.warning("Please fill in at least one compound or dilution")
+        else:
+            if st.session_state['well_clicked'] :
+                st.write(f"Fill informations for {', '.join(st.session_state['well_clicked'])}:")
 
-            # Compound and dilution selection
-            selected_compound = st.selectbox(label="Compound", options=st.session_state['compounds'],placeholder="Choose an option", index = None)
-            selected_dilution = st.selectbox(label="Dilution", options=st.session_state['dilutions'],placeholder="Choose an option", index = None)
+                # Compound and dilution selection
+                selected_compound = st.selectbox(label="Compound", options=st.session_state['compounds'],placeholder="Choose an option", index = None)
+                selected_dilution = st.selectbox(label="Dilution", options=st.session_state['dilutions'],placeholder="Choose an option", index = None)
 
-            # Save information for selected wells
-            if st.button("Save these informations"):
-                if selected_compound is not None or selected_dilution is not None :
-                    for well in st.session_state['well_clicked']:
-                        if well not in st.session_state['plate_layout']:
-                            st.session_state['plate_layout'][well] = {}
-                    if selected_compound is not None :
+                # Save information for selected wells
+                if st.button("Save these informations"):
+                    if selected_compound is not None or selected_dilution is not None :
                         for well in st.session_state['well_clicked']:
-                            st.session_state['plate_layout'][well]["compound"] = selected_compound
-                    if selected_dilution is not None :
-                        for well in st.session_state['well_clicked']:
-                            st.session_state['plate_layout'][well]["dilution"] = selected_dilution
+                            if well not in st.session_state['plate_layout']:
+                                st.session_state['plate_layout'][well] = {}
+                        if selected_compound is not None :
+                            for well in st.session_state['well_clicked']:
+                                st.session_state['plate_layout'][well]["compound"] = selected_compound
+                        if selected_dilution is not None :
+                            for well in st.session_state['well_clicked']:
+                                st.session_state['plate_layout'][well]["dilution"] = selected_dilution
 
-                # Save the plate layout to a JSON file
-                file_plate_layout_path = os.path.join(folder_data, "plate_layout.json")
-                os.makedirs(os.path.dirname(file_plate_layout_path), exist_ok=True)  # Ensure directory exists
-                with open(file_plate_layout_path, "w") as json_file:
-                    json.dump(st.session_state['plate_layout'], json_file, indent=4)
-                st.success("Information saved successfully!") #TODO :trouver un moyen d'afficher un message de succès parce que là c'est trop vite à cause du rerun
-                st.rerun()
+                    # Save the plate layout to a JSON file
+                    file_plate_layout_path = os.path.join(folder_data, "plate_layout.json")
+                    os.makedirs(os.path.dirname(file_plate_layout_path), exist_ok=True)  # Ensure directory exists
+                    with open(file_plate_layout_path, "w") as json_file:
+                        json.dump(st.session_state['plate_layout'], json_file, indent=4)
 
-        else :
-            st.write("Please select one well at least.")
+                    st.session_state["success_message"] = "Information saved successfully! ✅"
+                    st.rerun()
+                show_success_message()  # Show success message if it exists
+
+
+            else :
+                st.warning("Please select one well at least.")
 
 
 

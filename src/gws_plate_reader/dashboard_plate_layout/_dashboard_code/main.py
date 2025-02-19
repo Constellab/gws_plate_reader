@@ -15,7 +15,7 @@ if "success_message" not in st.session_state:
 
 def reset_wells():
     st.session_state['well_clicked'] = []
-    
+
 # Function to display success message after rerun
 def show_success_message():
     if st.session_state["success_message"]:
@@ -66,18 +66,20 @@ def show_content():
 
     with tab_plate_layout:
         # Add the button to generate plate layout
-        if st.button("Generate plate layout ressource", icon = ":material/note_add:"):
-            path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
+        if st.button("Generate plate layout ressource", icon=":material/note_add:"):
+            path_temp = os.path.join(os.path.abspath(
+                os.path.dirname(__file__)), Settings.make_temp_dir())
             full_path = os.path.join(path_temp, f"Plate_layout.json")
             plate_layout: File = File(full_path)
             # Convert dict to JSON string
             json_str = json.dumps(st.session_state['plate_layout'], indent=4)
             plate_layout.write(json_str)
-            #Import the resource as JSONDict
+            # Import the resource as JSONDict
             plate_layout_json_dict = JSONImporter.call(plate_layout)
             plate_layout_resource = ResourceModel.save_from_resource(
                 plate_layout_json_dict, ResourceOrigin.UPLOADED, flagged=True)
-            st.success(f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(plate_layout_resource.id)}")
+            st.success(
+                f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(plate_layout_resource.id)}")
         if not st.session_state['compounds'] and not st.session_state['dilutions']:
             st.warning("Please fill in at least one compound or dilution")
         else:
@@ -167,18 +169,24 @@ else:
         st.session_state["plate_layout"] = {}
 
 
+# Session state to track selected rows/columns
+if "selected_rows" not in st.session_state:
+    st.session_state.selected_rows = []
+if "selected_cols" not in st.session_state:
+    st.session_state.selected_cols = []
+
 if number_wells == 96:
     # Define the structure of the 96-well microplate
     ROWS = 8
     COLS = 12
-    size_sidebar = 580
-    size_button = 41
+    size_sidebar = 600
+    size_button = 42
     font_size = 4
 elif number_wells == 48:
     # Define the structure of the 48-well microplate
     ROWS = 6
     COLS = 8
-    size_sidebar = 400
+    size_sidebar = 450
     size_button = 44
     font_size = 8
 
@@ -189,6 +197,7 @@ st.markdown(
     <style>
         section[data-testid="stSidebar"] {{
             width: {size_sidebar}px !important; /* Set the width to your desired value */
+            min-width: {size_sidebar}px !important; /* Prevents resizing */
         }}
     </style>
     """,
@@ -212,6 +221,7 @@ with st.sidebar:
                 line-height: {size_button}px;  /* Center text vertically */
                 font-size: {font_size}px;  /* Text size */
                 padding: 0;  /* Remove padding to avoid extra space */
+                margin: 0;
                 cursor: pointer;
                 text-decoration: none;  /* Remove underline */
                 }}
@@ -224,36 +234,72 @@ with st.sidebar:
             # Define the structure of the microplate
             wells = [[f"{chr(65 + row)}{col + 1}" for col in range(COLS)]
                      for row in range(ROWS)]
+
+            # Column header buttons
+            cols_header = st.columns(COLS + 1)
+            for col in range(COLS):
+                if cols_header[col + 1].button(str(col + 1), key=f"col_{col + 1}"):
+                    if col + 1 in st.session_state.selected_cols:
+                        st.session_state.selected_cols.remove(col + 1)
+                        for row in range(ROWS):
+                            well = wells[row][col]
+                            if well in st.session_state['well_clicked']:
+                                st.session_state['well_clicked'].remove(well)
+                    else:
+                        st.session_state.selected_cols.append(col + 1)
+                        for row in range(ROWS):
+                            well = wells[row][col]
+                            if well not in st.session_state['well_clicked']:
+                                st.session_state['well_clicked'].append(well)
+                    st.rerun(scope="app")
+
+
             # Loop over the wells and create a grid of buttons
             for row in range(ROWS):
-                cols_object = st.columns(COLS)
+                cols_object = st.columns(COLS + 1)
+                # Row header button
+                if cols_object[0].button(chr(65 + row), key=f"row_{chr(65 + row)}"):
+                    if chr(65 + row) in st.session_state.selected_rows:
+                        st.session_state.selected_rows.remove(chr(65 + row))
+                        for col in range(COLS):
+                            well = wells[row][col]
+                            if well  in st.session_state['well_clicked']:
+                                st.session_state['well_clicked'].remove(well)
+                    else:
+                        st.session_state.selected_rows.append(chr(65 + row))
+                        for col in range(COLS):
+                            well = wells[row][col]
+                            if well not in st.session_state['well_clicked']:
+                                st.session_state['well_clicked'].append(well)
+                    st.rerun(scope="app")
+
                 for col in range(COLS):
                     well = wells[row][col]
 
                     if well in st.session_state['well_clicked']:
                         if well in st.session_state['plate_layout'] and st.session_state['plate_layout'][well].get("compound") and st.session_state['plate_layout'][well].get("dilution"):
-                            if cols_object[col].button(f":green[{well}] ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
+                            if cols_object[col+1].button(f":green[{well}] ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
                         elif well in st.session_state['plate_layout']:
-                            if cols_object[col].button(f":green[{well}]", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
+                            if cols_object[col+1].button(f":green[{well}]", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
                         else:
-                            if cols_object[col].button(f"**:green[{well}]**", key=well):
+                            if cols_object[col+1].button(f"**:green[{well}]**", key=well):
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
                     else:
                         if well in st.session_state['plate_layout'] and st.session_state['plate_layout'][well].get("compound") and st.session_state['plate_layout'][well].get("dilution"):
-                            if cols_object[col].button(f"{well} ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
+                            if cols_object[col+1].button(f"{well} ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")
                         elif well in st.session_state['plate_layout']:
-                            if cols_object[col].button(well, key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
+                            if cols_object[col+1].button(well, key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")
                         else:
-                            if cols_object[col].button(well, key=well):
+                            if cols_object[col+1].button(well, key=well):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")
 

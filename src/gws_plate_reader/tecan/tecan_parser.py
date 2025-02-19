@@ -1,9 +1,7 @@
 import json
-import os
-import pandas as pd
-import streamlit as st
+import math
+import copy
 import numpy as np
-
 from gws_core import Table, JSONDict
 
 class TecanParser:
@@ -30,7 +28,7 @@ class TecanParser:
         # Strip and update values for existing wells
         for well, description in metadata_well.items():
             if well in wells_label:
-                wells_label[well] = json.dumps(description, sort_keys=True, indent=4)
+                wells_label[well] = json.dumps(description, sort_keys=True, indent=4, ensure_ascii=False)
         return wells_label
 
     def get_wells_label_description_dict(self):
@@ -38,7 +36,7 @@ class TecanParser:
         wells = self.get_wells()
         # Initialize the wells_label dictionary with all well labels and default value as None
         wells_label = {well: "" for well in wells}
-        metadata_well = self.plate_layout.get_data()
+        metadata_well = copy.deepcopy(self.plate_layout.get_data())
 
         # Strip and update values for existing wells
         for well, description in metadata_well.items():
@@ -57,7 +55,7 @@ class TecanParser:
                 if well not in wells_dict:
                     wells_dict[well] = {}  # Initialize `well` if it doesn't exist
                 if "data" not in wells_dict[well]:
-                    wells_dict[well]["data"] = ""  # Initialize or handle default value if needed
+                    wells_dict[well]["data"] = np.nan  # Initialize or handle default value if needed
                 wells_dict[well]["data"] = df.at[row, str(col)]
         return wells_dict
 
@@ -93,10 +91,10 @@ class TecanParser:
 
     def mean_data_for_compound(self, compound_name):
         """Give the mean of values of a certain compound"""
-        wells_dict = self.enrich_well_metadata()
+        wells_dict = copy.deepcopy(self.enrich_well_metadata())
         # Filter the wells that have the specified compound
         selected_wells = [
-            well["data"] for well in wells_dict.values() if well["compound"] == compound_name
+            well["data"] for well in wells_dict.values() if well["compound"] == compound_name and not math.isnan(well["data"])
         ]
         # Calculate the mean of the "data" values
         if selected_wells:

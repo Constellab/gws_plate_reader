@@ -45,13 +45,20 @@ def run(raw_data: DataFrame, metadata: dict):
     if 'well_clicked' not in st.session_state:
         st.session_state['well_clicked'] = []
 
+    # Session state to track selected rows/columns
+    if "selected_rows" not in st.session_state:
+        st.session_state.selected_rows = []
+    if "selected_cols" not in st.session_state:
+        st.session_state.selected_cols = []
+
     # Inject custom CSS to set the width of the sidebar
     st.markdown(
-        """
+        f"""
         <style>
-            section[data-testid="stSidebar"] {
-                width: 400px !important; # Set the width to your desired value
-            }
+            section[data-testid="stSidebar"] {{
+                width: 420px !important; /* Set the width to your desired value */
+                min-width: 420px !important; /* Prevents resizing */
+            }}
         </style>
         """,
         unsafe_allow_html=True,
@@ -64,15 +71,16 @@ def run(raw_data: DataFrame, metadata: dict):
             with stylable_container(key="well_button", css_styles="""
                 button{
                     display: inline-block;
-                    width: 44px;  /* Adjust width and height as needed */
-                    height: 44px;
+                    width: 41px;  /* Adjust width and height as needed */
+                    height: 41px;
                     border-radius: 50%;  /* Make it circular */
                     background-color: #eb969d;  /* Button color */
                     color: black;  /* Text color */
                     text-align: center;
-                    line-height: 44px;  /* Center text vertically */
-                    font-size: 8px;  /* Text size */
+                    line-height: 41px;  /* Center text vertically */
+                    font-size: 4px;  /* Text size */
                     padding: 0;  /* Remove padding to avoid extra space */
+                    margin: 0;
                     cursor: pointer;
                     text-decoration: none;  /* Remove underline */
                     }
@@ -95,22 +103,60 @@ def run(raw_data: DataFrame, metadata: dict):
                 # Define well data (e.g., volume information for each well)
                 well_data = microplate.get_wells_label_description()
 
+                # Column header buttons
+                cols_header = st.columns(COLS + 1)
+                for col in range(COLS):
+                    if cols_header[col + 1].button(str(col + 1), key=f"col_{col + 1}"):
+                        if col + 1 in st.session_state.selected_cols:
+                            st.session_state.selected_cols.remove(col + 1)
+                            for row in range(ROWS):
+                                well = wells[row][col]
+                                if well not in crossed_out_wells:
+                                    if well in st.session_state['well_clicked']:
+                                        st.session_state['well_clicked'].remove(well)
+                        else:
+                            st.session_state.selected_cols.append(col + 1)
+                            for row in range(ROWS):
+                                well = wells[row][col]
+                                if well not in crossed_out_wells:
+                                    if well not in st.session_state['well_clicked']:
+                                        st.session_state['well_clicked'].append(well)
+                        st.rerun(scope="app")
+
                 has_changed = False
                 # Loop over the wells and create a grid of buttons
                 for row in range(ROWS):
-                    cols_object = st.columns(COLS)
+                    cols_object = st.columns(COLS + 1)
+                    # Row header button
+                    if cols_object[0].button(chr(65 + row), key=f"row_{chr(65 + row)}"):
+                        if chr(65 + row) in st.session_state.selected_rows:
+                            st.session_state.selected_rows.remove(chr(65 + row))
+                            for col in range(COLS):
+                                well = wells[row][col]
+                                if well not in crossed_out_wells:
+                                    if well  in st.session_state['well_clicked']:
+                                        st.session_state['well_clicked'].remove(well)
+                        else:
+                            st.session_state.selected_rows.append(chr(65 + row))
+                            for col in range(COLS):
+                                well = wells[row][col]
+                                if well not in crossed_out_wells:
+                                    if well not in st.session_state['well_clicked']:
+                                        st.session_state['well_clicked'].append(well)
+                        st.rerun(scope="app")
+
                     for col in range(COLS):
                         well = wells[row][col]
 
                         # Check if the well should be crossed out
                         if well in crossed_out_wells:
-                            cols_object[col].button(f":gray[{well}]", key=well, help=well_data[well], disabled=True)
+                            cols_object[col+1].button(f":gray[{well}]", key=well, help=well_data[well], disabled=True)
                         elif well in st.session_state['well_clicked']:
-                            if cols_object[col].button(f"**:green[{well}]**", key=well, help=well_data[well]):
+                            if cols_object[col+1].button(f"**:green[{well}]**", key=well, help=well_data[well]):
                                 st.session_state['well_clicked'].remove(well)
                                 has_changed = True
                         else:
-                            if cols_object[col].button(well, key=well, help=well_data[well]):
+                            if cols_object[col+1].button(well, key=well, help=well_data[well]):
                                 st.session_state['well_clicked'].append(well)
                                 has_changed = True
 
@@ -123,6 +169,6 @@ def run(raw_data: DataFrame, metadata: dict):
         fragment_sidebar_function()
 
         # Add the reset button
-        st.button("Reset Wells", on_click=reset_wells)
+        st.button("Reset wells selection", on_click=reset_wells)
 
     show_content(microplate_object=microplate)

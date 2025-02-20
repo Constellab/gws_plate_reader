@@ -37,7 +37,7 @@ def reset_wells():
     st.session_state['well_clicked'] = []
 
 
-def run(raw_data: DataFrame, metadata: dict):
+def run(raw_data: DataFrame, metadata: dict, is_standalone : bool):
 
     microplate = BiolectorXTParser(data=raw_data, metadata=metadata)
 
@@ -45,6 +45,10 @@ def run(raw_data: DataFrame, metadata: dict):
     if 'well_clicked' not in st.session_state:
         st.session_state['well_clicked'] = []
 
+    # Session state to track if the dashboard is standalone or not
+    if "is_standalone" not in st.session_state:
+        st.session_state.is_standalone = is_standalone
+        
     # Session state to track selected rows/columns
     if "selected_rows" not in st.session_state:
         st.session_state.selected_rows = []

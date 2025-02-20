@@ -42,17 +42,19 @@ def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: Li
             fig = logistic_fitter.plot_fitted_curves_with_r2()
             df_analysis = logistic_fitter.df_params
             st.dataframe(df_analysis.style.format(thousands=" ", precision=4))
-            # Add the button to resource containing the analysis table
-            if st.button("Generate analysis resource", icon = ":material/note_add:"):
-                path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
-                full_path = os.path.join(path_temp, "Analysis.csv")
-                analysis_df: File = File(full_path)
-                analysis_df.write(df_analysis.to_csv(index = False))
-                #Import the resource as Table
-                analysis_df_table = TableImporter.call(analysis_df)
-                analysis_df_resource = ResourceModel.save_from_resource(
-                    analysis_df_table, ResourceOrigin.UPLOADED, flagged=True)
-                st.success(f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")
+            #If the dashboard is not standalone, we add a button to generate a resource
+            if not st.session_state.is_standalone:
+                # Add the button to resource containing the analysis table
+                if st.button("Generate analysis resource", icon = ":material/note_add:"):
+                    path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
+                    full_path = os.path.join(path_temp, "Analysis.csv")
+                    analysis_df: File = File(full_path)
+                    analysis_df.write(df_analysis.to_csv(index = False))
+                    #Import the resource as Table
+                    analysis_df_table = TableImporter.call(analysis_df)
+                    analysis_df_resource = ResourceModel.save_from_resource(
+                        analysis_df_table, ResourceOrigin.UPLOADED, flagged=True)
+                    st.success(f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")
             st.plotly_chart(fig)
         except:
             st.error("Optimal parameters not found for some wells, try deselecting some wells.")

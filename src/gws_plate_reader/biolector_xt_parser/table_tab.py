@@ -20,14 +20,16 @@ def render_table_tab(microplate_object: BiolectorXTParser, filters: list):
             # TODO: voir si il faut les classer par ordre croissant ?
             df = df[["time", "Temps_en_h"] + st.session_state['well_clicked']]
         st.dataframe(df.style.format(thousands=" ", precision=4))
-        # Add the button to resource containing the data parsed
-        if st.button(f"Generate {filter_selection} resource", icon = ":material/note_add:"):
-            path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
-            full_path = os.path.join(path_temp, f"{filter_selection}.csv")
-            tab_parsed: File = File(full_path)
-            tab_parsed.write(df.to_csv(index = False))
-            #Import the resource as Table
-            tab_parsed_table = TableImporter.call(tab_parsed)
-            tab_parsed_resource = ResourceModel.save_from_resource(
-                tab_parsed_table, ResourceOrigin.UPLOADED, flagged=True)
-            st.success(f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(tab_parsed_resource.id)}")
+        #If the dashboard is not standalone, we add a button to generate a resource
+        if not st.session_state.is_standalone:
+            # Add the button to resource containing the data parsed
+            if st.button(f"Generate {filter_selection} resource", icon = ":material/note_add:"):
+                path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
+                full_path = os.path.join(path_temp, f"{filter_selection}.csv")
+                tab_parsed: File = File(full_path)
+                tab_parsed.write(df.to_csv(index = False))
+                #Import the resource as Table
+                tab_parsed_table = TableImporter.call(tab_parsed)
+                tab_parsed_resource = ResourceModel.save_from_resource(
+                    tab_parsed_table, ResourceOrigin.UPLOADED, flagged=True)
+                st.success(f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(tab_parsed_resource.id)}")

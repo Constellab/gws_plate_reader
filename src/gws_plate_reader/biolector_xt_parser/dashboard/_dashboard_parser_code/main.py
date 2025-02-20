@@ -34,4 +34,4 @@ if metadata is None:
     st.error("No metadata file found in the provided folder. The folder must contain a file that ends with 'BXT.json'")
     st.stop()
 
-run(raw_data.get_data(), metadata)
+run(raw_data.get_data(), metadata, is_standalone = False)

@@ -145,4 +145,4 @@ if 'table' in st.session_state and 'metadata' in st.session_state:
     metadata = st.session_state['metadata']
 
     # run the dashboard
-    run(table, metadata)
+    run(table, metadata, is_standalone = True)

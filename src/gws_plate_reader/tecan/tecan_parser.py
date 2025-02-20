@@ -1,6 +1,7 @@
 import json
 import math
 import copy
+import itertools
 import numpy as np
 from gws_core import Table, JSONDict
 
@@ -15,16 +16,22 @@ class TecanParser:
             self.data_file = data_file
             self.plate_layout = plate_layout
 
-    def get_wells(self):
+    def get_wells_tecan(self):
+        # Generate all possible values from A1 to H12
+        rows = [chr(i) for i in range(ord('A'), ord('H') + 1)]
+        cols = [str(i) for i in range(1, 13)]
+        all_values = [r + c for r, c in itertools.product(rows, cols)]
+        return all_values
+
+    def get_wells_filled_with_info(self):
         return self.plate_layout.get_data().keys()
 
     def get_wells_label_description(self):
         """Give the string description """
-        wells = self.get_wells()
+        wells = self.get_wells_tecan()
         # Initialize the wells_label dictionary with all well labels and default value as None
         wells_label = {well: "" for well in wells}
         metadata_well = self.plate_layout.get_data()
-
         # Strip and update values for existing wells
         for well, description in metadata_well.items():
             if well in wells_label:
@@ -33,9 +40,9 @@ class TecanParser:
 
     def get_wells_label_description_dict(self):
         """Give the dict description """
-        wells = self.get_wells()
+        wells = self.get_wells_tecan()
         # Initialize the wells_label dictionary with all well labels and default value as None
-        wells_label = {well: "" for well in wells}
+        wells_label = {well: {} for well in wells}
         metadata_well = copy.deepcopy(self.plate_layout.get_data())
 
         # Strip and update values for existing wells
@@ -63,7 +70,7 @@ class TecanParser:
         wells_dict = self.enrich_well_metadata()
         # Filter the wells that have the specified compound
         selected_wells = [
-            well for well, description in wells_dict.items() if description["compound"] == compound_name
+            well for well, description in wells_dict.items() if description.get("compound") == compound_name
         ]
         return selected_wells
 
@@ -94,7 +101,9 @@ class TecanParser:
         wells_dict = copy.deepcopy(self.enrich_well_metadata())
         # Filter the wells that have the specified compound
         selected_wells = [
-            well["data"] for well in wells_dict.values() if well["compound"] == compound_name and not math.isnan(well["data"])
+            well["data"]
+            for well in wells_dict.values()
+            if well.get("compound") == compound_name and not math.isnan(well["data"])
         ]
         # Calculate the mean of the "data" values
         if selected_wells:

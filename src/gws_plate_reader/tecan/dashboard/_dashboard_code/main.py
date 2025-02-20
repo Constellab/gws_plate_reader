@@ -88,8 +88,8 @@ def show_content(microplate: TecanParser):
 
                 # Step 1: Flatten the dictionary into a list of rows
                 data_list = [
-                    {"Well": well, "Compound": info["compound"], "Dilution": float(info["dilution"]), "Data": round((info["data"]/mean_untreated)*100,2)}
-                    for well, info in wells_dict.items() if info["compound"] != "untreated"
+                    {"Well": well, "Compound": info.get("compound"), "Dilution": float(info.get("dilution", 0)), "Data": round((info["data"]/mean_untreated)*100,2)}
+                    for well, info in wells_dict.items() if info.get("compound") != "untreated" and info.get("compound") != None and info.get("compound") != ""
                 ]
                 # Step 2: Create a DataFrame
                 df = pd.DataFrame(data_list)
@@ -182,6 +182,7 @@ with st.sidebar:
                      for row in range(ROWS)]
             # Define well data (e.g., volume information for each well)
             well_data = microplate.get_wells_label_description()
+
 
             # Column header buttons
             cols_header = st.columns(COLS + 1)

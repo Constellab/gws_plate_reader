@@ -49,7 +49,7 @@ def show_content():
         edited_dict_df = st.data_editor(
             dict_df, use_container_width=True, hide_index=True, num_rows="dynamic")
 
-        if st.button("Save data"):
+        if st.button("Save data", icon = ":material/save:"):
             st.session_state['compounds'] = edited_dict_df["Compounds"].to_list()
             st.session_state['dilutions'] = edited_dict_df["Dilutions"].to_list()
             file_dict_compounds_path = os.path.join(
@@ -94,7 +94,7 @@ def show_content():
                     label="Dilution", options=st.session_state['dilutions'], placeholder="Choose an option", index=None)
 
                 # Save information for selected wells
-                if st.button("Save these informations"):
+                if st.button("Save these informations", icon = ":material/save:"):
                     if selected_compound is not None or selected_dilution is not None:
                         for well in st.session_state['well_clicked']:
                             if well not in st.session_state['plate_layout']:
@@ -118,6 +118,25 @@ def show_content():
                     st.session_state["success_message"] = "Information saved successfully! ✅"
                     st.rerun()
                 show_success_message()  # Show success message if it exists
+
+                if any(well in st.session_state['plate_layout'] for well in st.session_state['well_clicked']):
+                    # Remove information for selected wells
+                    if st.button("Remove saved information", icon = ":material/delete:", key = "remove_button"):
+                        for well in st.session_state['well_clicked']:
+                            if well in st.session_state['plate_layout']:
+                                st.session_state['plate_layout'].pop(well, None)
+
+                        # Save the plate layout to a JSON file
+                        file_plate_layout_path = os.path.join(
+                            folder_data, "plate_layout.json")
+                        os.makedirs(os.path.dirname(file_plate_layout_path),
+                                    exist_ok=True)  # Ensure directory exists
+                        with open(file_plate_layout_path, "w") as json_file:
+                            json.dump(
+                                st.session_state['plate_layout'], json_file, indent=4)
+
+                        st.session_state["success_message"] = "Information saved successfully! ✅"
+                        st.rerun()
 
             else:
                 st.warning("Please select one well at least.")
@@ -278,11 +297,11 @@ with st.sidebar:
 
                     if well in st.session_state['well_clicked']:
                         if well in st.session_state['plate_layout'] and st.session_state['plate_layout'][well].get("compound") and st.session_state['plate_layout'][well].get("dilution"):
-                            if cols_object[col+1].button(f":green[{well}] ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
+                            if cols_object[col+1].button(f":green[{well}] ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True, indent=4, ensure_ascii=False)):
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
                         elif well in st.session_state['plate_layout']:
-                            if cols_object[col+1].button(f":green[{well}]", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
+                            if cols_object[col+1].button(f":green[{well}]", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True, indent=4, ensure_ascii=False)):
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
                         else:
@@ -291,15 +310,15 @@ with st.sidebar:
                                 st.rerun(scope="app")
                     else:
                         if well in st.session_state['plate_layout'] and st.session_state['plate_layout'][well].get("compound") and st.session_state['plate_layout'][well].get("dilution"):
-                            if cols_object[col+1].button(f"{well} ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
+                            if cols_object[col+1].button(f"{well} ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True, indent=4, ensure_ascii=False)):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")
                         elif well in st.session_state['plate_layout']:
-                            if cols_object[col+1].button(well, key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True)):
+                            if cols_object[col+1].button(well, key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True, indent=4, ensure_ascii=False)):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")
                         else:
-                            if cols_object[col+1].button(well, key=well):
+                            if cols_object[col+1].button(f"**{well}**", key=well):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")
 

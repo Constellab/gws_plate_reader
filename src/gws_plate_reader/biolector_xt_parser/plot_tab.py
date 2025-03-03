@@ -8,7 +8,7 @@ from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
 def render_plot_tab(microplate_object: BiolectorXTParser, filters: list):
     legend_mean = ""
     selected_filters = st.multiselect(
-        '$\\text{\large{Select the observers to be displayed}}$', filters, default=filters, key="plot_filters")
+        '$\\textsf{\large{Select the observers to be displayed}}$', filters, default=filters, key="plot_filters")
 
     # Select wells: all by default; otherwise those selected in the microplate
     if len(st.session_state['well_clicked']) > 0:
@@ -16,10 +16,10 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list):
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        selected_time = st.selectbox("$\\text{\large{Select the time unit}}$", [
+        selected_time = st.selectbox("$\\textsf{\large{Select the time unit}}$", [
                                      "Hours", "Minutes", "Seconds"], index=0, key="plot_time")
     with col2:
-        selected_mode = st.selectbox("$\\text{\large{Select the display mode}}$",
+        selected_mode = st.selectbox("$\\textsf{\large{Select the display mode}}$",
                                      ["Individual curves", "Mean of selected wells"],
                                      index=0, key="plot_mode")
 

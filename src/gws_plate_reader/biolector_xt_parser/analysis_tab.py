@@ -17,7 +17,7 @@ def render_analysis_tab(microplate_object: BiolectorXTParser, filters: list):
         return
 
     filter_selection: List[str] = st.selectbox(
-        '$\\text{\large{Select the observers to be displayed}}$', biomass_filters, index=0,
+        '$\\textsf{\large{Select the observers to be displayed}}$', biomass_filters, index=0,
         key="analysis_filters")
 
     # Select wells : all by default; otherwise those selected in the microplate

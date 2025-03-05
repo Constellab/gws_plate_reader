@@ -2,7 +2,7 @@
 import os
 
 from gws_core import (ConfigParams, ConfigSpecs, OutputSpec, OutputSpecs, StreamlitResource, Task, TaskInputs, TaskOutputs, task_decorator,
-                      dashboard_decorator, Dashboard, DashboardType, Folder, TypingStyle, StrParam)
+                      dashboard_decorator, Dashboard, DashboardType, Folder, TypingStyle, StrParam, JSONDict, InputSpecs, InputSpec)
 
 @dashboard_decorator("GenerateDashboardPlateLayout", dashboard_type=DashboardType.STREAMLIT)
 class GenerateDashboardPlateLayout(Dashboard):
@@ -27,6 +27,8 @@ class StreamlitGeneratorPlateLayout(Task):
                                   short_description="The number of wells of the microplate"),
 
     }
+    input_specs: InputSpecs = InputSpecs(
+        {'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)})
 
     output_specs: OutputSpecs = OutputSpecs({'streamlit_app': OutputSpec( StreamlitResource, human_name="Microplate dashboard")})
 
@@ -41,6 +43,10 @@ class StreamlitGeneratorPlateLayout(Task):
         folder_data.name = "Data"
         streamlit_resource.add_resource(folder_data, create_new_resource=True)
 
+        # set the input in the streamlit resource
+        plate_layout: JSONDict = inputs.get('plate_layout')
+        if plate_layout:
+            streamlit_resource.add_resource(plate_layout, create_new_resource=False)
 
         # set dashboard reference
         streamlit_resource.set_dashboard(GenerateDashboardPlateLayout())

@@ -121,7 +121,7 @@ def show_content():
 
                 if any(well in st.session_state['plate_layout'] for well in st.session_state['well_clicked']):
                     # Remove information for selected wells
-                    if st.button("Remove saved information", icon = ":material/delete:", key = "remove_button"):
+                    if st.button(f"**:red[Remove saved information]**", icon = ":material/delete:", key = "remove_button"):
                         for well in st.session_state['well_clicked']:
                             if well in st.session_state['plate_layout']:
                                 st.session_state['plate_layout'].pop(well, None)
@@ -147,7 +147,25 @@ if not sources:
     raise Exception("Source paths are not provided.")
 
 folder_data = sources[0].path
+if len(sources)>1:
+    existing_plate_layout = sources[1].get_data()
+else :
+    existing_plate_layout = None
 number_wells = params["number_wells"]
+
+def validate_plate_layout(existing_plate_layout, number_wells):
+    if number_wells == 48:
+        invalid_letters = {'G', 'H'}
+        invalid_numbers = {'9', '10', '11', '12'}
+
+        for well in existing_plate_layout.keys():
+            letter, number = well[0], well[1:]
+
+            if letter in invalid_letters or number in invalid_numbers:
+                raise ValueError(f"Invalid well detected: {well}. Please verify that your plate layout correspond to the number of wells you entered in parameters")
+
+    return True
+
 
 # Initialize the session state for clicked wells if it doesn't exist
 if 'well_clicked' not in st.session_state:
@@ -183,10 +201,24 @@ if files_plate_layout:
     file_path_plate_layout = os.path.join(folder_data, files_plate_layout[0])
     with open(file_path_plate_layout, "r") as f:
         st.session_state.plate_layout = json.load(f)
+#If is the first execution and there is an existing plate layout given in input, then we load it
+elif existing_plate_layout:
+    #check if the existing_plate_layout have the same size than the number entered in the parameters of the task
+    try:
+        validate_plate_layout(existing_plate_layout, number_wells)
+    except ValueError as e:
+        st.write(e)
+    st.session_state.plate_layout = existing_plate_layout
+
+    #Retrieve unique compounds and dilutions
+    # Extract unique values while handling missing keys
+    unique_compounds = list({v.get("compound") for v in st.session_state.plate_layout.values() if "compound" in v})
+    unique_dilutions = list({v.get("dilution") for v in st.session_state.plate_layout.values() if "dilution" in v})
+    st.session_state['compounds'] = unique_compounds
+    st.session_state['dilutions'] = unique_dilutions
 else:
     if "plate_layout" not in st.session_state:
         st.session_state["plate_layout"] = {}
-
 
 # Session state to track selected rows/columns
 if "selected_rows" not in st.session_state:

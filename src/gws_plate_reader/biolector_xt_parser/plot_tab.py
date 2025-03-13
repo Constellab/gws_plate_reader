@@ -1,41 +1,81 @@
-
+from typing import List
+from collections import defaultdict
 import plotly.graph_objects as go
 import streamlit as st
+import pandas as pd
 from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
     BiolectorXTParser
+from gws_plate_reader.biolector_xt_parser.biolector_state import BiolectorState
 
 
-def render_plot_tab(microplate_object: BiolectorXTParser, filters: list):
+def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_data : dict):
     legend_mean = ""
-    selected_filters = st.multiselect(
-        '$\\textsf{\large{Select the observers to be displayed}}$', filters, default=filters, key="plot_filters")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        selected_filters = st.multiselect(
+            '$\\textsf{\large{Select the observers to be displayed}}$', filters, default=filters, key="plot_filters")
+    with col2:
+        selected_time = st.selectbox("$\\textsf{\large{Select the time unit}}$", [
+                                     "Hours", "Minutes", "Seconds"], index=0, key="plot_time")
 
     # Select wells: all by default; otherwise those selected in the microplate
-    if len(st.session_state['well_clicked']) > 0:
-        st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
+    if len(BiolectorState.get_well_clicked()) > 0:
+        st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_well_clicked())}")
+
+    all_keys_well_description = set()
+    for well, info in well_data.items():
+        all_keys_well_description.update(info.keys())
+    all_keys_well_description = [item for item in all_keys_well_description]
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        selected_time = st.selectbox("$\\textsf{\large{Select the time unit}}$", [
-                                     "Hours", "Minutes", "Seconds"], index=0, key="plot_time")
+        selected_well_or_replicate = st.selectbox("$\\textsf{\large{Select by}}$",
+                                     ["Individual well"] + all_keys_well_description,
+                                     index=0, on_change= BiolectorState.reset_session_state_wells, key="plot_well_or_replicate")
     with col2:
         selected_mode = st.selectbox("$\\textsf{\large{Select the display mode}}$",
-                                     ["Individual curves", "Mean of selected wells"],
+                                     ["Individual curves", "Mean"],
                                      index=0, key="plot_mode")
 
-    if selected_mode == "Mean of selected wells":
+    if selected_mode == "Mean" :
         error_band = st.checkbox("Error band")
 
+    if selected_well_or_replicate != "Individual well":
+        # Grouping wells by key choosen by the user
+        dict_replicates = defaultdict(list)
+
+        for well, info in well_data.items():
+            if info.get(selected_well_or_replicate):
+                dict_replicates[info[selected_well_or_replicate]].append(well)
+        # Convert to a normal dict (if needed)
+        dict_replicates = dict(dict_replicates)
+
+        # list of wells from A01 to B12
+        cross_out_wells = {f"{row}{col:02d}" for row in "AB" for col in range(1, 13)}
+
+        st.write("Only replicates where all wells are selected and contain data will appear here.")
+        init_value = BiolectorState.get_plot_replicates_saved()
+
+        selected_replicates: List[str] = st.multiselect(
+                '$\\textsf{\large{Select the replicates to be displayed}}$', BiolectorState.get_options_replicates(dict_replicates, microplate_object, cross_out_wells), default = BiolectorState.get_options_replicates(dict_replicates, microplate_object, cross_out_wells), key="plot_replicates")
+
+        if BiolectorState.get_plot_replicates() != init_value :
+            BiolectorState.color_wells_replicates(dict_replicates)
+
+        if not selected_replicates:
+            st.warning("Please select at least one replicate.")
+
+    else:
+        selected_replicates = None
+        
     # Create an empty Plotly figure
     fig = go.Figure()
 
     for i, filter_name in enumerate(selected_filters):
         df = microplate_object.get_table_by_filter(filter_name)
         df = df.iloc[:, 1:]
-        if len(st.session_state['well_clicked']) > 0:
-            df = df[["Temps_en_h"] + st.session_state['well_clicked']]
-
-        cols_y = [col for col in df.columns if col != 'Temps_en_h']
+        if len(BiolectorState.get_well_clicked()) > 0:
+            df = df[["Temps_en_h"] + BiolectorState.get_well_clicked()]
 
         # Adapt unit of time
         if selected_time == "Hours":
@@ -48,6 +88,13 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list):
         # Assign a unique y-axis for each filter
         yaxis_id = f"y{i+1}"
 
+        if selected_replicates:
+            # Filter df with the wells to keep
+            df = df[["time"] + BiolectorState.get_wells_to_show()]
+
+        cols_y = [col for col in df.columns if col != 'time']
+
+        # Individual curves
         if selected_mode == "Individual curves":
             for col in cols_y:
                 fig.add_trace(go.Scatter(
@@ -58,36 +105,95 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list):
                     line={'shape': 'spline', 'smoothing': 1},
                     yaxis=yaxis_id
                 ))
-        elif selected_mode == "Mean of selected wells":
-            legend_mean = f"(Mean of  {', '.join(st.session_state['well_clicked'])})"
-            df_mean = df[cols_y].mean(axis=1)
-            df_std = df[cols_y].std(axis=1)
-            fig.add_trace(go.Scatter(
-                x=df['time'],
-                y=df_mean,
-                mode='lines',
-                name=f"{filter_name} - mean",
-                line={'shape': 'spline', 'smoothing': 1},
-                yaxis=yaxis_id
-            ))
-            if error_band:
+        # Mean curves
+        elif selected_mode == "Mean":
+            if selected_well_or_replicate == "Individual well":
+                if not BiolectorState.get_well_clicked():
+                    legend_mean = "(Mean of all wells)"
+                else:
+                    legend_mean = f"(Mean of {', '.join(BiolectorState.get_well_clicked())})"
+                df_mean = df[cols_y].mean(axis=1)
+                df_std = df[cols_y].std(axis=1)
                 fig.add_trace(go.Scatter(
                     x=df['time'],
-                    y=df_mean + df_std,
+                    y=df_mean,
                     mode='lines',
-                    line=dict(width=0),
-                    showlegend=False,
+                    name=f"{filter_name} - mean",
+                    line={'shape': 'spline', 'smoothing': 1},
                     yaxis=yaxis_id
                 ))
-                fig.add_trace(go.Scatter(
-                    x=df['time'],
-                    y=df_mean - df_std,
-                    mode='lines',
-                    line=dict(width=0),
-                    fill='tonexty',
-                    name=f'Error Band {filter_name} (±1 SD)',
-                    yaxis=yaxis_id
-                ))
+                if error_band:
+                    fig.add_trace(go.Scatter(
+                        x=df['time'],
+                        y=df_mean + df_std,
+                        mode='lines',
+                        line=dict(width=0),
+                        showlegend=False,
+                        yaxis=yaxis_id
+                    ))
+                    fig.add_trace(go.Scatter(
+                        x=df['time'],
+                        y=df_mean - df_std,
+                        mode='lines',
+                        line=dict(width=0),
+                        fill='tonexty',
+                        name=f'Error Band {filter_name} (±1 SD)',
+                        yaxis=yaxis_id
+                    ))
+            elif selected_well_or_replicate != "Individual well":
+                if selected_replicates:
+                    # Define function to pair the wells and calculate the mean
+                    def calculate_replicates_mean_std(df, selected_replicates, dict_replicates, operation):
+                        # Group wells into pairs and calculate the mean for each pair
+                        replicates = []
+                        for replicate in selected_replicates:
+                            if operation == "mean":
+                                replicate = df[dict_replicates[replicate]].mean(axis=1)
+                            elif operation == "std":
+                                replicate = df[dict_replicates[replicate]].std(axis=1)
+                            replicates.append(replicate)
+
+                        # Create a new DataFrame for the replicates
+                        replicate_df = pd.concat(replicates, axis=1)
+                        #set columns names
+                        replicate_df.columns = [replicate for replicate in selected_replicates]
+
+                        return replicate_df
+
+                    # Compute the mean of each replicate
+                    replicate_df_mean = calculate_replicates_mean_std(df, selected_replicates, dict_replicates, "mean")
+                    replicate_df_std = calculate_replicates_mean_std(df, selected_replicates, dict_replicates, "std")
+
+                    legend_mean = f"(Mean of replicates {', '.join(selected_replicates)})"
+                    for col in replicate_df_mean.columns:
+                        fig.add_trace(go.Scatter(
+                            x=df['time'],
+                            y=replicate_df_mean[col],
+                            mode='lines',
+                            name=f"{filter_name} - mean {col}",
+                            line={'shape': 'spline', 'smoothing': 1},
+                            yaxis=yaxis_id
+                        ))
+
+                        if error_band:
+                            fig.add_trace(go.Scatter(
+                                x=df['time'],
+                                y=replicate_df_mean[col] + replicate_df_std[col],
+                                mode='lines',
+                                line=dict(width=0),
+                                showlegend=False,
+                                yaxis=yaxis_id
+                            ))
+                            fig.add_trace(go.Scatter(
+                                x=df['time'],
+                                y=replicate_df_mean[col] - replicate_df_std[col],
+                                mode='lines',
+                                line=dict(width=0),
+                                fill='tonexty',
+                                name=f'Error Band {filter_name} - {col}(±1 SD)',
+                                yaxis=yaxis_id
+                            ))
+
 
         # Update layout for the y-axis
         fig.update_layout({

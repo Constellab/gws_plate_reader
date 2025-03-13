@@ -1,5 +1,4 @@
 from typing import Dict, List
-
 from pandas import NA, DataFrame, Series
 
 
@@ -44,7 +43,7 @@ class BiolectorXTParser:
         wells_names.extend(reservoir_wells)
         return wells_names
 
-    def get_wells_label_description(self) -> dict:
+    def get_wells_label_description(self, existing_plate_layout : None) -> dict:
         wells = self.get_wells()
         # Initialize the wells_label dictionary with all well labels and default value as None
         wells_label = {well: "" for well in wells}
@@ -55,10 +54,28 @@ class BiolectorXTParser:
         # Strip and update values for existing wells
         for well, description in cultivation_map.items():
             if well in wells_label:
-                wells_label[well] = description.strip() or wells_label[well]
+                wells_label[well] = {"label": description.strip() or wells_label[well]}
+
         for well, description in reservoir_map.items():
             if well in wells_label:
-                wells_label[well] = description.strip() or wells_label[well]
+                wells_label[well] = {"label": description.strip() or wells_label[well]}
+
+        if existing_plate_layout:
+            # Retrieve data in existing_plate_layout and override label if key "label" is present
+            for well, data in existing_plate_layout.items():
+                if well in wells_label and isinstance(data, dict):  # Ensure it's a dictionary
+                    # Get the existing data, ensuring it's a dictionary
+                    existing_data = wells_label[well] if isinstance(wells_label[well], dict) else {"label": wells_label[well]}
+                    # If "label" exists in data, overwrite it
+                    if "label" in data:
+                        existing_data["label"] = data["label"]
+
+                    # Update with all keys from data
+                    existing_data.update(data)
+
+                    # Assign back to wells_label
+                    wells_label[well] = existing_data
+
         return wells_label
 
     def is_microfluidics(self):

@@ -4,7 +4,7 @@ import os
 from gws_core import (ConfigParams, Dashboard, DashboardType, Folder,
                       InputSpec, InputSpecs, OutputSpec, OutputSpecs,
                       StreamlitResource, Table, Task, TaskInputs, TaskOutputs,
-                      TypingStyle, dashboard_decorator, task_decorator)
+                      TypingStyle, dashboard_decorator, task_decorator, JSONDict)
 
 
 @dashboard_decorator("ParserDashboard", dashboard_type=DashboardType.STREAMLIT)
@@ -61,7 +61,8 @@ class ParserDashboard(Task):
 
     input_specs: InputSpecs = InputSpecs(
         {'raw_data': InputSpec(Table, human_name="Table containing the raw data"),
-         'folder_metadata': InputSpec(Folder, human_name="Folder containing the metadata")})
+         'folder_metadata': InputSpec(Folder, human_name="Folder containing the metadata"),
+         'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)})
     output_specs: OutputSpecs = OutputSpecs(
         {'streamlit_app': OutputSpec(StreamlitResource, human_name="Microplate dashboard")})
 
@@ -76,6 +77,11 @@ class ParserDashboard(Task):
         streamlit_resource.add_resource(raw_data, create_new_resource=False)
         streamlit_resource.add_resource(
             folder_metadata, create_new_resource=False)
+
+        # set the input in the streamlit resource
+        plate_layout: JSONDict = inputs.get('plate_layout')
+        if plate_layout:
+            streamlit_resource.add_resource(plate_layout, create_new_resource=False)
 
         # set the app folder
         streamlit_resource.set_dashboard(ParserDashboardClass())

@@ -17,7 +17,10 @@ if not sources:
 
 raw_data = sources[0]
 folder_metadata = sources[1]
-
+if len(sources)>2:
+    existing_plate_layout = sources[2].get_data()
+else :
+    existing_plate_layout = None
 metadata: dict = None
 for file_name in os.listdir(folder_metadata.path):
     if file_name.endswith('BXT.json'):
@@ -34,4 +37,4 @@ if metadata is None:
     st.error("No metadata file found in the provided folder. The folder must contain a file that ends with 'BXT.json'")
     st.stop()
 
-run(raw_data.get_data(), metadata, is_standalone = False)
+run(raw_data.get_data(), metadata, is_standalone = False, existing_plate_layout = existing_plate_layout)

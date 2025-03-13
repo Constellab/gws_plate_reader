@@ -6,6 +6,7 @@ from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
     BiolectorXTParser
 from gws_plate_reader.features_extraction.linear_logistic_cv import \
     LogisticGrowthFitter
+from gws_plate_reader.biolector_xt_parser.biolector_state import BiolectorState
 from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, TableImporter
 
 def render_analysis_tab(microplate_object: BiolectorXTParser, filters: list):
@@ -21,8 +22,8 @@ def render_analysis_tab(microplate_object: BiolectorXTParser, filters: list):
         key="analysis_filters")
 
     # Select wells : all by default; otherwise those selected in the microplate
-    if len(st.session_state['well_clicked']) > 0:
-        st.write(f"All the wells clicked are: {', '.join(st.session_state['well_clicked'])}")
+    if len(BiolectorState.get_well_clicked()) > 0:
+        st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_well_clicked())}")
 
     _run_analysis_tab(microplate_object, filter_selection)
 
@@ -32,9 +33,9 @@ def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: Li
         # Get the dataframe
         df = microplate_object.get_table_by_filter(filter_selection)
         df = df.drop(["time"], axis=1)
-        if len(st.session_state['well_clicked']) > 0:
+        if len(BiolectorState.get_well_clicked()) > 0:
             # TODO: voir si il faut les classer par ordre croissant ?
-            df = df[["Temps_en_h"] + st.session_state['well_clicked']]
+            df = df[["Temps_en_h"] + BiolectorState.get_well_clicked()]
         # Features extraction functions
         try:
             logistic_fitter = LogisticGrowthFitter(df)
@@ -43,7 +44,7 @@ def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: Li
             df_analysis = logistic_fitter.df_params
             st.dataframe(df_analysis.style.format(thousands=" ", precision=4))
             #If the dashboard is not standalone, we add a button to generate a resource
-            if not st.session_state.is_standalone:
+            if not BiolectorState.get_is_standalone():
                 # Add the button to resource containing the analysis table
                 if st.button("Generate analysis resource", icon = ":material/note_add:"):
                     path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())

@@ -223,7 +223,6 @@ with st.sidebar:
 
                 for col in range(COLS):
                     well = wells[row][col]
-
                     if well in st.session_state['well_clicked']:
                         if cols_object[col+1].button(f"**:green[{well}]**", key=well, help=well_data[well]):
                             st.session_state['well_clicked'].remove(well)

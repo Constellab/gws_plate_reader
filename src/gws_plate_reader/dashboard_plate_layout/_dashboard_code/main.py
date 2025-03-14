@@ -326,14 +326,21 @@ with st.sidebar:
 
                 for col in range(COLS):
                     well = wells[row][col]
+                    # Dynamically create tooltip text from the st.session_state['plate_layout'] dictionary
+                    if well in st.session_state['plate_layout']:
+                        sorted_items = sorted(st.session_state['plate_layout'][well].items())
+                        help_tab =  "| Property | Value |\n|----------|-------|\n" + "\n".join(
+                                    [f"| **{key}** | {value} |" for key, value in sorted_items])
+                    else:
+                        help_tab = "No data available"
 
                     if well in st.session_state['well_clicked']:
                         if well in st.session_state['plate_layout'] and st.session_state['plate_layout'][well].get("compound") and st.session_state['plate_layout'][well].get("dilution"):
-                            if cols_object[col+1].button(f":green[{well}] ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True, indent=4, ensure_ascii=False)):
+                            if cols_object[col+1].button(f":green[{well}] ✓", key=well, help=help_tab):
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
                         elif well in st.session_state['plate_layout']:
-                            if cols_object[col+1].button(f":green[{well}]", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True, indent=4, ensure_ascii=False)):
+                            if cols_object[col+1].button(f":green[{well}]", key=well, help=help_tab):
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
                         else:
@@ -342,11 +349,11 @@ with st.sidebar:
                                 st.rerun(scope="app")
                     else:
                         if well in st.session_state['plate_layout'] and st.session_state['plate_layout'][well].get("compound") and st.session_state['plate_layout'][well].get("dilution"):
-                            if cols_object[col+1].button(f"{well} ✓", key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True, indent=4, ensure_ascii=False)):
+                            if cols_object[col+1].button(f"{well} ✓", key=well, help=help_tab):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")
                         elif well in st.session_state['plate_layout']:
-                            if cols_object[col+1].button(well, key=well, help=json.dumps(st.session_state['plate_layout'][well], sort_keys=True, indent=4, ensure_ascii=False)):
+                            if cols_object[col+1].button(well, key=well, help=help_tab):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")
                         else:

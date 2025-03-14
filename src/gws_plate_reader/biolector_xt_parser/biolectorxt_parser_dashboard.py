@@ -190,23 +190,30 @@ def run(raw_data: DataFrame, metadata: dict, is_standalone : bool, existing_plat
 
                 for col in range(COLS):
                     well = wells[row][col]
-
-                    # Check if the well should be crossed out
+                    # Key
                     label_normalized = re.sub(r'[%\./]', '', unicodedata.normalize('NFKD', well_data[well].get(selected_color_well, "").strip().replace(' ', '_')).encode('ascii', 'ignore').decode('utf-8'))
                     key = f"{label_normalized}-{well}"
+                    # Dynamically create tooltip text from the well_data dictionary
+                    if well in well_data:
+                        sorted_items = sorted(well_data[well].items())
+                        help_tab =  "| Property | Value |\n|----------|-------|\n" + "\n".join(
+                                    [f"| **{key}** | {value} |" for key, value in sorted_items])
+                    else:
+                        help_tab = "No data available"
+                    # Check if the well should be crossed out
                     if well in crossed_out_wells:
-                        cols_object[col+1].button(f":gray[{well}]", key=key, help=json.dumps(well_data[well], sort_keys=True, indent=4, ensure_ascii=False), disabled=True)
+                        cols_object[col+1].button(f":gray[{well}]", key=key, help=help_tab, disabled=True)
                     elif well in BiolectorState.get_well_clicked():
-                        if cols_object[col+1].button(f":green[{well}]", key=key, help=json.dumps(well_data[well], sort_keys=True, indent=4, ensure_ascii=False)):
+                        if cols_object[col+1].button(f":green[{well}]", key=key, help=help_tab):
                             if well in BiolectorState.get_well_clicked():
                                 BiolectorState.remove_well_clicked(well)
                             has_changed = True
                     elif well in BiolectorState.get_replicated_wells_show():
-                        if cols_object[col+1].button(f"**{well}**", key=key, help=json.dumps(well_data[well], sort_keys=True, indent=4, ensure_ascii=False)):
+                        if cols_object[col+1].button(f"**{well}**", key=key, help=help_tab):
                             BiolectorState.append_well_clicked(well)
                             has_changed = True
                     else:
-                        if cols_object[col+1].button(well, key=key, help=json.dumps(well_data[well], sort_keys=True, indent=4, ensure_ascii=False)):
+                        if cols_object[col+1].button(well, key=key, help=help_tab):
                             BiolectorState.append_well_clicked(well)
                             has_changed = True
 

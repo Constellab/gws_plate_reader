@@ -75,7 +75,7 @@ def download_experiment(biolector_exp_id: str,
     with st.spinner('Downloading experiment file'):
         scenario = ScenarioProxy(title=f"Download Biolector experiment {biolector_exp_id}",
                                  creation_type=ScenarioCreationType.MANUAL)
-        scenario.add_tag(Tag(DOWNLOAD_TAG_KEY, biolector_exp_id))
+        scenario.add_tag(Tag(DOWNLOAD_TAG_KEY, biolector_exp_id, is_propagable=True))
         protocol = scenario.get_protocol()
 
         download_task = protocol.add_task(BiolectorDownloadExperiment, 'download', {

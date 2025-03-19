@@ -5,7 +5,7 @@ import os
 import streamlit as st
 from gws_plate_reader.biolector_xt_parser.biolectorxt_parser_dashboard import \
     run
-
+from gws_plate_reader.biolector_xt.tasks._streamlit_dashboard.app.download_exp import DOWNLOAD_TAG_KEY
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
 sources: list
@@ -16,6 +16,8 @@ if not sources:
     raise Exception("Source paths are not provided.")
 
 raw_data = sources[0]
+#Retrieve the tag biolector_download
+input_tag = raw_data.tags.get_by_key(DOWNLOAD_TAG_KEY)
 folder_metadata = sources[1]
 if len(sources)>2:
     existing_plate_layout = sources[2].get_data()
@@ -37,4 +39,4 @@ if metadata is None:
     st.error("No metadata file found in the provided folder. The folder must contain a file that ends with 'BXT.json'")
     st.stop()
 
-run(raw_data.get_data(), metadata, is_standalone = False, existing_plate_layout = existing_plate_layout)
+run(raw_data.get_data(), metadata, is_standalone = False, existing_plate_layout = existing_plate_layout, input_tag = input_tag)

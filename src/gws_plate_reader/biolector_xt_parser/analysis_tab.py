@@ -11,7 +11,7 @@ from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService
 from gws_core.tag.tag import TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
 
-def render_analysis_tab(microplate_object: BiolectorXTParser, filters: list):
+def render_analysis_tab(microplate_object: BiolectorXTParser, filters: List, input_tag : List ):
     # Récupération des filtres contenant le mot "Biomass"
     biomass_filters = [f for f in filters if "Biomass" in f]
     # Vérification s'il y a des filtres correspondant
@@ -27,10 +27,10 @@ def render_analysis_tab(microplate_object: BiolectorXTParser, filters: list):
     if len(BiolectorState.get_well_clicked()) > 0:
         st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_well_clicked())}")
 
-    _run_analysis_tab(microplate_object, filter_selection)
+    _run_analysis_tab(microplate_object, filter_selection, input_tag)
 
 
-def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: List[str]):
+def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: List[str], input_tag : List):
     with st.spinner("Running analysis..."):
         # Get the dataframe
         df = microplate_object.get_table_by_filter(filter_selection)
@@ -58,8 +58,9 @@ def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: Li
                     # Add tags
                     user_id = CurrentUserService.get_and_check_current_user().id
                     analysis_df_table.tags.add_tag(Tag(key = "filter", value = filter_selection, auto_parse=True,origins=TagOrigins(TagOriginType.USER, user_id)))
-                    #TODO récuperer l'id de l'experiment id  -> il faudrait que les tâches en amont de Benjamin
-                    # viennent tagger la resource d'entrée
+                    if input_tag :
+                        # If there was a tag biolector_download associated you the input table, then we add it to this table too
+                        analysis_df_table.tags.add_tag(input_tag[0])
                     analysis_df_resource = ResourceModel.save_from_resource(
                         analysis_df_table, ResourceOrigin.UPLOADED, flagged=True)
                     st.success(f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")

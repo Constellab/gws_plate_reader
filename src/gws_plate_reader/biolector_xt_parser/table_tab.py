@@ -8,7 +8,7 @@ from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService
 from gws_core.tag.tag import TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
 
-def render_table_tab(microplate_object: BiolectorXTParser, filters: list, well_data : dict, all_keys_well_description : List):
+def render_table_tab(microplate_object: BiolectorXTParser, filters: list, well_data : dict, all_keys_well_description : List, input_tag : List):
     init_value = BiolectorState.get_selected_filters()
     selected_filters: List[str] = st.multiselect(
         '$\\textsf{\large{Select the observers to be displayed}}$', options = filters, default = init_value, key="tab_filters")
@@ -77,8 +77,9 @@ def render_table_tab(microplate_object: BiolectorXTParser, filters: list, well_d
                 # Add tags
                 user_id = CurrentUserService.get_and_check_current_user().id
                 tab_parsed_table.tags.add_tag(Tag(key = "filter", value = filter_selection, auto_parse=True, origins=TagOrigins(TagOriginType.USER, user_id)))
-                #TODO récuperer l'id de l'experiment id  -> il faudrait que les tâches en amont de Benjamin
-                # viennent tagger la resource d'entrée 
+                if input_tag :
+                    # If there was a tag biolector_download associated you the input table, then we add it to this table too
+                    tab_parsed_table.tags.add_tag(input_tag[0])
                 tab_parsed_resource = ResourceModel.save_from_resource(
                     tab_parsed_table, ResourceOrigin.UPLOADED, flagged=True)
 

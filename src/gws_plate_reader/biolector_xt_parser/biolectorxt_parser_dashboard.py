@@ -12,20 +12,20 @@ from .plot_tab import render_plot_tab
 from .table_tab import render_table_tab
 
 
-def show_content(microplate_object: BiolectorXTParser, well_data : dict, all_keys_well_description : List):
+def show_content(microplate_object: BiolectorXTParser, well_data : dict, all_keys_well_description : List, input_tag : List):
 
     filters = microplate_object.get_filter_name()
     if BiolectorState.get_selected_filters() == None:
         BiolectorState.set_selected_filters(filters)
 
     def render_table_page():
-        render_table_tab(microplate_object, filters, well_data, all_keys_well_description)
+        render_table_tab(microplate_object, filters, well_data, all_keys_well_description, input_tag)
 
     def render_plot_page():
         render_plot_tab(microplate_object, filters, well_data, all_keys_well_description)
 
     def render_analysis_page():
-        render_analysis_tab(microplate_object, filters)
+        render_analysis_tab(microplate_object, filters, input_tag)
 
     tables_page = st.Page(render_table_page, title='Tables', url_path='tables', icon='📄')
     plots_page = st.Page(render_plot_page, title='Plots', url_path='plots', icon='📈')
@@ -36,7 +36,7 @@ def show_content(microplate_object: BiolectorXTParser, well_data : dict, all_key
     pg.run()
 
 
-def run(raw_data: DataFrame, metadata: dict, is_standalone : bool, existing_plate_layout : None):
+def run(raw_data: DataFrame, metadata: dict, is_standalone : bool, existing_plate_layout : None, input_tag : List):
 
     BiolectorState.init(is_standalone = is_standalone, existing_plate_layout = existing_plate_layout)
 
@@ -231,4 +231,4 @@ def run(raw_data: DataFrame, metadata: dict, is_standalone : bool, existing_plat
         # Add the reset button
         st.button("Reset wells selection", on_click=BiolectorState.reset_wells)
 
-    show_content(microplate_object=microplate, well_data = well_data, all_keys_well_description = all_keys_well_description)
+    show_content(microplate_object=microplate, well_data = well_data, all_keys_well_description = all_keys_well_description, input_tag = input_tag)

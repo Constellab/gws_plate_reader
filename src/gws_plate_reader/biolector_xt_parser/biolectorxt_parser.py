@@ -46,7 +46,7 @@ class BiolectorXTParser:
     def get_wells_label_description(self, existing_plate_layout : None) -> dict:
         wells = self.get_wells()
         # Initialize the wells_label dictionary with all well labels and default value as None
-        wells_label = {well: "" for well in wells}
+        wells_label = {well: {"label": ""} for well in wells}
         microplate = self.metadata.get("Layout", {})
         cultivation_map = microplate.get("CultivationLabelDescriptionsMap", {})
         reservoir_map = microplate.get("ReservoirLabelDescriptionsMap", {})

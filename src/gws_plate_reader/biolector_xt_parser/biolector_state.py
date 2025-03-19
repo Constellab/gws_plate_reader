@@ -13,7 +13,14 @@ class BiolectorState():
     REPLICATED_WELLS_SHOW_KEY = 'replicated_wells_show'
     WELLS_TO_SHOW_KEY = 'wells_to_show'
     PLOT_REPLICATES_KEY = "plot_replicates"
+    TABLE_REPLICATES_KEY = "table_replicates"
     PLOT_REPLICATES_SAVED_KEY = "plot_replicates_saved"
+    SELECTED_FILTERS_KEY = "selected_filters"
+    TAB_FILTERS_KEY ="tab_filters"
+    PLOT_FILTERS_KEY ="plot_filters"
+    SELECTED_WELL_OR_REPLICATE_KEY = "selected_well_or_replicate"
+    TAB_WELL_OR_REPLICATE_KEY ="tab_well_or_replicate"
+    PLOT_WELL_OR_REPLICATE_KEY ="plot_well_or_replicate"
 
     @classmethod
     def init(cls, is_standalone : bool, existing_plate_layout):
@@ -30,12 +37,13 @@ class BiolectorState():
         st.session_state[cls.OPTIONS_REPLICATES_KEY] = cls.get_options_replicates()
         st.session_state[cls.WELLS_TO_SHOW_KEY] = cls.get_wells_to_show()
         st.session_state[cls.REPLICATED_WELLS_SHOW_KEY] = cls.get_replicated_wells_show()
+        #filters
+        st.session_state[cls.SELECTED_FILTERS_KEY] = cls.get_selected_filters()
 
 
     @classmethod
-    def color_wells_replicates(cls, dict_replicates):
-        selected_replicates = cls.get_plot_replicates()  # Retrieve the selected values
-        st.session_state[cls.PLOT_REPLICATES_SAVED_KEY] = cls.get_plot_replicates()
+    def color_wells_replicates(cls, dict_replicates, selected_replicates):
+        st.session_state[cls.PLOT_REPLICATES_SAVED_KEY] = selected_replicates
         cls.reset_session_state_wells()
         if selected_replicates:
             # Get the corresponding wells
@@ -53,9 +61,66 @@ class BiolectorState():
         return st.session_state.get(cls.PLOT_REPLICATES_SAVED_KEY, [])
 
     @classmethod
+    def reset_plot_replicates_saved(cls) -> List:
+        st.session_state[cls.PLOT_REPLICATES_SAVED_KEY] =  []
+
+    @classmethod
     def get_plot_replicates(cls) -> List:
-        #It's the value of multiselect replicates
+        #It's the value of multiselect replicates for plot tab
         return st.session_state.get(cls.PLOT_REPLICATES_KEY, [])
+
+    @classmethod
+    def get_table_replicates(cls) -> List:
+        #It's the value of multiselect replicates for table tab
+        return st.session_state.get(cls.TABLE_REPLICATES_KEY, [])
+
+    # Filters
+    @classmethod
+    def get_selected_filters(cls, filters = None) -> List:
+        return st.session_state.get(cls.SELECTED_FILTERS_KEY, filters)
+
+    @classmethod
+    def set_selected_filters(cls, filters : List) -> None:
+        st.session_state[cls.SELECTED_FILTERS_KEY] = filters
+
+    @classmethod
+    def get_table_filters(cls) -> List:
+        #It's the value of multiselect filters in the table tab
+        return st.session_state.get(cls.TAB_FILTERS_KEY, [])
+
+    @classmethod
+    def get_plot_filters(cls) -> List:
+        #It's the value of multiselect filters in the table plot
+        return st.session_state.get(cls.PLOT_FILTERS_KEY, [])
+
+    @classmethod
+    def update_selected_filters(cls, filters) -> None:
+        cls.set_selected_filters(filters)
+
+
+    # Well or replicate
+    @classmethod
+    def get_selected_well_or_replicate(cls, well_or_replicate = None) -> List:
+        return st.session_state.get(cls.SELECTED_WELL_OR_REPLICATE_KEY, well_or_replicate)
+
+    @classmethod
+    def set_selected_well_or_replicate(cls, well_or_replicate : List) -> None:
+        st.session_state[cls.SELECTED_WELL_OR_REPLICATE_KEY] = well_or_replicate
+
+    @classmethod
+    def get_table_well_or_replicate(cls) -> List:
+        #It's the value of multiselect well_or_replicate in the table tab
+        return st.session_state.get(cls.TAB_WELL_OR_REPLICATE_KEY, [])
+
+    @classmethod
+    def get_plot_well_or_replicate(cls) -> List:
+        #It's the value of multiselect well_or_replicate in the table plot
+        return st.session_state.get(cls.PLOT_WELL_OR_REPLICATE_KEY, [])
+
+    @classmethod
+    def update_selected_well_or_replicate(cls, well_or_replicate) -> None:
+        cls.set_selected_well_or_replicate(well_or_replicate)
+
 
     @classmethod
     def get_replicated_wells_show(cls) -> List:
@@ -71,7 +136,10 @@ class BiolectorState():
         st.session_state[cls.WELLS_TO_SHOW_KEY] = []
 
     @classmethod
-    def get_options_replicates(cls, dict_replicates = None, microplate_object = None, cross_out_wells = None) -> List:
+    def get_options_replicates(cls, dict_replicates = None, microplate_object = None) -> List:
+        # list of wells from A01 to B12
+        cross_out_wells = {f"{row}{col:02d}" for row in "AB" for col in range(1, 13)}
+
         st.session_state[cls.OPTIONS_REPLICATES_KEY] = []
         if dict_replicates:
             for replicate in dict_replicates:

@@ -8,12 +8,15 @@ from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
 from gws_plate_reader.biolector_xt_parser.biolector_state import BiolectorState
 
 
-def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_data : dict):
+def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_data : dict, all_keys_well_description : []):
     legend_mean = ""
     col1, col2 = st.columns([1, 1])
     with col1:
-        selected_filters = st.multiselect(
-            '$\\textsf{\large{Select the observers to be displayed}}$', filters, default=filters, key="plot_filters")
+        init_value = BiolectorState.get_selected_filters()
+        selected_filters: List[str] = st.multiselect(
+            '$\\textsf{\large{Select the observers to be displayed}}$', options = filters, default = BiolectorState.get_selected_filters(), key="plot_filters")
+        if BiolectorState.get_plot_filters() != init_value :
+            BiolectorState.update_selected_filters(BiolectorState.get_plot_filters())
     with col2:
         selected_time = st.selectbox("$\\textsf{\large{Select the time unit}}$", [
                                      "Hours", "Minutes", "Seconds"], index=0, key="plot_time")
@@ -22,16 +25,21 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
     if len(BiolectorState.get_well_clicked()) > 0:
         st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_well_clicked())}")
 
-    all_keys_well_description = set()
-    for well, info in well_data.items():
-        all_keys_well_description.update(info.keys())
-    all_keys_well_description = [item for item in all_keys_well_description]
-
     col1, col2 = st.columns([1, 1])
     with col1:
-        selected_well_or_replicate = st.selectbox("$\\textsf{\large{Select by}}$",
-                                     ["Individual well"] + all_keys_well_description,
-                                     index=0, on_change= BiolectorState.reset_session_state_wells, key="plot_well_or_replicate")
+        init_value = BiolectorState.get_selected_well_or_replicate()
+        options = ["Individual well"] + all_keys_well_description
+        if init_value is None :
+            index = 0
+        else:
+            index = options.index(init_value)
+        selected_well_or_replicate : str = st.selectbox("$\\textsf{\large{Select by}}$", options =
+                                    options, index = index, key = "plot_well_or_replicate")
+        if BiolectorState.get_plot_well_or_replicate() != init_value :
+            BiolectorState.reset_session_state_wells()
+            BiolectorState.reset_plot_replicates_saved()
+            BiolectorState.update_selected_well_or_replicate(BiolectorState.get_plot_well_or_replicate())
+            st.rerun()
     with col2:
         selected_mode = st.selectbox("$\\textsf{\large{Select the display mode}}$",
                                      ["Individual curves", "Mean"],
@@ -41,33 +49,27 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
         error_band = st.checkbox("Error band")
 
     if selected_well_or_replicate != "Individual well":
-        # Grouping wells by key choosen by the user
-        dict_replicates = defaultdict(list)
-
-        for well, info in well_data.items():
-            if info.get(selected_well_or_replicate):
-                dict_replicates[info[selected_well_or_replicate]].append(well)
-        # Convert to a normal dict (if needed)
-        dict_replicates = dict(dict_replicates)
-
-        # list of wells from A01 to B12
-        cross_out_wells = {f"{row}{col:02d}" for row in "AB" for col in range(1, 13)}
+        dict_replicates = microplate_object.group_wells_by_selection(well_data, selected_well_or_replicate)
 
         st.write("Only replicates where all wells are selected and contain data will appear here.")
+
         init_value = BiolectorState.get_plot_replicates_saved()
-
+        options = BiolectorState.get_options_replicates(dict_replicates, microplate_object)
+        if init_value == [] :
+            default = options
+        else:
+            default = init_value
         selected_replicates: List[str] = st.multiselect(
-                '$\\textsf{\large{Select the replicates to be displayed}}$', BiolectorState.get_options_replicates(dict_replicates, microplate_object, cross_out_wells), default = BiolectorState.get_options_replicates(dict_replicates, microplate_object, cross_out_wells), key="plot_replicates")
-
+                '$\\textsf{\large{Select the replicates to be displayed}}$', options, default = default, key="plot_replicates")
         if BiolectorState.get_plot_replicates() != init_value :
-            BiolectorState.color_wells_replicates(dict_replicates)
+            BiolectorState.color_wells_replicates(dict_replicates, BiolectorState.get_plot_replicates())
 
         if not selected_replicates:
             st.warning("Please select at least one replicate.")
 
     else:
         selected_replicates = None
-        
+
     # Create an empty Plotly figure
     fig = go.Figure()
 

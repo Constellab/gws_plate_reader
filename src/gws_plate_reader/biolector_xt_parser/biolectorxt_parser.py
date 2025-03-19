@@ -1,6 +1,6 @@
 from typing import Dict, List
 from pandas import NA, DataFrame, Series
-
+from collections import defaultdict
 
 class BiolectorXTParser:
 
@@ -185,3 +185,14 @@ class BiolectorXTParser:
             raise Exception(f"Well {well_id} not found in the data.")
 
         return df_filter[['Temps_en_h', well_id]]
+
+    def group_wells_by_selection(self, well_data, selected_well_or_replicate):
+        # Grouping wells by key choosen by the user
+        dict_replicates = defaultdict(list)
+
+        for well, info in well_data.items():
+            if info.get(selected_well_or_replicate):
+                dict_replicates[info[selected_well_or_replicate]].append(well)
+        # Convert to a normal dict (if needed)
+        dict_replicates = dict(dict_replicates)
+        return dict_replicates

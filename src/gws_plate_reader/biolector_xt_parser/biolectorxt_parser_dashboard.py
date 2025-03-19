@@ -1,8 +1,8 @@
 
-import json
 import re
 import unicodedata
 import streamlit as st
+from typing import List
 from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
     BiolectorXTParser
 from gws_plate_reader.biolector_xt_parser.biolector_state import BiolectorState
@@ -12,15 +12,17 @@ from .plot_tab import render_plot_tab
 from .table_tab import render_table_tab
 
 
-def show_content(microplate_object: BiolectorXTParser, well_data : dict):
+def show_content(microplate_object: BiolectorXTParser, well_data : dict, all_keys_well_description : List):
 
     filters = microplate_object.get_filter_name()
+    if BiolectorState.get_selected_filters() == None:
+        BiolectorState.set_selected_filters(filters)
 
     def render_table_page():
-        render_table_tab(microplate_object, filters)
+        render_table_tab(microplate_object, filters, well_data, all_keys_well_description)
 
     def render_plot_page():
-        render_plot_tab(microplate_object, filters, well_data)
+        render_plot_tab(microplate_object, filters, well_data, all_keys_well_description)
 
     def render_analysis_page():
         render_analysis_tab(microplate_object, filters)
@@ -223,9 +225,10 @@ def run(raw_data: DataFrame, metadata: dict, is_standalone : bool, existing_plat
 
             st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_well_clicked())}")
 
-        fragment_sidebar_function()
+            return all_keys_well_description
+        all_keys_well_description = fragment_sidebar_function()
 
         # Add the reset button
         st.button("Reset wells selection", on_click=BiolectorState.reset_wells)
 
-    show_content(microplate_object=microplate, well_data = well_data)
+    show_content(microplate_object=microplate, well_data = well_data, all_keys_well_description = all_keys_well_description)

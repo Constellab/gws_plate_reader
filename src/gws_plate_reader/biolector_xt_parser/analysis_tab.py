@@ -7,7 +7,9 @@ from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
 from gws_plate_reader.features_extraction.linear_logistic_cv import \
     LogisticGrowthFitter
 from gws_plate_reader.biolector_xt_parser.biolector_state import BiolectorState
-from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, TableImporter
+from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, TableImporter, Tag, CurrentUserService
+from gws_core.tag.tag import TagOrigins
+from gws_core.tag.tag_dto import TagOriginType
 
 def render_analysis_tab(microplate_object: BiolectorXTParser, filters: list):
     # Récupération des filtres contenant le mot "Biomass"
@@ -53,6 +55,11 @@ def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: Li
                     analysis_df.write(df_analysis.to_csv(index = False))
                     #Import the resource as Table
                     analysis_df_table = TableImporter.call(analysis_df)
+                    # Add tags
+                    user_id = CurrentUserService.get_and_check_current_user().id
+                    analysis_df_table.tags.add_tag(Tag(key = "filter", value = filter_selection, auto_parse=True,origins=TagOrigins(TagOriginType.USER, user_id)))
+                    #TODO récuperer l'id de l'experiment id  -> il faudrait que les tâches en amont de Benjamin
+                    # viennent tagger la resource d'entrée
                     analysis_df_resource = ResourceModel.save_from_resource(
                         analysis_df_table, ResourceOrigin.UPLOADED, flagged=True)
                     st.success(f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")

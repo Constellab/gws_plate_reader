@@ -11,7 +11,7 @@ from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService
 from gws_core.tag.tag import TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
 
-def render_analysis_tab(microplate_object: BiolectorXTParser, filters: List, input_tag : List ):
+def render_analysis_tab(microplate_object: BiolectorXTParser, filters: List, well_data : dict, all_keys_well_description : List, input_tag : List ):
     # Récupération des filtres contenant le mot "Biomass"
     biomass_filters = [f for f in filters if "Biomass" in f]
     # Vérification s'il y a des filtres correspondant
@@ -27,17 +27,54 @@ def render_analysis_tab(microplate_object: BiolectorXTParser, filters: List, inp
     if len(BiolectorState.get_well_clicked()) > 0:
         st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_well_clicked())}")
 
-    _run_analysis_tab(microplate_object, filter_selection, input_tag)
+    #Allow the user to select duplicates
+    init_value = BiolectorState.get_selected_well_or_replicate()
+    options = ["Individual well"] + all_keys_well_description
+    index = options.index(init_value) if init_value in options else 0
+
+    selected_well_or_replicate : str = st.selectbox("$\\textsf{\large{Select by}}$",
+                                     options = options, index = index, key="analysis_well_or_replicate")
+    if BiolectorState.get_analysis_well_or_replicate() != init_value :
+        BiolectorState.reset_session_state_wells()
+        BiolectorState.reset_plot_replicates_saved()
+        BiolectorState.update_selected_well_or_replicate(BiolectorState.get_analysis_well_or_replicate())
+        # To remove the bold of the wells
+        st.rerun()
+
+    if selected_well_or_replicate != "Individual well":
+        dict_replicates = microplate_object.group_wells_by_selection(well_data, selected_well_or_replicate)
+
+        st.write("Only replicates where all wells are selected and contain data will appear here.")
+
+        init_value = BiolectorState.get_plot_replicates_saved()
+        options = BiolectorState.get_options_replicates(dict_replicates, microplate_object)
+        if init_value == [] :
+            default = options
+        else:
+            default = init_value
+        selected_replicates: List[str] = st.multiselect(
+                '$\\textsf{\large{Select the replicates to be displayed}}$', options, default = default, key="analysis_replicates")
+        if BiolectorState.get_analysis_replicates() != init_value :
+            BiolectorState.color_wells_replicates(dict_replicates, BiolectorState.get_analysis_replicates())
+
+        if not selected_replicates:
+            st.warning("Please select at least one replicate.")
+    else:
+        selected_replicates = None
+
+    _run_analysis_tab(microplate_object, filter_selection, selected_replicates, input_tag)
 
 
-def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: List[str], input_tag : List):
+def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: str, selected_replicates: List[str] , input_tag : List):
     with st.spinner("Running analysis..."):
         # Get the dataframe
         df = microplate_object.get_table_by_filter(filter_selection)
         df = df.drop(["time"], axis=1)
         if len(BiolectorState.get_well_clicked()) > 0:
-            # TODO: voir si il faut les classer par ordre croissant ?
             df = df[["Temps_en_h"] + BiolectorState.get_well_clicked()]
+        if selected_replicates:
+            # Filter df with the wells to keep
+            df = df[[ "Temps_en_h"] + BiolectorState.get_wells_to_show()]
         # Features extraction functions
         try:
             logistic_fitter = LogisticGrowthFitter(df)

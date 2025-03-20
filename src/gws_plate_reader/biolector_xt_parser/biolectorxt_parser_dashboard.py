@@ -25,7 +25,7 @@ def show_content(microplate_object: BiolectorXTParser, well_data : dict, all_key
         render_plot_tab(microplate_object, filters, well_data, all_keys_well_description)
 
     def render_analysis_page():
-        render_analysis_tab(microplate_object, filters, input_tag)
+        render_analysis_tab(microplate_object, filters, well_data, all_keys_well_description, input_tag)
 
     tables_page = st.Page(render_table_page, title='Tables', url_path='tables', icon='📄')
     plots_page = st.Page(render_plot_page, title='Plots', url_path='plots', icon='📈')

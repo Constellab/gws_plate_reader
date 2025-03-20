@@ -14,6 +14,7 @@ class BiolectorState():
     WELLS_TO_SHOW_KEY = 'wells_to_show'
     PLOT_REPLICATES_KEY = "plot_replicates"
     TABLE_REPLICATES_KEY = "table_replicates"
+    ANALYSIS_REPLICATES_KEY = "analysis_replicates"
     PLOT_REPLICATES_SAVED_KEY = "plot_replicates_saved"
     SELECTED_FILTERS_KEY = "selected_filters"
     TAB_FILTERS_KEY ="tab_filters"
@@ -21,6 +22,7 @@ class BiolectorState():
     SELECTED_WELL_OR_REPLICATE_KEY = "selected_well_or_replicate"
     TAB_WELL_OR_REPLICATE_KEY ="tab_well_or_replicate"
     PLOT_WELL_OR_REPLICATE_KEY ="plot_well_or_replicate"
+    ANALYSIS_WELL_OR_REPLICATE_KEY ="analysis_well_or_replicate"
 
     @classmethod
     def init(cls, is_standalone : bool, existing_plate_layout):
@@ -74,6 +76,11 @@ class BiolectorState():
         #It's the value of multiselect replicates for table tab
         return st.session_state.get(cls.TABLE_REPLICATES_KEY, [])
 
+    @classmethod
+    def get_analysis_replicates(cls) -> List:
+        #It's the value of multiselect replicates for analysis tab
+        return st.session_state.get(cls.ANALYSIS_REPLICATES_KEY, [])
+
     # Filters
     @classmethod
     def get_selected_filters(cls, filters = None) -> List:
@@ -116,6 +123,11 @@ class BiolectorState():
     def get_plot_well_or_replicate(cls) -> List:
         #It's the value of multiselect well_or_replicate in the table plot
         return st.session_state.get(cls.PLOT_WELL_OR_REPLICATE_KEY, [])
+
+    @classmethod
+    def get_analysis_well_or_replicate(cls) -> List:
+        #It's the value of multiselect well_or_replicate in the table tab
+        return st.session_state.get(cls.ANALYSIS_WELL_OR_REPLICATE_KEY, [])
 
     @classmethod
     def update_selected_well_or_replicate(cls, well_or_replicate) -> None:

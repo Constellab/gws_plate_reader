@@ -57,7 +57,6 @@ def render_table_tab(microplate_object: BiolectorXTParser, filters: list, well_d
         st.write(f"$\\textsf{{\Large{{{filter_selection}}}}}$")
         df = microplate_object.get_table_by_filter(filter_selection)
         if len(BiolectorState.get_well_clicked()) > 0:
-            # TODO: voir si il faut les classer par ordre croissant ?
             df = df[["time", "Temps_en_h"] + BiolectorState.get_well_clicked()]
         if selected_replicates:
             # Filter df with the wells to keep

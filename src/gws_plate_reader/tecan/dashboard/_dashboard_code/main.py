@@ -1,10 +1,10 @@
 import os
-from datetime import datetime
-import pytz
 import json
+import pytz
 import streamlit as st
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from gws_core import Table
 from gws_plate_reader.tecan.tecan_parser import TecanParser
 from streamlit_extras.stylable_container import stylable_container

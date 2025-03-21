@@ -62,10 +62,10 @@ def render_analysis_tab(microplate_object: BiolectorXTParser, filters: List, wel
     else:
         selected_replicates = None
 
-    _run_analysis_tab(microplate_object, filter_selection, selected_replicates, input_tag)
+    _run_analysis_tab(microplate_object, filter_selection, well_data, selected_replicates, input_tag)
 
 
-def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: str, selected_replicates: List[str] , input_tag : List):
+def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: str, well_data : dict, selected_replicates: List[str] , input_tag : List):
     with st.spinner("Running analysis..."):
         # Get the dataframe
         df = microplate_object.get_table_by_filter(filter_selection)
@@ -89,15 +89,13 @@ def _run_analysis_tab(microplate_object: BiolectorXTParser, filter_selection: st
                     path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
                     full_path = os.path.join(path_temp, "Analysis.csv")
                     analysis_df: File = File(full_path)
-                    analysis_df.write(df_analysis.to_csv(index = False))
+                    analysis_df.write(df_analysis.to_csv(index = True))
                     #Import the resource as Table
-                    analysis_df_table = TableImporter.call(analysis_df)
+                    analysis_df_table = TableImporter.call(analysis_df, params= {"index_column" : 0})
                     # Add tags
-                    user_id = CurrentUserService.get_and_check_current_user().id
-                    analysis_df_table.tags.add_tag(Tag(key = "filter", value = filter_selection, auto_parse=True,origins=TagOrigins(TagOriginType.USER, user_id)))
-                    if input_tag :
-                        # If there was a tag biolector_download associated you the input table, then we add it to this table too
-                        analysis_df_table.tags.add_tag(input_tag[0])
+                    microplate_object.add_tags_to_resource(analysis_df_table, filter_selection, input_tag)
+                    microplate_object.add_tags_to_table_rows(analysis_df_table, well_data)
+
                     analysis_df_resource = ResourceModel.save_from_resource(
                         analysis_df_table, ResourceOrigin.UPLOADED, flagged=True)
                     st.success(f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")

@@ -74,11 +74,9 @@ def render_table_tab(microplate_object: BiolectorXTParser, filters: list, well_d
                 #Import the resource as Table
                 tab_parsed_table = TableImporter.call(tab_parsed)
                 # Add tags
-                user_id = CurrentUserService.get_and_check_current_user().id
-                tab_parsed_table.tags.add_tag(Tag(key = "filter", value = filter_selection, auto_parse=True, origins=TagOrigins(TagOriginType.USER, user_id)))
-                if input_tag :
-                    # If there was a tag biolector_download associated you the input table, then we add it to this table too
-                    tab_parsed_table.tags.add_tag(input_tag[0])
+                microplate_object.add_tags_to_resource(tab_parsed_table,filter_selection, input_tag)
+                microplate_object.add_tags_to_table_columns(tab_parsed_table, well_data)
+
                 tab_parsed_resource = ResourceModel.save_from_resource(
                     tab_parsed_table, ResourceOrigin.UPLOADED, flagged=True)
 

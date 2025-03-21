@@ -96,8 +96,8 @@ class LogisticGrowthFitter:
                 'Well': well
             }))
 
-        self.df_params = pd.concat(df_params_list, ignore_index=True)
-        self.df_fitted_curves = pd.concat(df_fitted_curves_list, ignore_index=True)
+        self.df_params = pd.concat(df_params_list, ignore_index=True).set_index("Well")
+        self.df_fitted_curves = pd.concat(df_fitted_curves_list, ignore_index=True).set_index("Well")
 
     def plot_fitted_curves_with_r2(self):
         """Plot fitted logistic growth curves with R² values and raw data points."""
@@ -122,8 +122,8 @@ class LogisticGrowthFitter:
             ))
 
             # Fitted curve for the current well
-            subset = self.df_fitted_curves[self.df_fitted_curves['Well'] == well]
-            r2 = self.df_params[self.df_params['Well'] == well]['Avg_R2'].values[0]
+            subset = self.df_fitted_curves[self.df_fitted_curves.index == well]
+            r2 = self.df_params[self.df_params.index == well]['Avg_R2'].values[0]
 
             fig.add_trace(go.Scatter(
                 x=subset['Time'],

@@ -3,18 +3,14 @@ import json
 import streamlit as st
 import pandas as pd
 from streamlit_extras.stylable_container import stylable_container
+from gws_plate_reader.dashboard_plate_layout.plate_layout_state import PlateLayoutState
 from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, JSONImporter
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
 sources: list
 params: dict
 
-# Initialize session state variable
-if "success_message" not in st.session_state:
-    st.session_state["success_message"] = None
-
-def reset_wells():
-    st.session_state['well_clicked'] = []
+plate_layout_state = PlateLayoutState()
 
 # Function to display success message after rerun
 def show_success_message():
@@ -167,12 +163,9 @@ def validate_plate_layout(existing_plate_layout, number_wells):
     return True
 
 
-# Initialize the session state for clicked wells if it doesn't exist
-if 'well_clicked' not in st.session_state:
-    st.session_state['well_clicked'] = []
-
 files_compounds = [f for f in os.listdir(
     folder_data) if f.endswith("compounds.json")]
+
 if files_compounds:
     # Load the file and display its contents
     file_path = os.path.join(folder_data, files_compounds[0])
@@ -219,12 +212,6 @@ elif existing_plate_layout:
 else:
     if "plate_layout" not in st.session_state:
         st.session_state["plate_layout"] = {}
-
-# Session state to track selected rows/columns
-if "selected_rows" not in st.session_state:
-    st.session_state.selected_rows = []
-if "selected_cols" not in st.session_state:
-    st.session_state.selected_cols = []
 
 if number_wells == 96:
     # Define the structure of the 96-well microplate
@@ -367,6 +354,6 @@ with st.sidebar:
     fragment_sidebar_function()
 
     # Add the reset button
-    st.button("Reset wells selection", on_click=reset_wells)
+    st.button("Reset wells selection", on_click=plate_layout_state.reset_wells)
 
 show_content()

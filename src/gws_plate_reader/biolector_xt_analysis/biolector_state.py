@@ -36,7 +36,10 @@ class BiolectorExperiment():
         metadata = {}
         for column_info in table.get_columns_info():
             if column_info['name'] not in ['time', 'Temps_en_h']:
-                metadata[column_info['name']] = column_info['tags']
+                tags = column_info['tags']
+                if 'well' in tags:
+                    del tags['well']
+                metadata[column_info['name']] = tags
 
         # drop columns with all NaN values if col in CROSSED_OUT_WELLS
         data = data.drop(
@@ -77,6 +80,9 @@ class BiolectorState():
             cls, data: Dict[str, Any], mode: BiolectorStateMode = BiolectorStateMode.SINGLE_PLATE,
             input_tag: Tag = None):
         st.session_state[cls.BIOLECTOR_STATE_MODE_KEY] = mode
+
+        if not cls.is_same_base_data(data) and cls.get_mode() == BiolectorStateMode.MULTIPLE_PLATES and cls.DATA_KEY in st.session_state:
+            cls.init_session_state()
         st.session_state[cls.DATA_KEY] = cls.get_data(data)
         st.session_state[cls.INPUT_TAG_KEY] = input_tag if input_tag else None
         st.session_state[cls.IS_BIOLECTOR_STATE_INIT_KEY] = True
@@ -162,6 +168,17 @@ class BiolectorState():
                 return False
         return True
 
+    @classmethod
+    def is_same_base_data(cls, data: Dict[str, Any]) -> bool:
+        """
+        Get the wells clicked from the session state.
+        """
+        base_data = None
+        if cls.BASE_DATA_KEY in st.session_state:
+            base_data = st.session_state.get(cls.BASE_DATA_KEY, None)
+
+        return base_data is None or data is None or base_data == data
+
     ###################################### DATA #######################################
     @classmethod
     def get_data(cls, data: Dict[str, Any] = None) -> Dict[str, BiolectorExperiment]:
@@ -169,20 +186,11 @@ class BiolectorState():
         Get the data from the session state.
         """
 
-        base_data = None
-        if cls.BASE_DATA_KEY in st.session_state:
-            base_data = st.session_state.get(cls.BASE_DATA_KEY, None)
-
-        same_data = base_data is None or data is None or base_data == data
-
-        if cls.DATA_KEY in st.session_state and same_data:
+        if cls.DATA_KEY in st.session_state and cls.is_same_base_data(data):
             return st.session_state.get(cls.DATA_KEY, None)
 
         if data is None:
             raise ValueError("Data is None. Please provide data to set.")
-
-        if cls.DATA_KEY in st.session_state:
-            cls.init_session_state()
 
         st.session_state[cls.BASE_DATA_KEY] = data
         if cls.get_mode() == BiolectorStateMode.SINGLE_PLATE or cls.get_mode() == BiolectorStateMode.STANDALONE:
@@ -241,10 +249,10 @@ class BiolectorState():
         if cls.ALL_KEYS_WELL_DESCRIPTION_KEY in st.session_state:
             return st.session_state.get(cls.ALL_KEYS_WELL_DESCRIPTION_KEY, None)
 
-        if cls.get_mode() == BiolectorStateMode.SINGLE_PLATE:
-            return cls._set_single_plate_all_keys_well_description()
-        else:
+        if cls.get_mode() == BiolectorStateMode.MULTIPLE_PLATES:
             return cls._set_multiple_plates_all_keys_well_description()
+        else:
+            return cls._set_single_plate_all_keys_well_description()
 
     @classmethod
     def _set_single_plate_all_keys_well_description(cls) -> List[str]:
@@ -346,7 +354,7 @@ class BiolectorState():
         cls.clear_wells_clicked()
         cls.clear_selected_rows()
         cls.clear_selected_cols()
-        cls.set_replicates_saved([])
+        cls.set_replicates_saved(None)
         st.session_state[cls.CURRENT_REPLICATE_MODE_KEY] = current_replicate_mode if current_replicate_mode in cls.get_all_keys_well_description() else None
 
     ######################################## SELECTED WELLS ########################################
@@ -460,7 +468,7 @@ class BiolectorState():
         """
         Get the saved replicates from the session state.
         """
-        return st.session_state.get(cls.REPLICATES_SAVED_KEY, [])
+        return st.session_state.get(cls.REPLICATES_SAVED_KEY, None)
 
     @classmethod
     def set_replicates_saved(cls, replicates_saved: List[str]) -> None:
@@ -523,14 +531,9 @@ class BiolectorState():
                 if selected_well_or_replicate in well_metadata and well in biolector_experiment.data.columns:
                     if well_metadata[selected_well_or_replicate] not in dict_replicates:
                         dict_replicates[well_metadata[selected_well_or_replicate]] = []
-                    if cls.get_mode() == BiolectorStateMode.MULTIPLE_PLATES and well not in dict_replicates[
-                            well_metadata[selected_well_or_replicate]][biolector_experiment.id_biolector]:
-                        dict_replicates[well_metadata[selected_well_or_replicate]
-                                        ][biolector_experiment.id_biolector].append(well)
-                    else:
-                        if well not in dict_replicates[
-                                well_metadata[selected_well_or_replicate]]:
-                            dict_replicates[well_metadata[selected_well_or_replicate]].append(well)
+                    if well not in dict_replicates[
+                            well_metadata[selected_well_or_replicate]]:
+                        dict_replicates[well_metadata[selected_well_or_replicate]].append(well)
 
         return dict_replicates
 
@@ -560,11 +563,54 @@ class BiolectorState():
         return st.session_state.get(cls.OPTIONS_REPLICATES, [])
 
     @classmethod
-    def reset_options_replicates(cls) -> None:
+    def reset_options_replicates(cls, dict_replicates: Dict) -> None:
         """
         Reset the options replicates in the session state.
         """
         st.session_state[cls.OPTIONS_REPLICATES] = []
+        # list of wells from A01 to B12
+        cross_out_wells = {f"{row}{col:02d}" for row in "AB" for col in range(1, 13)}
+        if cls.get_mode() == BiolectorStateMode.MULTIPLE_PLATES:
+            cls.set_options_replicates_multiple(dict_replicates, cross_out_wells)
+        else:
+            cls.set_options_replicates_single(dict_replicates, cross_out_wells)
+
+    @classmethod
+    def set_options_replicates_single(cls, dict_replicates: Dict, cross_out_wells: List[str]) -> None:
+        """
+        Set the options replicates in the session state.
+        """
+        cross_out_wells = {f"{row}{col:02d}" for row in "AB" for col in range(1, 13)}
+        for replicate, wells in dict_replicates.items():
+            if cls.is_microfluidics() and any(well in cross_out_wells
+                                              for well in wells):
+                continue
+            elif len(cls.get_wells_clicked()) > 0:
+                if not any(well in dict_replicates[replicate] for well in cls.get_wells_clicked()):
+                    continue
+                else:
+                    cls.add_option_replicate(replicate)
+            else:
+                cls.add_option_replicate(replicate)
+
+    @classmethod
+    def set_options_replicates_multiple(cls, dict_replicates: Dict, cross_out_wells: List[str]) -> None:
+        """
+        Set the options replicates in the session state.
+        """
+        st.session_state[cls.OPTIONS_REPLICATES] = []
+        for replicate, replicate_plates in dict_replicates.items():
+            for plate, wells in replicate_plates.items():
+                if cls.is_microfluidics() and any(well in cross_out_wells
+                                                  for well in wells):
+                    continue
+                elif len(cls.get_wells_clicked()) > 0:
+                    if not any(well in dict_replicates[replicate][plate] for well in cls.get_wells_clicked()):
+                        continue
+                    else:
+                        cls.add_option_replicate(replicate)
+                else:
+                    cls.add_option_replicate(replicate)
 
     @classmethod
     def add_option_replicate(cls, replicate: str) -> None:
@@ -586,17 +632,17 @@ class BiolectorState():
 
         for replicate in selected_replicates:
             wells = dict_replicates[replicate]
-            if cls.get_mode() == BiolectorStateMode.SINGLE_PLATE:
-                for well in wells:
-                    cls.append_replicated_wells_show(well)
-                    cls.append_wells_to_show(well)
-            else:
+            if cls.get_mode() == BiolectorStateMode.MULTIPLE_PLATES:
                 for plate, wells in wells.items():
                     for well in wells:
                         if f"{well}_{plate}" not in cls.get_wells_to_show():
                             cls.append_wells_to_show(f"{well}_{plate}")
                         if well not in cls.get_replicated_wells_show():
                             cls.append_replicated_wells_show(well)
+            else:
+                for well in wells:
+                    cls.append_replicated_wells_show(well)
+                    cls.append_wells_to_show(well)
 
     @classmethod
     def reset_session_state_wells(cls) -> None:

@@ -93,7 +93,11 @@ if BiolectorState.is_init():
         unsafe_allow_html=True,
     )
 
-    pages['Analysis'] = [_tables_page, _plots_page, _analysis_page]
+    if not [f for f in BiolectorState.get_filters_list() if "biomass" in f.lower()]:
+        analysis_pages = [_tables_page, _plots_page]
+    else:
+        analysis_pages = [_tables_page, _plots_page, _analysis_page]
+    pages['Analysis'] = analysis_pages
 
     well_data = BiolectorState.get_well_data_description()
     if 'A01' not in well_data:
@@ -106,7 +110,7 @@ if BiolectorState.is_init():
 
     with st.sidebar:
         # Assign colors
-        label_colors = {"wellbt": "#F991C3"}
+        label_colors = {"wellbt": "#F991C3", "wellbt-disabled": "#E0E0E0"}
 
         # Create css code
         css_template = """
@@ -154,7 +158,7 @@ if BiolectorState.is_init():
 
             for col in range(COLS):
                 well = wells[row][col]
-                key = f"wellbt-{well}-button"
+                key = f"wellbt-{well}-button" if well_data[well] != {} else f"wellbt-disabled-{well}-button"
                 if well_data[well] == {}:
                     cols_object[col+1].button(f":gray[{well}]", key=key, help="No data available", disabled=True)
                 elif well in BiolectorState.get_wells_clicked():

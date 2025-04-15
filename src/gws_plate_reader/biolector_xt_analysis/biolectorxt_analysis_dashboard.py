@@ -48,8 +48,7 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
         f"""
         <style>
             section[data-testid="stSidebar"] {{
-                width: 420px !important; /* Set the width to your desired value */
-                min-width: 420px !important; /* Prevents resizing */
+                width: 420px !important;
             }}
         </style>
         """,

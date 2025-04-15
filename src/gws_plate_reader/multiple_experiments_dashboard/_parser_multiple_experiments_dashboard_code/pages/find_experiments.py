@@ -5,16 +5,14 @@ import streamlit as st
 from gws_core.impl.table.table import Table
 from gws_core.resource.resource_model import ResourceModel
 from gws_core.streamlit import StreamlitContainers, StreamlitResourceSelect
-from gws_core.tag.tag import Tag
 from gws_plate_reader.biolector_xt_analysis.biolector_state import \
     BiolectorExperiment
 
 
-def add_experiment_to_experiments_list(r: ResourceModel) -> Dict[str, "BiolectorExperimentWithDetails"]:
+def add_experiment_to_experiments_list(r: ResourceModel, table: Table) -> Dict[str, "BiolectorExperimentWithDetails"]:
     experiments_list: Dict[str, BiolectorExperimentWithDetails] = st.session_state.get('experiments_list', {})
 
     list_raw_data_id_biolector_experiment = [(e.raw_data, e.id_biolector_experiment) for e in experiments_list.values()]
-    table = r.get_resource()
     if table is not None:
         table.name = r.get_entity_name()
         raw_data = table.tags.get_by_key("raw_data")[0].value
@@ -54,32 +52,51 @@ def render_find_experiments_page():
     else:
         selected_resources = []
     resource_select = StreamlitResourceSelect()
+    resource_select.add_tag_filter('origin', 'biolector_dashboard')
+    resource_select.add_tag_filter('raw_data')
+    resource_select.add_column_tag_filter_key('well')
+    resource_select.add_column_tag_filter_key('compound')
+    resource_select.add_column_tag_filter_key('dilution')
+    resource_select.add_column_tag_filter_key('label')
     selected_resource = resource_select.select_resource(
-        placeholder='Search for resource', key="resource-selector", defaut_resource=None, default_filters={
-            'tags': [{
-                'key': 'origin',
-                'value': 'biolector_dashboard'
-            }, {
-                'key': 'raw_data'
-            }]
-        })
+        placeholder='Search for resource', key="resource-selector", defaut_resource=None)
 
     if selected_resource:
-        if selected_resource not in selected_resources:
+        table = selected_resource.get_resource()
+
+        if table.get_typing_name() != 'RESOURCE.gws_core.Table' or len(table.tags.get_by_key(
+                'raw_data')) != 1 or table.tags.get_tag(
+                'origin', 'biolector_dashboard') is None:
+            st.error('Resource is not a valid biolector experiment Table')
+        elif selected_resource not in selected_resources:
             selected_resources.append(selected_resource)
             st.session_state['selected_resources'] = selected_resources
-            add_experiment_to_experiments_list(selected_resource)
+            add_experiment_to_experiments_list(selected_resource, table)
 
     if len(selected_resources) > 0:
         experiments_list: Dict[str, BiolectorExperimentWithDetails] = st.session_state.get('experiments_list', None)
         if experiments_list is None:
             st.error('No experiments found')
             return
+
         experiments_list_dict = [experiment.to_detail_dict() for experiment in experiments_list.values()]
-        experiments_list_df = pd.DataFrame(experiments_list_dict)
+
+        if st.session_state.get(
+                'experiments_list_df', None) is None or not pd.DataFrame(experiments_list_dict).equals(
+                st.session_state['experiments_list_df']):
+            experiments_list_df = pd.DataFrame(experiments_list_dict)
+        else:
+            experiments_list_df = st.session_state['experiments_list_df']
+        # if st.session_state.get(
+        #         'experiments_list_dict', None) is None or len(
+        #         st.session_state.get('experiments_list_dict', None)) != len(experiments_list_dict):
+        # st.session_state['experiments_list_dict'] = experiments_list_dict
+        # else:
+        #     experiments_list_dict = st.session_state['experiments_list_dict']
+        # experiments_list_df = pd.DataFrame(experiments_list_dict)
 
         with StreamlitContainers.full_width_dataframe_container(key="experiments_list_container"):
-            experiments_df = st.data_editor(
+            experiments_list_df = st.data_editor(
                 experiments_list_df,
                 column_config={
                     "selected": st.column_config.CheckboxColumn(
@@ -92,8 +109,8 @@ def render_find_experiments_page():
             )
 
         selected_experiments = {}
-        selected_expermiments_indexes = experiments_df.index[experiments_df['selected']].tolist()
-        selected_experiments_df = experiments_df.iloc[selected_expermiments_indexes]
+        selected_expermiments_indexes = experiments_list_df.index[experiments_list_df['selected']].tolist()
+        selected_experiments_df = experiments_list_df.iloc[selected_expermiments_indexes]
         for experiment_id, experiment in experiments_list.items():
             count_selected_experiments_matching = len(
                 selected_experiments_df
@@ -107,6 +124,12 @@ def render_find_experiments_page():
                     f"Experiment {experiment_id} is present {count_selected_experiments_matching} times in the selected experiments")
             else:
                 experiment.set_selected(False)
+        if st.session_state.get(
+                'experiments_list_df', None) is None or not experiments_list_df.equals(
+                st.session_state['experiments_list_df']):
+            st.session_state['experiments_list_df'] = experiments_list_df
+            st.rerun()
+        st.session_state['experiments_list'] = experiments_list
 
         if st.button('Add selected experiments', key='add_selected_experiments_button',
                      disabled=(len(selected_experiments.keys()) == 0
@@ -114,7 +137,6 @@ def render_find_experiments_page():
                                    st.session_state.get('selected_experiments', None)
                                    is not None and st.session_state['selected_experiments'].keys() ==
                                    selected_experiments.keys()))):
-            st.session_state['experiments_list'] = experiments_list
             st.session_state['selected_experiments'] = selected_experiments
             st.rerun()
     else:

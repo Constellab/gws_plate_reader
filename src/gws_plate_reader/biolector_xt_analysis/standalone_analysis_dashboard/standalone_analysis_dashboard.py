@@ -15,7 +15,7 @@ class BiolectorParserStandaloneClass(Dashboard):
     def get_app_folder_path(self):
         return os.path.join(
             os.path.abspath(os.path.dirname(__file__)),
-            "_standalone_dashboard_parser_code"
+            "_standalone_dashboard_analysis_code"
         )
 
 
@@ -72,5 +72,6 @@ class BiolectorParserStandalone(Task):
         stats_folder: Folder = Folder(self.create_tmp_dir())
         stats_folder.name = "Stats"
         streamlit_resource.add_resource(stats_folder, create_new_resource=True)
+        streamlit_resource.set_requires_authentication(False)
 
         return {'streamlit_app': streamlit_resource}

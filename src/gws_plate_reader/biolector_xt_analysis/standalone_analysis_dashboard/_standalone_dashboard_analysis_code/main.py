@@ -1,16 +1,28 @@
 
 import os
+import shutil
+import tempfile
 from datetime import datetime
 from io import StringIO
 from json import dump, load, loads
+from typing import Dict, List
 
 import streamlit as st
 from gws_core import Compress, FileHelper, Settings
+from gws_core.config.config_params import ConfigParams
+from gws_core.impl.file.file import File
+from gws_core.impl.file.folder import Folder
+from gws_core.impl.table.table import Table
+from gws_core.impl.table.tasks.table_importer import TableImporter
+from gws_core.resource.resource_set.resource_set import ResourceSet
+from gws_core.task.task_runner import TaskRunner
 from gws_plate_reader.biolector_xt.biolector_xt_mock_service import \
     BiolectorXTMockService
 from gws_plate_reader.biolector_xt_analysis.biolectorxt_analysis_dashboard import \
     run
-from pandas import DataFrame, read_table
+from gws_plate_reader.biolector_xt_data_parser.biolector_xt_data_parser import \
+    BiolectorXTDataParser
+from pandas import DataFrame, read_csv
 
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
@@ -23,13 +35,17 @@ It is a standalone dashboard where user can upload their zip biolector XT data
 and get the analysis of the data.
 """
 
-stats_folder = sources[0]
+stats_folder: Folder = sources[0]
 stats_file = os.path.join(stats_folder.path, 'stats.json')
 
 
-def import_table(table_file):
-    table = read_table(table_file, sep=";", header=0, index_col=None)
+def import_table(table_file_path: str):
+    table_file = File(table_file_path)
+    table: Table = TableImporter.call(table_file)
+    table.name = 'table'
     st.session_state['table'] = table
+    if 'parsed_data_tables_tables' in st.session_state:
+        del st.session_state['parsed_data_tables_tables']
 
 
 def find_file(file_end: str, folder_path: str):
@@ -80,7 +96,13 @@ Refresh the page to upload new data.""")
         if extension not in ["csv"]:
             raise Exception(f"The data file must be a csv file, but the provided file has the extension {extension}")
 
-        import_table(table_file)
+        temp_dir = tempfile.mkdtemp(dir=stats_folder.path)
+        path = os.path.join(temp_dir, table_file.name)
+        with open(path, 'wb') as f:
+            f.write(table_file.getvalue())
+        import_table(path)
+        os.remove(path)
+        shutil.rmtree(temp_dir)
 
     json_file = st.file_uploader("Upload the BiolectorXT json metadata file (*BXT.json)", type=["json"])
 
@@ -139,9 +161,28 @@ if (table_file or json_file) and 'table' in st.session_state and 'metadata' in s
 
 
 if 'table' in st.session_state and 'metadata' in st.session_state:
-    table: DataFrame = st.session_state['table']
+    table: Table = st.session_state['table']
 
     metadata = st.session_state['metadata']
 
+    if 'parsed_data_tables_tables' not in st.session_state:
+
+        # save metadata in a file named metadataBXT.json in the stats folder
+        file_path = os.path.join(stats_folder.path, 'metadataBXT.json')
+        with open(file_path, 'w', encoding='UTF-8') as f:
+            dump(metadata, f)
+
+        task_runner = TaskRunner(BiolectorXTDataParser, inputs={
+            'raw_data': table, 'folder_metadata': stats_folder})
+
+        output: dict = task_runner.run()
+        if 'parsed_data_tables' not in output:
+            st.error("No parsed data tables found in the resource set")
+            st.stop()
+
+        parsed_data_tables: ResourceSet = output['parsed_data_tables']
+        parsed_data_tables_tables: Dict[str, Table] = parsed_data_tables.get_resources()
+        st.session_state['parsed_data_tables_tables'] = parsed_data_tables_tables
+
     # run the dashboard
-    run(table, metadata, is_standalone=True)
+    run(st.session_state['parsed_data_tables_tables'], True, None)

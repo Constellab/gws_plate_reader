@@ -10,6 +10,8 @@ from gws_core.tag.tag_dto import TagOriginType
 from gws_core.user.current_user_service import CurrentUserService
 from gws_plate_reader.biolector_xt_analysis.biolector_state import \
     BiolectorState
+from gws_plate_reader.dashboard_components.select_replicates_input import \
+    render_select_replicates_input
 from gws_plate_reader.features_extraction.linear_logistic_cv import \
     LogisticGrowthFitter
 
@@ -43,45 +45,7 @@ def render_analysis_tab():
         BiolectorState.set_current_replicate_mode(selected_well_or_replicate)
         st.rerun()
 
-    if selected_well_or_replicate != "Individual well":
-        dict_replicates = BiolectorState.group_wells_by_options(selected_well_or_replicate)
-
-        st.write("Only replicates where all wells are selected and contain data will appear here.")
-
-        # list of wells from A01 to B12 + TODO: aggregate code duplicated
-        cross_out_wells = {f"{row}{col:02d}" for row in "AB" for col in range(1, 13)}
-        init_value = BiolectorState.get_replicates_saved()
-        BiolectorState.reset_options_replicates()
-        for replicate, wells in dict_replicates.items():
-            if BiolectorState.is_microfluidics() and any(well in cross_out_wells
-                                                         for well in wells):
-                continue
-            elif len(BiolectorState.get_wells_clicked()) > 0:
-                if not any(well in dict_replicates[replicate] for well in BiolectorState.get_wells_clicked()):
-                    continue
-                else:
-                    BiolectorState.add_option_replicate(replicate)
-            else:
-                BiolectorState.add_option_replicate(replicate)
-        options = BiolectorState.get_options_replicates()
-        for v in init_value:
-            if v not in options:
-                init_value.remove(v)
-        if init_value == []:
-            default = options
-        else:
-            default = init_value
-        selected_replicates: List[str] = st.multiselect(
-            '$\\textsf{\large{Select the replicates to be displayed}}$', options, default=default,
-            key="table_replicates")
-        if selected_replicates != init_value:
-            BiolectorState.color_wells_replicates(dict_replicates, selected_replicates)
-            st.rerun()
-
-        if not selected_replicates:
-            st.warning("Please select at least one replicate.")
-    else:
-        selected_replicates = None
+    selected_replicates = render_select_replicates_input(selected_well_or_replicate)
 
     _run_analysis_tab(filter_selection, selected_well_or_replicate, selected_replicates)
 

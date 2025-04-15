@@ -270,7 +270,7 @@ class BiolectorXTDataParser(Task):
                                                        existing_plate_layout=existing_plate_layout)
         resource_set.tags.add_tags(raw_data.tags.get_by_key(DOWNLOAD_TAG_KEY))
 
-        user_id = CurrentUserService.get_and_check_current_user().id
+        user_id = CurrentUserService.get_current_user().id if CurrentUserService.get_current_user() else None
         origins = TagOrigins(TagOriginType.USER, user_id)
 
         list_tags: List[Tag] = []

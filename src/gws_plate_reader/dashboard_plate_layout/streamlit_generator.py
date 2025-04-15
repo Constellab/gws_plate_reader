@@ -20,15 +20,17 @@ class GenerateDashboardPlateLayout(Dashboard):
                 style=TypingStyle.community_icon(icon_technical_name="matrix", background_color="#60a182"))
 class StreamlitGeneratorPlateLayout(Task):
 
-    config_specs: ConfigSpecs = {
+    config_specs: ConfigSpecs = ConfigSpecs({
         'number_wells': StrParam(allowed_values=["48", "96"],
                                 human_name="Number of wells",
                                 default_value="48",optional=False,
                                   short_description="The number of wells of the microplate"),
 
-    }
+    })
     input_specs: InputSpecs = InputSpecs(
-        {'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)})
+        {'metadata': InputSpec(JSONDict, human_name="JSONDict containing the metadata", is_optional=False),
+        'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)
+        })
 
     output_specs: OutputSpecs = OutputSpecs({'streamlit_app': OutputSpec( StreamlitResource, human_name="Microplate dashboard")})
 
@@ -42,6 +44,9 @@ class StreamlitGeneratorPlateLayout(Task):
         folder_data: Folder = Folder(self.create_tmp_dir())
         folder_data.name = "Data"
         streamlit_resource.add_resource(folder_data, create_new_resource=True)
+
+        metadata: JSONDict = inputs.get('metadata')
+        streamlit_resource.add_resource(metadata, create_new_resource=False)
 
         # set the input in the streamlit resource
         plate_layout: JSONDict = inputs.get('plate_layout')

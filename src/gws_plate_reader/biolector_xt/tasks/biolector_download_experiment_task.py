@@ -23,14 +23,14 @@ from gws_plate_reader.biolector_xt.biolector_xt_types import \
                 style=TypingStyle.community_icon("bioreactor"))
 class BiolectorDownloadExperiment(Task):
 
-    config_specs: ConfigSpecs = {
+    config_specs: ConfigSpecs = ConfigSpecs({
         'experiment_id': StrParam(human_name="Experiment ID",
                                   short_description="The ID of the BiolectorXT experiment to download"),
         'credentials': CredentialsParam(credentials_type=CredentialsType.OTHER),
         'mock_service': BoolParam(human_name="Mock Service",
                                   short_description="Use the mock service to simulate the interaction with Biolector XT",
                                   default_value=False, visibility="private")
-    }
+    })
     input_specs: InputSpecs = InputSpecs()
     output_specs: OutputSpecs = OutputSpecs({
         'result': OutputSpec(Table, human_name="Result Table",

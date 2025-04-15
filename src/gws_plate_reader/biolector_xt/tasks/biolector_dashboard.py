@@ -45,12 +45,12 @@ class BiolectorDashboard(Task):
 
     """
 
-    config_specs: ConfigSpecs = {
+    config_specs: ConfigSpecs = ConfigSpecs({
         'credentials': CredentialsParam(credentials_type=CredentialsType.OTHER),
         'mock_service': BoolParam(human_name="Mock Service",
                                   short_description="Use the mock service to simulate the interaction with Biolector XT (for development purpose)",
                                   default_value=False, visibility="protected")
-    }
+    })
 
     output_specs: OutputSpecs = OutputSpecs(
         {'dashboard': OutputSpec(StreamlitResource)})

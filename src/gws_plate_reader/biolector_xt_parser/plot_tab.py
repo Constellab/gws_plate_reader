@@ -1,21 +1,23 @@
 from typing import List
-from collections import defaultdict
+
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-import pandas as pd
+from gws_plate_reader.biolector_xt_parser.biolector_state import BiolectorState
 from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
     BiolectorXTParser
-from gws_plate_reader.biolector_xt_parser.biolector_state import BiolectorState
 
 
-def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_data : dict, all_keys_well_description : []):
+def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_data: dict, all_keys_well_description: []):
     legend_mean = ""
     col1, col2 = st.columns([1, 1])
     with col1:
         init_value = BiolectorState.get_selected_filters()
         selected_filters: List[str] = st.multiselect(
-            '$\\textsf{\large{Select the observers to be displayed}}$', options = filters, default = BiolectorState.get_selected_filters(), key="plot_filters")
-        if BiolectorState.get_plot_filters() != init_value :
+            '$\\textsf{\large{Select the observers to be displayed}}$', options=filters,
+            default=BiolectorState.get_selected_filters(),
+            key="plot_filters")
+        if BiolectorState.get_plot_filters() != init_value:
             BiolectorState.update_selected_filters(BiolectorState.get_plot_filters())
     with col2:
         selected_time = st.selectbox("$\\textsf{\large{Select the time unit}}$", [
@@ -29,13 +31,13 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
     with col1:
         init_value = BiolectorState.get_selected_well_or_replicate()
         options = ["Individual well"] + all_keys_well_description
-        if init_value is None :
+        if init_value is None:
             index = 0
         else:
             index = options.index(init_value)
-        selected_well_or_replicate : str = st.selectbox("$\\textsf{\large{Select by}}$", options =
-                                    options, index = index, key = "plot_well_or_replicate")
-        if BiolectorState.get_plot_well_or_replicate() != init_value :
+        selected_well_or_replicate: str = st.selectbox(
+            "$\\textsf{\large{Select by}}$", options=options, index=index, key="plot_well_or_replicate")
+        if BiolectorState.get_plot_well_or_replicate() != init_value:
             BiolectorState.reset_session_state_wells()
             BiolectorState.reset_plot_replicates_saved()
             BiolectorState.update_selected_well_or_replicate(BiolectorState.get_plot_well_or_replicate())
@@ -45,7 +47,7 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
                                      ["Individual curves", "Mean"],
                                      index=0, key="plot_mode")
 
-    if selected_mode == "Mean" :
+    if selected_mode == "Mean":
         error_band = st.checkbox("Error band")
 
     if selected_well_or_replicate != "Individual well":
@@ -55,13 +57,14 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
 
         init_value = BiolectorState.get_plot_replicates_saved()
         options = BiolectorState.get_options_replicates(dict_replicates, microplate_object)
-        if init_value == [] :
+        if init_value == []:
             default = options
         else:
             default = init_value
         selected_replicates: List[str] = st.multiselect(
-                '$\\textsf{\large{Select the replicates to be displayed}}$', options, default = default, key="plot_replicates")
-        if BiolectorState.get_plot_replicates() != init_value :
+            '$\\textsf{\large{Select the replicates to be displayed}}$', options, default=default,
+            key="plot_replicates")
+        if BiolectorState.get_plot_replicates() != init_value:
             BiolectorState.color_wells_replicates(dict_replicates, BiolectorState.get_plot_replicates())
 
         if not selected_replicates:
@@ -157,7 +160,7 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
 
                         # Create a new DataFrame for the replicates
                         replicate_df = pd.concat(replicates, axis=1)
-                        #set columns names
+                        # set columns names
                         replicate_df.columns = [replicate for replicate in selected_replicates]
 
                         return replicate_df
@@ -195,7 +198,6 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
                                 name=f'Error Band {filter_name} - {col}(±1 SD)',
                                 yaxis=yaxis_id
                             ))
-
 
         # Update layout for the y-axis
         fig.update_layout({

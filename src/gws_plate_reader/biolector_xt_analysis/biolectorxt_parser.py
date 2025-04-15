@@ -1,9 +1,10 @@
-from typing import Dict, List
-from pandas import NA, DataFrame, Series
 from collections import defaultdict
-from gws_core import Tag, CurrentUserService, Table
+from typing import Dict, List
+
+from gws_core import CurrentUserService, Table, Tag
 from gws_core.tag.tag import TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
+from pandas import NA, DataFrame, Series
 
 
 class BiolectorXTParser:
@@ -18,7 +19,6 @@ class BiolectorXTParser:
         Initialize the BiolectorXTParser object with the data file and metadata dict.
         """
         super().__init__()
-
         self.data = data
         self.metadata = metadata
 
@@ -47,7 +47,7 @@ class BiolectorXTParser:
         wells_names.extend(reservoir_wells)
         return wells_names
 
-    def get_wells_label_description(self, existing_plate_layout : None) -> dict:
+    def get_wells_label_description(self, existing_plate_layout: None) -> dict:
         wells = self.get_wells()
         # Initialize the wells_label dictionary with all well labels and default value as None
         wells_label = {well: {"label": ""} for well in wells}
@@ -69,7 +69,8 @@ class BiolectorXTParser:
             for well, data in existing_plate_layout.items():
                 if well in wells_label and isinstance(data, dict):  # Ensure it's a dictionary
                     # Get the existing data, ensuring it's a dictionary
-                    existing_data = wells_label[well] if isinstance(wells_label[well], dict) else {"label": wells_label[well]}
+                    existing_data = wells_label[well] if isinstance(wells_label[well], dict) else {
+                        "label": wells_label[well]}
                     # If "label" exists in data, overwrite it
                     if "label" in data:
                         existing_data["label"] = data["label"]
@@ -201,45 +202,43 @@ class BiolectorXTParser:
         dict_replicates = dict(dict_replicates)
         return dict_replicates
 
-    def add_tags_to_table_columns(self, resource_to_tag : Table, well_data : dict):
+    def add_tags_to_table_columns(self, resource_to_tag: Table, well_data: dict):
         for column in resource_to_tag.column_names:
             dict_column = well_data.get(column, None)
-            if dict_column :
-                for key, value in dict_column.items() :
-                    resource_to_tag.add_column_tag_by_name(column, key = Tag.parse_tag(key), value = Tag.parse_tag(value))
+            if dict_column:
+                for key, value in dict_column.items():
+                    resource_to_tag.add_column_tag_by_name(column, key=Tag.parse_tag(key), value=Tag.parse_tag(value))
 
-    def add_tags_to_table_rows(self, resource_to_tag : Table, well_data : dict):
+    def add_tags_to_table_rows(self, resource_to_tag: Table, well_data: dict):
         for row in resource_to_tag.row_names:
             dict_row = well_data.get(row, None)
-            if dict_row :
-                for key, value in dict_row.items() :
-                    resource_to_tag.add_row_tag_by_name(row, key = Tag.parse_tag(key), value = Tag.parse_tag(value))
+            if dict_row:
+                for key, value in dict_row.items():
+                    resource_to_tag.add_row_tag_by_name(row, key=Tag.parse_tag(key), value=Tag.parse_tag(value))
 
-    def add_tags_to_resource(self, resource_to_tag, filter_selection, input_tag = None):
+    def add_tags_to_resource(self, resource_to_tag, filter_selection, input_tag=None):
         user_id = CurrentUserService.get_and_check_current_user().id
         origins = TagOrigins(TagOriginType.USER, user_id)
-        resource_to_tag.tags.add_tag(Tag(key = "filter", value = filter_selection, auto_parse = True, origins = origins))
+        resource_to_tag.tags.add_tag(Tag(key="filter", value=filter_selection, auto_parse=True, origins=origins))
 
-        if input_tag :
+        if input_tag:
             # If there was a tag biolector_download associated you the input table, then we add it to this table too
             resource_to_tag.tags.add_tag(input_tag[0])
 
         comment = self.metadata.get("Comment", None)
-        if comment :
-            resource_to_tag.tags.add_tag(Tag(key = "comment", value = comment, auto_parse = True, origins = origins))
+        if comment:
+            resource_to_tag.tags.add_tag(Tag(key="comment", value=comment, auto_parse=True, origins=origins))
 
         name = self.metadata.get("Name", None)
-        if name :
-            resource_to_tag.tags.add_tag(Tag(key = "name", value = name, auto_parse = True, origins = origins))
+        if name:
+            resource_to_tag.tags.add_tag(Tag(key="name", value=name, auto_parse=True, origins=origins))
 
         user_name = self.metadata.get("UserName", None)
-        if user_name :
-            resource_to_tag.tags.add_tag(Tag(key = "user_name", value = user_name, auto_parse = True, origins = origins))
+        if user_name:
+            resource_to_tag.tags.add_tag(Tag(key="user_name", value=user_name, auto_parse=True, origins=origins))
 
         date = self.metadata.get("LastModifiedAt", None)
-        if date :
-            resource_to_tag.tags.add_tag(Tag(key = "date", value = date, auto_parse = True, origins = origins))
+        if date:
+            resource_to_tag.tags.add_tag(Tag(key="date", value=date, auto_parse=True, origins=origins))
 
-
-
-
+        resource_to_tag.tags.add_tag(Tag(key="origin", value='biolector_dashboard', auto_parse=True, origins=origins))

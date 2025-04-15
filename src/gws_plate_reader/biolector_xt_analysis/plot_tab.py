@@ -3,44 +3,44 @@ from typing import List
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from gws_plate_reader.biolector_xt_parser.biolector_state import BiolectorState
-from gws_plate_reader.biolector_xt_parser.biolectorxt_parser import \
-    BiolectorXTParser
+from gws_plate_reader.biolector_xt_analysis.biolector_state import (
+    BiolectorState, BiolectorStateMode)
 
 
-def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_data: dict, all_keys_well_description: []):
+def render_plot_tab():
     legend_mean = ""
     col1, col2 = st.columns([1, 1])
     with col1:
         init_value = BiolectorState.get_selected_filters()
+        if init_value is None:
+            init_value = BiolectorState.get_filters_list()
+        init_value = sorted(init_value)
         selected_filters: List[str] = st.multiselect(
-            '$\\textsf{\large{Select the observers to be displayed}}$', options=filters,
-            default=BiolectorState.get_selected_filters(),
-            key="plot_filters")
-        if BiolectorState.get_plot_filters() != init_value:
-            BiolectorState.update_selected_filters(BiolectorState.get_plot_filters())
+            '$\\textsf{\large{Select the observers to be displayed}}$', options=BiolectorState.get_filters_list(),
+            default=init_value, key="plot_selected_filters")
+        if selected_filters != init_value:
+            BiolectorState.set_selected_filters(selected_filters)
+            st.rerun()
     with col2:
         selected_time = st.selectbox("$\\textsf{\large{Select the time unit}}$", [
                                      "Hours", "Minutes", "Seconds"], index=0, key="plot_time")
 
     # Select wells: all by default; otherwise those selected in the microplate
-    if len(BiolectorState.get_well_clicked()) > 0:
-        st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_well_clicked())}")
+    if len(BiolectorState.get_wells_clicked()) > 0:
+        st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_wells_clicked())}")
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        init_value = BiolectorState.get_selected_well_or_replicate()
-        options = ["Individual well"] + all_keys_well_description
+        init_value = BiolectorState.get_current_replicate_mode()
+        options = ["Individual well"] + BiolectorState.get_all_keys_well_description()
+        index = options.index(init_value) if init_value in options else 0
         if init_value is None:
-            index = 0
-        else:
-            index = options.index(init_value)
-        selected_well_or_replicate: str = st.selectbox(
-            "$\\textsf{\large{Select by}}$", options=options, index=index, key="plot_well_or_replicate")
-        if BiolectorState.get_plot_well_or_replicate() != init_value:
-            BiolectorState.reset_session_state_wells()
-            BiolectorState.reset_plot_replicates_saved()
-            BiolectorState.update_selected_well_or_replicate(BiolectorState.get_plot_well_or_replicate())
+            init_value = options[0]
+        selected_well_or_replicate: str = st.selectbox("$\\textsf{\large{Select by}}$",
+                                                       options=options, index=index, key="plot_well_or_replicate")
+        if selected_well_or_replicate != init_value:
+            BiolectorState.set_current_replicate_mode(selected_well_or_replicate)
+            selected_mode = "Individual curves"
             st.rerun()
     with col2:
         selected_mode = st.selectbox("$\\textsf{\large{Select the display mode}}$",
@@ -51,12 +51,28 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
         error_band = st.checkbox("Error band")
 
     if selected_well_or_replicate != "Individual well":
-        dict_replicates = microplate_object.group_wells_by_selection(well_data, selected_well_or_replicate)
+        dict_replicates = BiolectorState.group_wells_by_options(selected_well_or_replicate)
 
         st.write("Only replicates where all wells are selected and contain data will appear here.")
 
-        init_value = BiolectorState.get_plot_replicates_saved()
-        options = BiolectorState.get_options_replicates(dict_replicates, microplate_object)
+        cross_out_wells = {f"{row}{col:02d}" for row in "AB" for col in range(1, 13)}
+        init_value = BiolectorState.get_replicates_saved()
+        BiolectorState.reset_options_replicates()
+        for replicate, wells in dict_replicates.items():
+            if BiolectorState.is_microfluidics() and any(well in cross_out_wells
+                                                         for well in wells):
+                continue
+            elif len(BiolectorState.get_wells_clicked()) > 0:
+                if not any(well in dict_replicates[replicate] for well in BiolectorState.get_wells_clicked()):
+                    continue
+                else:
+                    BiolectorState.add_option_replicate(replicate)
+            else:
+                BiolectorState.add_option_replicate(replicate)
+        options = BiolectorState.get_options_replicates()
+        for v in init_value:
+            if v not in options:
+                init_value.remove(v)
         if init_value == []:
             default = options
         else:
@@ -64,8 +80,9 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
         selected_replicates: List[str] = st.multiselect(
             '$\\textsf{\large{Select the replicates to be displayed}}$', options, default=default,
             key="plot_replicates")
-        if BiolectorState.get_plot_replicates() != init_value:
-            BiolectorState.color_wells_replicates(dict_replicates, BiolectorState.get_plot_replicates())
+        if selected_replicates != init_value:
+            BiolectorState.color_wells_replicates(dict_replicates, selected_replicates)
+            st.rerun()
 
         if not selected_replicates:
             st.warning("Please select at least one replicate.")
@@ -77,10 +94,8 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
     fig = go.Figure()
 
     for i, filter_name in enumerate(selected_filters):
-        df = microplate_object.get_table_by_filter(filter_name)
+        df = BiolectorState.get_table_by_filter(selected_well_or_replicate, filter_name, selected_replicates)
         df = df.iloc[:, 1:]
-        if len(BiolectorState.get_well_clicked()) > 0:
-            df = df[["Temps_en_h"] + BiolectorState.get_well_clicked()]
 
         # Adapt unit of time
         if selected_time == "Hours":
@@ -93,11 +108,7 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
         # Assign a unique y-axis for each filter
         yaxis_id = f"y{i+1}"
 
-        if selected_replicates:
-            # Filter df with the wells to keep
-            df = df[["time"] + BiolectorState.get_wells_to_show()]
-
-        cols_y = [col for col in df.columns if col != 'time']
+        cols_y = [col for col in df.columns if col != 'time' and col != 'Temps_en_h']
 
         # Individual curves
         if selected_mode == "Individual curves":
@@ -113,10 +124,10 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
         # Mean curves
         elif selected_mode == "Mean":
             if selected_well_or_replicate == "Individual well":
-                if not BiolectorState.get_well_clicked():
+                if not BiolectorState.get_wells_clicked():
                     legend_mean = "(Mean of all wells)"
                 else:
-                    legend_mean = f"(Mean of {', '.join(BiolectorState.get_well_clicked())})"
+                    legend_mean = f"(Mean of {', '.join(BiolectorState.get_wells_clicked())})"
                 df_mean = df[cols_y].mean(axis=1)
                 df_std = df[cols_y].std(axis=1)
                 fig.add_trace(go.Scatter(
@@ -152,10 +163,18 @@ def render_plot_tab(microplate_object: BiolectorXTParser, filters: list, well_da
                         # Group wells into pairs and calculate the mean for each pair
                         replicates = []
                         for replicate in selected_replicates:
+                            columns = []
+                            if BiolectorState.get_mode() == BiolectorStateMode.MULTIPLE_PLATES:
+                                for plate, wells in dict_replicates[replicate].items():
+                                    for well in wells:
+                                        if f"{well}_{plate}" in df.columns:
+                                            columns.append(f"{well}_{plate}")
+                            else:
+                                columns = [col for col in df.columns if col in dict_replicates[replicate]]
                             if operation == "mean":
-                                replicate = df[dict_replicates[replicate]].mean(axis=1)
+                                replicate = df[columns].mean(axis=1)
                             elif operation == "std":
-                                replicate = df[dict_replicates[replicate]].std(axis=1)
+                                replicate = df[columns].std(axis=1)
                             replicates.append(replicate)
 
                         # Create a new DataFrame for the replicates

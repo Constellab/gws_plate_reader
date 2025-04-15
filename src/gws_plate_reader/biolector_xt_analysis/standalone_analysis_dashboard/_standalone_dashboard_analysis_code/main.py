@@ -8,7 +8,7 @@ import streamlit as st
 from gws_core import Compress, FileHelper, Settings
 from gws_plate_reader.biolector_xt.biolector_xt_mock_service import \
     BiolectorXTMockService
-from gws_plate_reader.biolector_xt_parser.biolectorxt_parser_dashboard import \
+from gws_plate_reader.biolector_xt_analysis.biolectorxt_analysis_dashboard import \
     run
 from pandas import DataFrame, read_table
 
@@ -59,7 +59,6 @@ def save_new_stats(mock_data: bool):
             dump(stats, f)
     except Exception as e:
         print(f"Error while saving the new stats: {e}")
-
 
 
 table_file = None
@@ -145,4 +144,4 @@ if 'table' in st.session_state and 'metadata' in st.session_state:
     metadata = st.session_state['metadata']
 
     # run the dashboard
-    run(table, metadata, is_standalone = True)
+    run(table, metadata, is_standalone=True)

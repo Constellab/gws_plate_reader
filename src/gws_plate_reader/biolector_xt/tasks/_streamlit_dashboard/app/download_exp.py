@@ -7,8 +7,8 @@ from gws_core import (FrontService, Scenario, ScenarioCreationType,
                       Tag)
 from gws_plate_reader.biolector_xt.tasks.biolector_download_experiment_task import \
     BiolectorDownloadExperiment
-from gws_plate_reader.biolector_xt_parser.dashboard.parser_dashboard import \
-    ParserDashboard
+from gws_plate_reader.biolector_xt_analysis.dashboard.analysis_dashboard import \
+    AnalysisDashboard
 
 DOWNLOAD_TAG_KEY = "biolector_download"
 
@@ -87,7 +87,7 @@ def download_experiment(biolector_exp_id: str,
         protocol.add_output('result', download_task.get_output_port('result'))
         protocol.add_output('raw_data', download_task.get_output_port('raw_data'), False)
 
-        streamlit_generator = protocol.add_task(ParserDashboard, 'streamlit_generator')
+        streamlit_generator = protocol.add_task(AnalysisDashboard, 'streamlit_generator')
 
         protocol.add_connector(download_task.get_output_port('result'), streamlit_generator.get_input_port('raw_data'))
         protocol.add_connector(

@@ -15,7 +15,7 @@ from pandas import NA, DataFrame, Series
 
 @task_decorator("BiolectorXTDataParser", human_name="BiolectorXT Data Parser",
                 short_description="Task to parse BiolectorXT data before using the analysis dashboard",
-                style=TypingStyle.community_icon(icon_technical_name="biolector_xt", background_color="#c3fa7f"))
+                style=TypingStyle.community_icon(icon_technical_name="table", background_color="#c3fa7f"))
 class BiolectorXTDataParser(Task):
     input_specs: InputSpecs = InputSpecs(
         {'raw_data': InputSpec(Table, human_name="Table containing the raw data"),

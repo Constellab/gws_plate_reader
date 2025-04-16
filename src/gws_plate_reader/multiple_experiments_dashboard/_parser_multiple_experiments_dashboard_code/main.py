@@ -143,7 +143,21 @@ if BiolectorState.is_init():
         cols_header = st.columns(COLS + 1)
         for col in range(COLS):
             if cols_header[col + 1].button(str(col + 1), key=f"wellbt-col_{col + 1}"):
-                st.rerun(scope='app')
+                if col + 1 in BiolectorState.get_selected_cols():
+                    BiolectorState.remove_selected_col(col + 1)
+                    for row in range(ROWS):
+                        well = wells[row][col]
+                        if well_data[well] != {}:
+                            if well in BiolectorState.get_wells_clicked():
+                                BiolectorState.remove_well_clicked(well)
+                else:
+                    BiolectorState.append_selected_col(col + 1)
+                    for row in range(ROWS):
+                        well = wells[row][col]
+                        if well_data[well] != {}:
+                            if well not in BiolectorState.get_wells_clicked():
+                                BiolectorState.append_well_clicked(well)
+                st.rerun(scope="app")
 
         replicated_wells_show = set()
         for well in BiolectorState.get_replicated_wells_show():
@@ -154,7 +168,21 @@ if BiolectorState.is_init():
             cols_object = st.columns(COLS + 1)
             # Row header button
             if cols_object[0].button(chr(65 + row), key=f"wellbt-row_{chr(65 + row)}"):
-                st.rerun(scope='app')
+                if chr(65 + row) in BiolectorState.get_selected_rows():
+                    BiolectorState.remove_selected_row(chr(65 + row))
+                    for col in range(COLS):
+                        well = wells[row][col]
+                        if well_data[well] != {}:
+                            if well in BiolectorState.get_wells_clicked():
+                                BiolectorState.remove_well_clicked(well)
+                else:
+                    BiolectorState.append_selected_row(chr(65 + row))
+                    for col in range(COLS):
+                        well = wells[row][col]
+                        if well_data[well] != {}:
+                            if well not in BiolectorState.get_wells_clicked():
+                                BiolectorState.append_well_clicked(well)
+                st.rerun(scope="app")
 
             for col in range(COLS):
                 well = wells[row][col]

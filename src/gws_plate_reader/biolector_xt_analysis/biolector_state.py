@@ -142,11 +142,25 @@ class BiolectorState():
         return st.session_state.get(cls.BIOLECTOR_STATE_MODE_KEY, None)
 
     @classmethod
+    def is_single_plate(cls) -> bool:
+        """
+        Check if the mode is single plate.
+        """
+        return cls.get_mode() == BiolectorStateMode.SINGLE_PLATE
+
+    @classmethod
     def is_standalone(cls) -> bool:
         """
         Check if the mode is standalone.
         """
         return cls.get_mode() == BiolectorStateMode.STANDALONE
+
+    @classmethod
+    def is_multiple_plates(cls) -> bool:
+        """
+        Check if the mode is multiple plates.
+        """
+        return cls.get_mode() == BiolectorStateMode.MULTIPLE_PLATES
 
     @classmethod
     def get_input_tag(cls) -> Optional[Tag]:  # TODO : check if it is a list

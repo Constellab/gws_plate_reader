@@ -48,14 +48,33 @@ def render_plot_tab():
 
         cols_y = [col for col in df.columns if col != 'time' and col != 'Temps_en_h']
 
+        dict_well_data_description = BiolectorState.get_well_data_description()
+
         # Individual curves
         if selected_mode == "Individual curves":
             for col in cols_y:
+                # Extract well name and plate if applicable
+                display_well = col
+                plate_name = None
+
+                # Handle the plate_name for multi-plate scenario
+                if '_' in col:
+                    display_well, plate_name = col.split('_', 1)
+
+                # Get the label for the well from the dictionary
+                if plate_name:
+                    label = dict_well_data_description.get(display_well, {}).get(plate_name, {}).get('label', None)
+                else:
+                    label = dict_well_data_description.get(display_well, {}).get('label', None)
+
+                # Create display name with well, label, and filter
+                display_name = f"{filter_name} - {col} - {label}"
+
                 fig.add_trace(go.Scatter(
                     x=df['time'],
                     y=df[col],
                     mode='lines',
-                    name=f"{filter_name} - {col}",
+                    name=display_name,
                     line={'shape': 'spline', 'smoothing': 1},
                     yaxis=yaxis_id
                 ))

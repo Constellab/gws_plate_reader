@@ -161,9 +161,9 @@ class LogisticGrowthFitter:
             # Create curve name with well, label and plate
             display_name = f"{display_well}"
             if label:
-                display_name += f"_{label}"
+                display_name += f"-{label}"
             if plate_name:
-                display_name += f"_{plate_name}"
+                display_name += f"-{plate_name}"
 
             # Raw data points for the current well
             fig.add_trace(go.Scatter(

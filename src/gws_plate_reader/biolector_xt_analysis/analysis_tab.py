@@ -61,6 +61,7 @@ def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
             logistic_fitter = LogisticGrowthFitter(df)
             logistic_fitter.fit_logistic_growth_with_cv()
             fig = logistic_fitter.plot_fitted_curves_with_r2()
+            histogram = logistic_fitter.plot_growth_rate_histogram()
             df_analysis = logistic_fitter.df_params
             with StreamlitContainers.full_width_dataframe_container('container-full-dataframe-growth-rate'):
                 st.dataframe(df_analysis.style.format(
@@ -112,5 +113,6 @@ def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
                         st.success(
                             f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")
             st.plotly_chart(fig)
+            st.plotly_chart(histogram)
         except:
             st.error("Optimal parameters not found for some wells, try deselecting some wells.")

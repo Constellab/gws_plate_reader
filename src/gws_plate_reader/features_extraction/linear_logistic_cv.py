@@ -197,6 +197,98 @@ class LogisticGrowthFitter:
         )
         return fig
 
-# logistic_fitter = LogisticGrowthFitter(df)
-# logistic_fitter.fit_logistic_growth_with_cv()
-# logistic_fitter.plot_fitted_curves_with_r2()
+    def plot_growth_rate_histogram(self):
+        """
+        Plot a histogram of growth rates from the fitted logistic growth parameters.
+
+        Returns:
+            Plotly figure object showing the distribution of growth rates across wells.
+        """
+        # Extract growth rates from parameters dataframe
+        growth_rates = self.df_params['Growth_Rate'].values
+
+        # Create labels for each well that include plate and label info
+        labels = []
+        for idx, row in self.df_params.iterrows():
+            label_text = f"{idx}"
+
+            if 'Label' in row and not pd.isna(row['Label']):
+                label_text += f"_{row['Label']}"
+            if 'Plate_Name' in row and not pd.isna(row['Plate_Name']):
+                label_text += f"_{row['Plate_Name']}"
+
+            labels.append(label_text)
+
+        # Create a histogram
+        fig = go.Figure()
+
+        # Compute optimal bin size
+        bin_size = (growth_rates.max() - growth_rates.min()) / 10
+
+        # Create histogram trace with improved binning
+        fig.add_trace(go.Histogram(
+            x=growth_rates,
+            name='Growth Rate Distribution',
+            marker_color='rgba(50, 168, 82, 0.7)',
+            hoverinfo='x+y',
+            xbins=dict(
+                start=growth_rates.min(),
+                end=growth_rates.max(),
+                size=bin_size
+            )
+        ))
+
+
+        # Add scatter points on a secondary y-axis to show individual wells
+        fig.add_trace(go.Scatter(
+            x=growth_rates,
+            y=[0.05] * len(growth_rates),  # Small y value to position at bottom
+            mode='markers',
+            marker=dict(
+                size=8,
+                color='rgba(0, 0, 0, 0.7)',
+                symbol='circle'
+            ),
+            text=labels,
+            hovertemplate='<b>%{text}</b><br>Growth Rate: %{x:.4f}<extra></extra>',
+            name='Individual Wells'
+        ))
+
+        # Calculate statistics
+        mean_growth = np.mean(growth_rates)
+        std_growth = np.std(growth_rates)
+
+        # Customize layout
+        fig.update_layout(
+            title='Distribution of Growth Rates Across Wells',
+            xaxis_title='Growth Rate',
+            yaxis_title='Count',
+            bargap=0.1,
+            template='plotly_white',
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5
+            ),
+            annotations=[
+                dict(
+                    x=0.95,
+                    y=0.95,
+                    xref="paper",
+                    yref="paper",
+                    text=f"Mean ± Std: {mean_growth:.4f} ± {std_growth:.4f}",
+                    showarrow=False,
+                    bgcolor="rgba(255, 255, 255, 0.8)",
+                    bordercolor="black",
+                    borderwidth=1,
+                    borderpad=4,
+                    font=dict(size=12)
+                )
+            ]
+        )
+
+        return fig
+

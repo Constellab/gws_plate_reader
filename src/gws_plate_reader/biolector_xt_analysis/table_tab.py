@@ -4,7 +4,7 @@ import streamlit as st
 from gws_core import (File, FrontService, ResourceModel, ResourceOrigin,
                       Settings, TableImporter, Tag)
 from gws_core.impl.table.table import Table
-from gws_core.streamlit import StreamlitContainers
+from gws_core.streamlit import StreamlitContainers, StreamlitAuthenticateUser
 from gws_core.tag.tag import TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
 from gws_core.user.current_user_service import CurrentUserService
@@ -32,56 +32,57 @@ def render_table_tab():
             if not BiolectorState.is_standalone():
                 # Add the button to resource containing the data parsed
                 if st.button(f"Generate {filter_selection} resource", icon=":material/note_add:"):
-                    path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
-                    resource_name = f"{st.session_state['raw_data']}_{filter_selection}" if st.session_state["raw_data"] is not None else filter_selection
-                    full_path = os.path.join(path_temp, f"{resource_name}.csv")
-                    tab_parsed: File = File(full_path)
-                    tab_parsed.write(df.to_csv(index=False))
-                    # Import the resource as Table
-                    tab_parsed_table: Table = TableImporter.call(tab_parsed)
-                    # Add tags to resource
-                    user_id = CurrentUserService.get_and_check_current_user().id
-                    origins = TagOrigins(TagOriginType.USER, user_id)
-                    tab_parsed_table.tags.add_tag(Tag(key="filter", value=filter_selection,
-                                                      auto_parse=True, origins=origins))
-                    if BiolectorState.get_input_tag():
-                        tab_parsed_table.tags.add_tag(BiolectorState.get_input_tag())
+                    with StreamlitAuthenticateUser():
+                        path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
+                        resource_name = f"{st.session_state['raw_data']}_{filter_selection}" if st.session_state["raw_data"] is not None else filter_selection
+                        full_path = os.path.join(path_temp, f"{resource_name}.csv")
+                        tab_parsed: File = File(full_path)
+                        tab_parsed.write(df.to_csv(index=False))
+                        # Import the resource as Table
+                        tab_parsed_table: Table = TableImporter.call(tab_parsed)
+                        # Add tags to resource
+                        user_id = CurrentUserService.get_and_check_current_user().id
+                        origins = TagOrigins(TagOriginType.USER, user_id)
+                        tab_parsed_table.tags.add_tag(Tag(key="filter", value=filter_selection,
+                                                        auto_parse=True, origins=origins))
+                        if BiolectorState.get_input_tag():
+                            tab_parsed_table.tags.add_tag(BiolectorState.get_input_tag())
 
-                    if st.session_state["comment_tag"] is not None:
-                        tab_parsed_table.tags.add_tag(
-                            Tag(key="comment", value=st.session_state["comment_tag"], origins=origins))
+                        if st.session_state["comment_tag"] is not None:
+                            tab_parsed_table.tags.add_tag(
+                                Tag(key="comment", value=st.session_state["comment_tag"], origins=origins))
 
-                    if st.session_state["name_tag"] is not None:
-                        tab_parsed_table.tags.add_tag(
-                            Tag(key="name", value=st.session_state["name_tag"], origins=origins))
+                        if st.session_state["name_tag"] is not None:
+                            tab_parsed_table.tags.add_tag(
+                                Tag(key="name", value=st.session_state["name_tag"], origins=origins))
 
-                    if st.session_state["user_name_tag"] is not None:
-                        tab_parsed_table.tags.add_tag(
-                            Tag(key="user_name", value=st.session_state["user_name_tag"], origins=origins))
+                        if st.session_state["user_name_tag"] is not None:
+                            tab_parsed_table.tags.add_tag(
+                                Tag(key="user_name", value=st.session_state["user_name_tag"], origins=origins))
 
-                    if st.session_state["date_tag"] is not None:
-                        tab_parsed_table.tags.add_tag(
-                            Tag(key="date", value=st.session_state["date_tag"], origins=origins))
+                        if st.session_state["date_tag"] is not None:
+                            tab_parsed_table.tags.add_tag(
+                                Tag(key="date", value=st.session_state["date_tag"], origins=origins))
 
-                    if st.session_state["raw_data"] is not None:
-                        tab_parsed_table.tags.add_tag(
-                            Tag(key="raw_data", value=st.session_state["raw_data"], origins=origins))
+                        if st.session_state["raw_data"] is not None:
+                            tab_parsed_table.tags.add_tag(
+                                Tag(key="raw_data", value=st.session_state["raw_data"], origins=origins))
 
-                    tab_parsed_table.tags.add_tag(Tag(key="origin", value='biolector_dashboard', origins=origins))
+                        tab_parsed_table.tags.add_tag(Tag(key="origin", value='biolector_dashboard', origins=origins))
 
-                    for col in tab_parsed_table.column_names:
-                        dict_col = BiolectorState.get_well_data_description().get(col, None)
-                        tab_parsed_table.add_column_tag_by_name(
-                            col, key=Tag.parse_tag('well'),
-                            value=Tag.parse_tag(col))
-                        if dict_col is not None:
-                            for key, value in dict_col.items():
-                                tab_parsed_table.add_column_tag_by_name(
-                                    col, key=Tag.parse_tag(key),
-                                    value=Tag.parse_tag(value))
+                        for col in tab_parsed_table.column_names:
+                            dict_col = BiolectorState.get_well_data_description().get(col, None)
+                            tab_parsed_table.add_column_tag_by_name(
+                                col, key=Tag.parse_tag('well'),
+                                value=Tag.parse_tag(col))
+                            if dict_col is not None:
+                                for key, value in dict_col.items():
+                                    tab_parsed_table.add_column_tag_by_name(
+                                        col, key=Tag.parse_tag(key),
+                                        value=Tag.parse_tag(value))
 
-                    tab_parsed_resource = ResourceModel.save_from_resource(
-                        tab_parsed_table, ResourceOrigin.UPLOADED, flagged=True)
+                        tab_parsed_resource = ResourceModel.save_from_resource(
+                            tab_parsed_table, ResourceOrigin.UPLOADED, flagged=True)
 
-                    st.success(
-                        f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(tab_parsed_resource.id)}")
+                        st.success(
+                            f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(tab_parsed_resource.id)}")

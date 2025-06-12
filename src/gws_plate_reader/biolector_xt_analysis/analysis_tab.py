@@ -4,7 +4,7 @@ from typing import List
 import streamlit as st
 from gws_core import (File, FrontService, ResourceModel, ResourceOrigin,
                       Settings, TableImporter)
-from gws_core.streamlit import StreamlitContainers
+from gws_core.streamlit import StreamlitContainers, StreamlitAuthenticateUser
 from gws_core.tag.tag import Tag, TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
 from gws_core.user.current_user_service import CurrentUserService
@@ -70,46 +70,47 @@ def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
             if not BiolectorState.is_standalone():
                 # Add the button to resource containing the analysis table
                 if st.button("Generate analysis resource", icon=":material/note_add:"):
-                    path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
-                    full_path = os.path.join(path_temp, "Analysis.csv")
-                    analysis_df: File = File(full_path)
-                    analysis_df.write(df_analysis.to_csv(index=True))
-                    # Import the resource as Table
-                    analysis_df_table = TableImporter.call(analysis_df, params={"index_column": 0})
-                    # Add tags to resource
-                    user_id = CurrentUserService.get_and_check_current_user().id
-                    origins = TagOrigins(TagOriginType.USER, user_id)
-                    analysis_df_table.tags.add_tag(Tag(key="filter", value=filter_selection,
-                                                       auto_parse=True, origins=origins))
-                    if BiolectorState.get_input_tag():
-                        analysis_df_table.tags.add_tag(BiolectorState.get_input_tag())
+                    with StreamlitAuthenticateUser():
+                        path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
+                        full_path = os.path.join(path_temp, "Analysis.csv")
+                        analysis_df: File = File(full_path)
+                        analysis_df.write(df_analysis.to_csv(index=True))
+                        # Import the resource as Table
+                        analysis_df_table = TableImporter.call(analysis_df, params={"index_column": 0})
+                        # Add tags to resource
+                        user_id = CurrentUserService.get_and_check_current_user().id
+                        origins = TagOrigins(TagOriginType.USER, user_id)
+                        analysis_df_table.tags.add_tag(Tag(key="filter", value=filter_selection,
+                                                        auto_parse=True, origins=origins))
+                        if BiolectorState.get_input_tag():
+                            analysis_df_table.tags.add_tag(BiolectorState.get_input_tag())
 
-                    if st.session_state["comment_tag"] is not None:
-                        analysis_df_table.tags.add_tag(
-                            Tag(key="comment", value=st.session_state["comment_tag"], origins=origins))
-
-                    if st.session_state["name_tag"] is not None:
-                        analysis_df_table.tags.add_tag(
-                            Tag(key="name", value=st.session_state["name_tag"], origins=origins))
-
-                    if st.session_state["user_name_tag"] is not None:
-                        analysis_df_table.tags.add_tag(
-                            Tag(key="user_name", value=st.session_state["user_name_tag"], origins=origins))
-
-                    if st.session_state["date_tag"] is not None:
-                        analysis_df_table.tags.add_tag(
-                            Tag(key="date", value=st.session_state["date_tag"], origins=origins))
-
-                    for row in analysis_df_table.row_names:
-                        dict_row = BiolectorState.get_well_data_description().get(row, None)
-                        if dict_row is not None:
+                        if st.session_state["comment_tag"] is not None:
                             analysis_df_table.tags.add_tag(
-                                Tag(key=row, value=dict_row, auto_parse=True, origins=origins))
+                                Tag(key="comment", value=st.session_state["comment_tag"], origins=origins))
 
-                    analysis_df_resource = ResourceModel.save_from_resource(
-                        analysis_df_table, ResourceOrigin.UPLOADED, flagged=True)
-                    st.success(
-                        f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")
+                        if st.session_state["name_tag"] is not None:
+                            analysis_df_table.tags.add_tag(
+                                Tag(key="name", value=st.session_state["name_tag"], origins=origins))
+
+                        if st.session_state["user_name_tag"] is not None:
+                            analysis_df_table.tags.add_tag(
+                                Tag(key="user_name", value=st.session_state["user_name_tag"], origins=origins))
+
+                        if st.session_state["date_tag"] is not None:
+                            analysis_df_table.tags.add_tag(
+                                Tag(key="date", value=st.session_state["date_tag"], origins=origins))
+
+                        for row in analysis_df_table.row_names:
+                            dict_row = BiolectorState.get_well_data_description().get(row, None)
+                            if dict_row is not None:
+                                analysis_df_table.tags.add_tag(
+                                    Tag(key=row, value=dict_row, auto_parse=True, origins=origins))
+
+                        analysis_df_resource = ResourceModel.save_from_resource(
+                            analysis_df_table, ResourceOrigin.UPLOADED, flagged=True)
+                        st.success(
+                            f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")
             st.plotly_chart(fig)
         except:
             st.error("Optimal parameters not found for some wells, try deselecting some wells.")

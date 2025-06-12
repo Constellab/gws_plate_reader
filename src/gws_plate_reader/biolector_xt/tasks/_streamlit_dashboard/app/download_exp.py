@@ -9,6 +9,8 @@ from gws_plate_reader.biolector_xt.tasks.biolector_download_experiment_task impo
     BiolectorDownloadExperiment
 from gws_plate_reader.biolector_xt_analysis.dashboard.analysis_dashboard import \
     AnalysisDashboard
+from gws_plate_reader.biolector_xt_data_parser.biolector_xt_data_parser import \
+    BiolectorXTDataParser
 
 DOWNLOAD_TAG_KEY = "biolector_download"
 
@@ -87,12 +89,15 @@ def download_experiment(biolector_exp_id: str,
         protocol.add_output('result', download_task.get_output_port('result'))
         protocol.add_output('raw_data', download_task.get_output_port('raw_data'), False)
 
+        biolector_parser = protocol.add_task(BiolectorXTDataParser, 'biolector_parser')
+        protocol.add_output('parsed_data_tables', biolector_parser.get_output_port('parsed_data_tables'))
+        protocol.add_connector(download_task.get_output_port('result'), biolector_parser.get_input_port('raw_data'))
+        protocol.add_connector(download_task.get_output_port('raw_data'), biolector_parser.get_input_port('folder_metadata'))
+
         streamlit_generator = protocol.add_task(AnalysisDashboard, 'streamlit_generator')
 
-        protocol.add_connector(download_task.get_output_port('result'), streamlit_generator.get_input_port('raw_data'))
-        protocol.add_connector(
-            download_task.get_output_port('raw_data'),
-            streamlit_generator.get_input_port('folder_metadata'))
+        protocol.add_connector(biolector_parser.get_output_port('parsed_data_tables'), streamlit_generator.get_input_port('parsed_data'))
+
         protocol.add_output('streamlit_app', streamlit_generator.get_output_port('streamlit_app'))
 
         try:

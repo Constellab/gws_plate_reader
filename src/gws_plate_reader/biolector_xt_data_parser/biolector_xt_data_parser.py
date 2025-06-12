@@ -8,10 +8,9 @@ from gws_core import (ConfigParams, Folder, InputSpec, InputSpecs, JSONDict,
 from gws_core.tag.tag import Tag, TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
 from gws_core.user.current_user_service import CurrentUserService
-from gws_plate_reader.biolector_xt.tasks._streamlit_dashboard.app.download_exp import \
-    DOWNLOAD_TAG_KEY
 from pandas import NA, DataFrame, Series
 
+DOWNLOAD_TAG_KEY = "biolector_download"
 
 @task_decorator("BiolectorXTDataParser", human_name="BiolectorXT Data Parser",
                 short_description="Task to parse BiolectorXT data before using the analysis dashboard",

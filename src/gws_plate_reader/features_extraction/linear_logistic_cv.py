@@ -238,22 +238,6 @@ class LogisticGrowthFitter:
             )
         ))
 
-
-        # Add scatter points on a secondary y-axis to show individual wells
-        fig.add_trace(go.Scatter(
-            x=growth_rates,
-            y=[0.05] * len(growth_rates),  # Small y value to position at bottom
-            mode='markers',
-            marker=dict(
-                size=8,
-                color='rgba(0, 0, 0, 0.7)',
-                symbol='circle'
-            ),
-            text=labels,
-            hovertemplate='<b>%{text}</b><br>Growth Rate: %{x:.4f}<extra></extra>',
-            name='Individual Wells'
-        ))
-
         # Calculate statistics
         mean_growth = np.mean(growth_rates)
         std_growth = np.std(growth_rates)

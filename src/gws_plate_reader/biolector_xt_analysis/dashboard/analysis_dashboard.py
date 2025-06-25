@@ -1,14 +1,14 @@
 
 import os
 
-from gws_core import (ConfigParams, Dashboard, DashboardType, InputSpec,
-                      InputSpecs, OutputSpec, OutputSpecs, ResourceSet,
-                      StreamlitResource, Task, TaskInputs, TaskOutputs,
-                      TypingStyle, dashboard_decorator, task_decorator)
+from gws_core import (AppConfig, AppType, ConfigParams, InputSpec, InputSpecs,
+                      OutputSpec, OutputSpecs, ResourceSet, StreamlitResource,
+                      Task, TaskInputs, TaskOutputs, TypingStyle,
+                      app_decorator, task_decorator)
 
 
-@dashboard_decorator("AnalysisDashboard", dashboard_type=DashboardType.STREAMLIT)
-class AnalysisDashboardClass(Dashboard):
+@app_decorator("AnalysisDashboard", dashboard_type=AppType.STREAMLIT)
+class AnalysisDashboardClass(AppConfig):
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
@@ -32,7 +32,7 @@ class AnalysisDashboard(Task):
     ## How It Works: 
 
     - ⬆️ Upload your CSV and JSON files.
-    - 🚀 Get redirected to the intuitive Analysis Dashboard.
+    - 🚀 Get redirected to the intuitive Analysis AppConfig.
     - 🔍 Navigate through data and insights effortlessly.
 
     ## Tables page
@@ -75,6 +75,6 @@ class AnalysisDashboard(Task):
         streamlit_resource.add_multiple_resources([parsed_data])
 
         # set the app folder
-        streamlit_resource.set_dashboard(AnalysisDashboardClass())
+        streamlit_resource.set_app_config(AnalysisDashboardClass())
 
         return {'streamlit_app': streamlit_resource}

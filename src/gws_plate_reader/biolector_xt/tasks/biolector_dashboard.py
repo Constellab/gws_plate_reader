@@ -2,17 +2,17 @@
 
 import os
 
-from gws_core import (BoolParam, ConfigParams, ConfigSpecs,
+from gws_core import (AppConfig, AppType, BoolParam, ConfigParams, ConfigSpecs,
                       CredentialsDataOther, CredentialsParam, CredentialsType,
-                      Dashboard, DashboardType, OutputSpec, OutputSpecs,
-                      StreamlitResource, Task, TaskInputs, TaskOutputs,
-                      TypingStyle, dashboard_decorator, task_decorator)
+                      OutputSpec, OutputSpecs, StreamlitResource, Task,
+                      TaskInputs, TaskOutputs, TypingStyle, app_decorator,
+                      task_decorator)
 from gws_plate_reader.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
 
 
-@dashboard_decorator("BiolectorDashboard", dashboard_type=DashboardType.STREAMLIT)
-class BiolectorDashboardClass(Dashboard):
+@app_decorator("BiolectorDashboard", dashboard_type=AppType.STREAMLIT)
+class BiolectorDashboardClass(AppConfig):
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
@@ -24,7 +24,7 @@ class BiolectorDashboardClass(Dashboard):
 
 
 @task_decorator(unique_name="BiolectorDashboard",
-                human_name="Biolector Dashboard",
+                human_name="Biolector AppConfig",
                 short_description="Task to generate a dashboard to interact with Biolector XT",
                 style=TypingStyle.community_icon("bioreactor"))
 class BiolectorDashboard(Task):
@@ -70,7 +70,7 @@ class BiolectorDashboard(Task):
 
         streamlit_resource = StreamlitResource()
 
-        streamlit_resource.set_dashboard(BiolectorDashboardClass())
+        streamlit_resource.set_app_config(BiolectorDashboardClass())
         streamlit_resource.set_param(
             "credentials_name", credentials_data.meta.name)
         streamlit_resource.set_param(

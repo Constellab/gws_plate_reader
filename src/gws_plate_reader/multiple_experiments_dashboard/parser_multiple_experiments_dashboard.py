@@ -1,13 +1,12 @@
 import os
 
-from gws_core import (ConfigParams, Dashboard, DashboardType, OutputSpec,
+from gws_core import (AppConfig, AppType, ConfigParams, OutputSpec,
                       OutputSpecs, StreamlitResource, Task, TaskInputs,
-                      TaskOutputs, TypingStyle, dashboard_decorator,
-                      task_decorator)
+                      TaskOutputs, TypingStyle, app_decorator, task_decorator)
 
 
-@dashboard_decorator("ParserMultipleExperimentsDashboard", dashboard_type=DashboardType.STREAMLIT)
-class ParserMultipleExperimentsDashboardClass(Dashboard):
+@app_decorator("ParserMultipleExperimentsDashboard", dashboard_type=AppType.STREAMLIT)
+class ParserMultipleExperimentsDashboardClass(AppConfig):
 
     def get_app_folder_path(self):
         return os.path.join(
@@ -33,6 +32,6 @@ class ParserMultipleExperimentsDashboard(Task):
         # build the streamlit resource with the code and the resources
         streamlit_resource = StreamlitResource()
 
-        streamlit_resource.set_dashboard(ParserMultipleExperimentsDashboardClass())
+        streamlit_resource.set_app_config(ParserMultipleExperimentsDashboardClass())
 
         return {'streamlit_app': streamlit_resource}

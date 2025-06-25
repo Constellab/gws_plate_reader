@@ -1,14 +1,14 @@
 
 import os
 
-from gws_core import (ConfigParams, Dashboard, DashboardType, Folder,
-                      InputSpecs, OutputSpec, OutputSpecs, StreamlitResource,
-                      Task, TaskInputs, TaskOutputs, TypingStyle,
-                      dashboard_decorator, task_decorator)
+from gws_core import (AppConfig, AppType, ConfigParams, Folder, InputSpecs,
+                      OutputSpec, OutputSpecs, StreamlitResource, Task,
+                      TaskInputs, TaskOutputs, TypingStyle, app_decorator,
+                      task_decorator)
 
 
-@dashboard_decorator("BiolectorParserStandalone", dashboard_type=DashboardType.STREAMLIT)
-class BiolectorParserStandaloneClass(Dashboard):
+@app_decorator("BiolectorParserStandalone", dashboard_type=AppType.STREAMLIT)
+class BiolectorParserStandaloneClass(AppConfig):
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
@@ -31,7 +31,7 @@ class BiolectorParserStandalone(Task):
     ## How It Works: 
 
     - ⬆️ Upload your CSV and JSON files.
-    - 🚀 Get redirected to the intuitive Analysis Dashboard.
+    - 🚀 Get redirected to the intuitive Analysis AppConfig.
     - 🔍 Navigate through data and insights effortlessly.
 
     ## Tables page
@@ -67,7 +67,7 @@ class BiolectorParserStandalone(Task):
 
         # build the streamlit resource with the code and the resources
         streamlit_resource = StreamlitResource()
-        streamlit_resource.set_dashboard(BiolectorParserStandaloneClass())
+        streamlit_resource.set_app_config(BiolectorParserStandaloneClass())
 
         stats_folder: Folder = Folder(self.create_tmp_dir())
         stats_folder.name = "Stats"

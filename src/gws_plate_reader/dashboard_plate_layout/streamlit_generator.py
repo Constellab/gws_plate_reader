@@ -1,11 +1,14 @@
 
 import os
 
-from gws_core import (ConfigParams, ConfigSpecs, OutputSpec, OutputSpecs, StreamlitResource, Task, TaskInputs, TaskOutputs, task_decorator,
-                      dashboard_decorator, Dashboard, DashboardType, Folder, TypingStyle, StrParam, JSONDict, InputSpecs, InputSpec)
+from gws_core import (AppConfig, AppType, ConfigParams, ConfigSpecs, Folder,
+                      InputSpec, InputSpecs, JSONDict, OutputSpec, OutputSpecs,
+                      StreamlitResource, StrParam, Task, TaskInputs,
+                      TaskOutputs, TypingStyle, app_decorator, task_decorator)
 
-@dashboard_decorator("GenerateDashboardPlateLayout", dashboard_type=DashboardType.STREAMLIT)
-class GenerateDashboardPlateLayout(Dashboard):
+
+@app_decorator("GenerateDashboardPlateLayout", dashboard_type=AppType.STREAMLIT)
+class GenerateDashboardPlateLayout(AppConfig):
 
     # retrieve the path of the app folder, relative to this file
     # the dashboard code folder starts with a underscore to avoid being loaded when the brick is loaded
@@ -54,7 +57,7 @@ class StreamlitGeneratorPlateLayout(Task):
             streamlit_resource.add_resource(plate_layout, create_new_resource=False)
 
         # set dashboard reference
-        streamlit_resource.set_dashboard(GenerateDashboardPlateLayout())
+        streamlit_resource.set_app_config(GenerateDashboardPlateLayout())
         streamlit_resource.set_params({"number_wells": number_wells})
 
         return {'streamlit_app': streamlit_resource}

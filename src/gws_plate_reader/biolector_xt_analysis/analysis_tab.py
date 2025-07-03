@@ -1,6 +1,14 @@
 import os
 from typing import List
 
+import pandas as pd
+import scipy.stats as stats
+import scikit_posthocs as sp
+import matplotlib.pyplot as plt
+import seaborn as sns
+import itertools
+from statsmodels.stats.multitest import multipletests
+
 import streamlit as st
 from gws_core import (File, FrontService, ResourceModel, ResourceOrigin,
                       Settings, TableImporter)
@@ -14,7 +22,6 @@ from gws_plate_reader.dashboard_components.select_replicates_input import \
     render_select_replicates_input
 from gws_plate_reader.features_extraction.linear_logistic_cv import \
     LogisticGrowthFitter
-
 
 def render_analysis_tab():
     # Récupération des filtres contenant le mot "Biomass"
@@ -47,7 +54,143 @@ def render_analysis_tab():
 
     selected_replicates = render_select_replicates_input(selected_well_or_replicate)
 
-    _run_analysis_tab(filter_selection, selected_well_or_replicate, selected_replicates)
+    df_analysis = _run_analysis_tab(filter_selection, selected_well_or_replicate, selected_replicates)
+
+    # Statistics
+
+    #Create temporary directory for results
+    output_dir = Settings.make_temp_dir()
+
+    with st.expander("Statistical Analysis", expanded=True):
+        # Let the user filter the the dataframe based on the R2 threshold
+        filter_r2_threshold = st.number_input(
+            "R2 threshold",
+            min_value=0.0, max_value=1.0, value=0.8, step=0.01,
+            help="Minimum R2 value to consider a well for analysis.",
+            key="filter_r2_threshold"
+        )
+        numerical_vars = ['Max_Absorbance']
+
+        # === PLAN D'ANALYSE ===
+        # Ce bloc vous permet de spécifier quelles analyses effectuer :
+        # - 'global' : test entre les modalités d'une variable sur l'ensemble du jeu de données
+        # - 'cross' : test d'une variable ('test_var') dans chaque modalité d'une autre ('fixed_var')
+        # - 'nested_cross' : test d'une variable dans chaque combinaison de modalités de plusieurs variables (comparaison conditionnelle plus fine)
+
+        # === Analysis Plan ===
+
+        # Allow the user to select the analysis plan
+        # This is a dictionary that defines the analysis plan
+        # 'global' : test between the modalities of a variable on the whole dataset
+        # 'cross' : test of a variable ('test_var') in each modality of another ('fixed_var')
+        # 'nested_cross' : test of a variable in each combination of modalities
+        # of several variables (more fine-grained conditional comparison)
+
+        analysis_plan_global = st.multiselect(
+            "Select the global analysis variables",
+            options=['Well', 'Plate_Name', 'Label'],
+            default=['Well', 'Plate_Name', 'Label'],
+            key="analysis_plan_global"
+        )
+        analysis_plan_cross = st.multiselect(
+            "Select the cross analysis variables",
+            options=["Well vs Label", "Plate_Name vs Well", "Label vs Plate_Name"],
+            default=["Well vs Label", "Plate_Name vs Well", "Label vs Plate_Name"],
+            key="analysis_plan_cross"
+        )
+        analysis_nested_cross = st.multiselect(
+            "Select the nested cross analysis variables",
+            options=["Well+Plate_Name vs Label", "Label+Plate_Name vs Well"],
+            default=["Well+Plate_Name vs Label", "Label+Plate_Name vs Well"],
+            key="analysis_plan_nested_cross"
+        )
+
+
+    st.info("We advice you to select a few variables for the analysis, otherwise the plots may be too crowded. ")
+    if st.button("Run Statistical tests", key="run_stats_button"):
+        with st.spinner("Running statistical tests..."):
+            # Convert cross analysis selections to tuples
+            cross_tuples = []
+            for selection in analysis_plan_cross:
+                if selection == "Well vs Label":
+                    cross_tuples.append(('Well', 'Label'))
+                elif selection == "Plate_Name vs Well":
+                    cross_tuples.append(('Plate_Name', 'Well'))
+                elif selection == "Label vs Plate_Name":
+                    cross_tuples.append(('Label', 'Plate_Name'))
+
+            # Convert nested cross analysis selections to tuples with lists
+            nested_cross_tuples = []
+            for selection in analysis_nested_cross:
+                if selection == "Well+Plate_Name vs Label":
+                    nested_cross_tuples.append((['Well', 'Plate_Name'], 'Label'))
+                elif selection == "Label+Plate_Name vs Well":
+                    nested_cross_tuples.append((['Label', 'Plate_Name'], 'Well'))
+
+            analysis_plan = {
+                'global': analysis_plan_global,
+                'cross': cross_tuples,
+                'nested_cross': nested_cross_tuples
+            }
+
+            # === SETUP ===
+            df_analysis = df_analysis[df_analysis["Avg_R2"] > filter_r2_threshold]
+            # reset index in order to have a column "index" for the dataframe
+            df_analysis= df_analysis.reset_index()
+
+            kruskal_results = []
+            posthoc_all_dunn = []
+
+
+            # === GLOBAL ===
+            for group_var in analysis_plan.get('global', []):
+                for num_var in numerical_vars:
+                    kruskal_results, posthoc_all_dunn = run_test_and_plot(kruskal_results, posthoc_all_dunn,  df_analysis, group_var, num_var, context="Global", output_dir= output_dir)
+
+            # === COMPARAISONS 2 NIVEAUX ===
+            for fixed_var, test_var in analysis_plan.get('cross', []):
+                for fixed_val in df_analysis[fixed_var].unique():
+                    subset = df_analysis[df_analysis[fixed_var] == fixed_val]
+                    for num_var in numerical_vars:
+                        context = f"{test_var} in {fixed_var} {fixed_val}"
+                        kruskal_results, posthoc_all_dunn = run_test_and_plot(kruskal_results, posthoc_all_dunn, subset, test_var, num_var, context=context, output_dir= output_dir)
+
+            # === COMPARAISONS 3 NIVEAUX ===
+            for fixed_vars, test_var in analysis_plan.get('nested_cross', []):
+                grouped = df_analysis.groupby(fixed_vars)
+                for group_keys, group_df in grouped:
+                    if isinstance(group_keys, str):
+                        group_keys = [group_keys]
+                    context = f"{test_var} in {' x '.join(fixed_vars)} = {', '.join(map(str, group_keys))}"
+                    for num_var in numerical_vars:
+                        kruskal_results, posthoc_all_dunn = run_test_and_plot(kruskal_results, posthoc_all_dunn, group_df, test_var, num_var, context=context, output_dir = output_dir)
+
+            # === AJUSTEMENT MULTIPLE ===
+            adjustable = [i for i, r in enumerate(kruskal_results) if r['Context'] == 'Global']
+            if adjustable:
+                pvals = [kruskal_results[i]['Kruskal-Wallis raw p-value'] for i in adjustable]
+                _, adj, _, _ = multipletests(pvals, method='bonferroni')
+                for i, p in zip(adjustable, adj):
+                    kruskal_results[i]['Kruskal-Wallis adjusted p-value'] = p
+
+            # === EXPORT FINAL ===
+            pd.DataFrame(kruskal_results).to_csv(f"{output_dir}/kruskal_summary.csv", index=False)
+            if posthoc_all_dunn:
+                pd.concat(posthoc_all_dunn, ignore_index=True).to_csv(f"{output_dir}/dunn_summary.csv", index=False)
+
+        # TODO faire affichage des figures du dossier
+        # Open the first png and display it
+        png_files = [f for f in os.listdir(output_dir) if f.endswith('.png')]
+        if png_files:
+            first_png = png_files[0]
+            st.image(os.path.join(output_dir, first_png))
+
+        # Navigate thought results
+        # This part allows the user to navigate through the results
+
+
+
+
 
 
 def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
@@ -116,3 +259,99 @@ def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
             st.plotly_chart(histogram)
         except:
             st.error("Optimal parameters not found for some wells, try deselecting some wells.")
+    return df_analysis
+
+
+# === ANNOTATION DES P-VALUES DE DUNN (TOUTES LES PAIRES) ===
+def annotate_posthoc(ax, posthoc_pvals, group_names, y_max=None):
+    y = y_max * 1.05 if y_max else 1.05
+    h = y_max * 0.05 if y_max else 0.05
+    for i, j in itertools.combinations(range(len(group_names)), 2):
+        g1, g2 = group_names[i], group_names[j]
+        try:
+            pval = posthoc_pvals.loc[g1, g2]
+        except KeyError:
+            try:
+                pval = posthoc_pvals.loc[g2, g1]
+            except KeyError:
+                continue
+        stars = ""
+        if pval < 0.001:
+            stars = "***"
+        elif pval < 0.01:
+            stars = "**"
+        elif pval < 0.05:
+            stars = "*"
+        label = f"p={pval:.3f} {stars}"
+        x1, x2 = i, j
+        ax.plot([x1, x1, x2, x2], [y, y+h, y+h, y], lw=1.0, c='gray')
+        ax.text((x1 + x2) / 2, y + h * 1.1, label, ha='center', fontsize=9)
+        y += h * 1.5
+
+
+# === TEST + PLOT ===
+def run_test_and_plot(kruskal_results : list, posthoc_all_dunn : list, data, group_var, num_var, context, output_dir):
+    sub_df = data[[group_var, num_var]].dropna()
+    if sub_df[group_var].nunique() < 2:
+        print(f"[!] Skipped: Only one group found in {context} for {group_var}")
+        return kruskal_results, posthoc_all_dunn
+
+    try:
+        groups = [g[num_var].values for _, g in sub_df.groupby(group_var)]
+        stat, p_kw = stats.kruskal(*groups)
+    except Exception as e:
+        print(f"[!] Error in Kruskal-Wallis test for {context} ({group_var}): {e}")
+        return kruskal_results, posthoc_all_dunn
+
+    result = {
+        'Context': context,
+        'Grouping Variable': group_var,
+        'Numerical Variable': num_var,
+        'Kruskal-Wallis raw p-value': p_kw,
+        'Kruskal-Wallis adjusted p-value': None
+    }
+    kruskal_results.append(result)
+
+    try:
+        dunn = sp.posthoc_dunn(sub_df, val_col=num_var, group_col=group_var, p_adjust='bonferroni')
+        dunn_df = dunn.stack().reset_index()
+        dunn_df.columns = ['Group1', 'Group2', 'Adjusted p-value']
+        dunn_df.insert(0, 'Numerical Variable', num_var)
+        dunn_df.insert(1, 'Group Context', context)
+        posthoc_all_dunn.append(dunn_df)
+        filename = f"dunn_{num_var}_by_{group_var}_{context.replace(' ', '_').replace('(', '').replace(')', '')}.csv"
+        dunn.to_csv(f"{output_dir}/{filename}")
+    except Exception as e:
+        print(f"[!] Error in Dunn's posthoc test for {context} ({group_var}): {e}")
+        dunn = None
+
+    # PLOT
+    plt.figure(figsize=(8, 5))
+    ax = sns.boxplot(data=sub_df, x=group_var, y=num_var)
+    y_pos = sub_df[num_var].max() * 1.2
+    ax.set_title(f"{num_var} par {group_var} [{context}]", pad=40)
+    plt.xticks(rotation=45)
+
+    if p_kw < 0.001:
+        stars = "***"
+    elif p_kw < 0.01:
+        stars = "**"
+    elif p_kw < 0.05:
+        stars = "*"
+    else:
+        stars = ""
+    p_label = f"Kruskal-Wallis p = {p_kw:.3e} {stars}"
+    if context != "Global":
+        p_label += " (uncorrected)"
+
+    ax.text(0.5, 1.02, p_label, ha='center', fontsize=10, transform=ax.transAxes)
+
+    if dunn is not None:
+        group_order = list(sub_df[group_var].unique())
+        annotate_posthoc(ax, dunn, group_order, y_max=sub_df[num_var].max())
+
+    plt.tight_layout()
+    plot_name = f"boxplot_{num_var}_by_{group_var}_{context.replace(' ', '_').replace('(', '').replace(')', '')}.png"
+    plt.savefig(f"{output_dir}/{plot_name}")
+    plt.close()
+    return kruskal_results, posthoc_all_dunn

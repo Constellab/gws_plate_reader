@@ -5,7 +5,7 @@ from gws_core import (AppConfig, AppType, ConfigParams, OutputSpec,
                       TaskOutputs, TypingStyle, app_decorator, task_decorator)
 
 
-@app_decorator("ParserMultipleExperimentsDashboard", dashboard_type=AppType.STREAMLIT)
+@app_decorator("ParserMultipleExperimentsDashboard", app_type=AppType.STREAMLIT)
 class ParserMultipleExperimentsDashboardClass(AppConfig):
 
     def get_app_folder_path(self):

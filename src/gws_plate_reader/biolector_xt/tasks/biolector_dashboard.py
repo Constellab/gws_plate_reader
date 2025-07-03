@@ -11,7 +11,7 @@ from gws_plate_reader.biolector_xt.biolector_xt_types import \
     CredentialsDataBiolector
 
 
-@app_decorator("BiolectorDashboard", dashboard_type=AppType.STREAMLIT)
+@app_decorator("BiolectorDashboard", app_type=AppType.STREAMLIT)
 class BiolectorDashboardClass(AppConfig):
 
     # retrieve the path of the app folder, relative to this file

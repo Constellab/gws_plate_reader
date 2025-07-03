@@ -7,7 +7,7 @@ from gws_core import (AppConfig, AppType, ConfigParams, ConfigSpecs, Folder,
                       TaskOutputs, TypingStyle, app_decorator, task_decorator)
 
 
-@app_decorator("GenerateDashboardPlateLayout", dashboard_type=AppType.STREAMLIT)
+@app_decorator("GenerateDashboardPlateLayout", app_type=AppType.STREAMLIT)
 class GenerateDashboardPlateLayout(AppConfig):
 
     # retrieve the path of the app folder, relative to this file
@@ -18,6 +18,7 @@ class GenerateDashboardPlateLayout(AppConfig):
             "_dashboard_code"
         )
 
+
 @task_decorator("StreamlitGeneratorPlateLayout", human_name="Generate dashboard to fill Plate Layout",
                 short_description="Task to generate a custom Streamlit dashboard to fill Plate Layout",
                 style=TypingStyle.community_icon(icon_technical_name="matrix", background_color="#60a182"))
@@ -25,17 +26,18 @@ class StreamlitGeneratorPlateLayout(Task):
 
     config_specs: ConfigSpecs = ConfigSpecs({
         'number_wells': StrParam(allowed_values=["48", "96"],
-                                human_name="Number of wells",
-                                default_value="48",optional=False,
-                                  short_description="The number of wells of the microplate"),
+                                 human_name="Number of wells",
+                                 default_value="48", optional=False,
+                                 short_description="The number of wells of the microplate"),
 
     })
     input_specs: InputSpecs = InputSpecs(
         {'metadata': InputSpec(JSONDict, human_name="JSONDict containing the metadata", is_optional=False),
-        'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)
-        })
+         'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)
+         })
 
-    output_specs: OutputSpecs = OutputSpecs({'streamlit_app': OutputSpec( StreamlitResource, human_name="Microplate dashboard")})
+    output_specs: OutputSpecs = OutputSpecs(
+        {'streamlit_app': OutputSpec(StreamlitResource, human_name="Microplate dashboard")})
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
         # Get the number of wells

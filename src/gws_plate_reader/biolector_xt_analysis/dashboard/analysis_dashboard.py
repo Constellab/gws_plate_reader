@@ -7,7 +7,7 @@ from gws_core import (AppConfig, AppType, ConfigParams, InputSpec, InputSpecs,
                       app_decorator, task_decorator)
 
 
-@app_decorator("AnalysisDashboard", dashboard_type=AppType.STREAMLIT)
+@app_decorator("AnalysisDashboard", app_type=AppType.STREAMLIT)
 class AnalysisDashboardClass(AppConfig):
 
     # retrieve the path of the app folder, relative to this file

@@ -7,7 +7,7 @@ from gws_core import (AppConfig, AppType, ConfigParams, Folder, InputSpecs,
                       task_decorator)
 
 
-@app_decorator("BiolectorParserStandalone", dashboard_type=AppType.STREAMLIT)
+@app_decorator("BiolectorParserStandalone", app_type=AppType.STREAMLIT)
 class BiolectorParserStandaloneClass(AppConfig):
 
     # retrieve the path of the app folder, relative to this file

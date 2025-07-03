@@ -7,7 +7,7 @@ from gws_core import (AppConfig, AppType, ConfigParams, Folder, InputSpec,
                       TypingStyle, app_decorator, task_decorator)
 
 
-@app_decorator("GenerateDashboardTecan", dashboard_type=AppType.STREAMLIT)
+@app_decorator("GenerateDashboardTecan", app_type=AppType.STREAMLIT)
 class GenerateDashboardTecan(AppConfig):
 
     # retrieve the path of the app folder, relative to this file
@@ -18,15 +18,17 @@ class GenerateDashboardTecan(AppConfig):
             "_dashboard_code"
         )
 
+
 @task_decorator("StreamlitGeneratorVisualisationTecan", human_name="Generate dashboard to visualise data from Tecan",
                 short_description="Task to generate a custom Streamlit dashboard to visualise data from Tecan",
                 style=TypingStyle.community_icon(icon_technical_name="dashboard", background_color="#c3fa7f"))
 class StreamlitGeneratorTecan(Task):
 
-    input_specs: InputSpecs = InputSpecs({'raw_data': InputSpec(Table, human_name="Table containing the raw data"),
-                                          'plate_layout': InputSpec(JSONDict, human_name="JSON containg the plate layout")})
-    output_specs: OutputSpecs = OutputSpecs({'streamlit_app': OutputSpec( StreamlitResource, human_name="Microplate dashboard")})
-
+    input_specs: InputSpecs = InputSpecs(
+        {'raw_data': InputSpec(Table, human_name="Table containing the raw data"),
+         'plate_layout': InputSpec(JSONDict, human_name="JSON containg the plate layout")})
+    output_specs: OutputSpecs = OutputSpecs(
+        {'streamlit_app': OutputSpec(StreamlitResource, human_name="Microplate dashboard")})
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
 

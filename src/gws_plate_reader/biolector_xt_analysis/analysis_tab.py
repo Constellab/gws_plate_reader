@@ -86,19 +86,19 @@ def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
                         if BiolectorState.get_input_tag():
                             analysis_df_table.tags.add_tag(BiolectorState.get_input_tag())
 
-                        if st.session_state["comment_tag"] is not None:
+                        if "comment_tag" in st.session_state and st.session_state["comment_tag"] is not None:
                             analysis_df_table.tags.add_tag(
                                 Tag(key="comment", value=st.session_state["comment_tag"], origins=origins))
 
-                        if st.session_state["name_tag"] is not None:
+                        if "name_tag" in st.session_state and st.session_state["name_tag"] is not None:
                             analysis_df_table.tags.add_tag(
                                 Tag(key="name", value=st.session_state["name_tag"], origins=origins))
 
-                        if st.session_state["user_name_tag"] is not None:
+                        if "user_name_tag" in st.session_state and st.session_state["user_name_tag"] is not None:
                             analysis_df_table.tags.add_tag(
                                 Tag(key="user_name", value=st.session_state["user_name_tag"], origins=origins))
 
-                        if st.session_state["date_tag"] is not None:
+                        if "date_tag" in st.session_state and st.session_state["date_tag"] is not None:
                             analysis_df_table.tags.add_tag(
                                 Tag(key="date", value=st.session_state["date_tag"], origins=origins))
 

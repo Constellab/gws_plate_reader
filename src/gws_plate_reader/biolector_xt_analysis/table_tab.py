@@ -34,7 +34,7 @@ def render_table_tab():
                 if st.button(f"Generate {filter_selection} resource", icon=":material/note_add:"):
                     with StreamlitAuthenticateUser():
                         path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
-                        resource_name = f"{st.session_state['raw_data']}_{filter_selection}" if st.session_state["raw_data"] is not None else filter_selection
+                        resource_name = f"{st.session_state['raw_data']}_{filter_selection}" if 'raw_data' in st.session_state and st.session_state['raw_data'] is not None else filter_selection
                         full_path = os.path.join(path_temp, f"{resource_name}.csv")
                         tab_parsed: File = File(full_path)
                         tab_parsed.write(df.to_csv(index=False))
@@ -48,23 +48,23 @@ def render_table_tab():
                         if BiolectorState.get_input_tag():
                             tab_parsed_table.tags.add_tag(BiolectorState.get_input_tag())
 
-                        if st.session_state["comment_tag"] is not None:
+                        if "comment_tag" in st.session_state and st.session_state["comment_tag"] is not None:
                             tab_parsed_table.tags.add_tag(
                                 Tag(key="comment", value=st.session_state["comment_tag"], origins=origins))
 
-                        if st.session_state["name_tag"] is not None:
+                        if "name_tag" in st.session_state and  st.session_state["name_tag"] is not None:
                             tab_parsed_table.tags.add_tag(
                                 Tag(key="name", value=st.session_state["name_tag"], origins=origins))
 
-                        if st.session_state["user_name_tag"] is not None:
+                        if "user_name_tag" in st.session_state and  st.session_state["user_name_tag"] is not None:
                             tab_parsed_table.tags.add_tag(
                                 Tag(key="user_name", value=st.session_state["user_name_tag"], origins=origins))
 
-                        if st.session_state["date_tag"] is not None:
+                        if "date_tag" in st.session_state and  st.session_state["date_tag"] is not None:
                             tab_parsed_table.tags.add_tag(
                                 Tag(key="date", value=st.session_state["date_tag"], origins=origins))
 
-                        if st.session_state["raw_data"] is not None:
+                        if "raw_data" in st.session_state and  st.session_state["raw_data"] is not None:
                             tab_parsed_table.tags.add_tag(
                                 Tag(key="raw_data", value=st.session_state["raw_data"], origins=origins))
 

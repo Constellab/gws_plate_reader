@@ -205,5 +205,12 @@ if BiolectorState.is_init():
                         BiolectorState.append_well_clicked(well)
                         st.rerun(scope="app")
 
+        st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_wells_clicked())}")
+
+        # Add the reset button
+        st.button("Reset wells selection", on_click=BiolectorState.clear_wells_clicked)
+
+
+
 pg = st.navigation(pages)
 pg.run()

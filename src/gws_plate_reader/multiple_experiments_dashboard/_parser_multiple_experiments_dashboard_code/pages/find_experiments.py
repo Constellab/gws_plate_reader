@@ -14,7 +14,7 @@ def add_experiment_to_experiments_list(r: ResourceModel, table: Table) -> Dict[s
 
     list_raw_data_id_biolector_experiment = [(e.raw_data, e.id_biolector_experiment) for e in experiments_list.values()]
     if table is not None:
-        table.name = r.get_entity_name()
+        table.name = r.get_navigable_entity_name()
         raw_data = table.tags.get_by_key("raw_data")[0].value
         id_biolector_experiment = table.tags.get_by_key("name")[0].value
         if '-' in id_biolector_experiment:

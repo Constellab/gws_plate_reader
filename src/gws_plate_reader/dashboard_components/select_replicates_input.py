@@ -16,7 +16,7 @@ def render_select_replicates_input(selected_well_or_replicate: str):
     BiolectorState.reset_options_replicates(dict_replicates)
     options = BiolectorState.get_options_replicates()
     if init_value is not None:
-        for v in init_value:
+        for v in init_value[:]:
             if v not in options:
                 init_value.remove(v)
         default = init_value

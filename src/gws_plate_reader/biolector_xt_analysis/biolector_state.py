@@ -74,6 +74,8 @@ class BiolectorState():
     OPTIONS_REPLICATES = 'options_replicates'
     REPLICATED_WELLS_SHOW_KEY = 'replicated_wells_show'
     WELLS_TO_SHOW_KEY = 'wells_to_show'
+    STATS_FOLDER_KEY = 'stats_folder'
+    PNG_METADATA_KEY = 'png_metadata'
 
     @classmethod
     def init(
@@ -387,7 +389,7 @@ class BiolectorState():
         clicked_wells = cls.get_wells_clicked()
         if well not in clicked_wells:
             clicked_wells.append(well)
-            st.session_state[cls.WELLS_CLICKED_KEY] = clicked_wells
+            cls.set_wells_clicked(clicked_wells)
 
     @classmethod
     def remove_well_clicked(cls, well: str) -> None:
@@ -397,14 +399,26 @@ class BiolectorState():
         clicked_wells = cls.get_wells_clicked()
         if well in clicked_wells:
             clicked_wells.remove(well)
-            st.session_state[cls.WELLS_CLICKED_KEY] = clicked_wells
+            cls.set_wells_clicked(clicked_wells)
 
     @classmethod
     def clear_wells_clicked(cls) -> None:
         """
         Clear the clicked wells from the session state.
         """
-        st.session_state[cls.WELLS_CLICKED_KEY] = []
+        cls.set_wells_clicked([])
+
+    @classmethod
+    def set_wells_clicked(cls, wells: List[str]) -> None:
+        """
+        Set the clicked wells in the session state.
+        """
+        st.session_state[cls.WELLS_CLICKED_KEY] = wells
+        # If we are in multiple plates mode, we need to reset the output dir and the png metadata used for stats
+        if cls.get_mode() == BiolectorStateMode.MULTIPLE_PLATES:
+            cls.set_png_metadata({})
+            cls.set_stats_folder(None)
+
 
     ######################################## SELECTED ROWS/COLS ########################################
     @classmethod
@@ -722,3 +736,31 @@ class BiolectorState():
                 columns = [col for col in df.columns if col.split(
                     '_')[0] in wells_selected if col not in ['time', 'Temps_en_h']]
                 return df[["time", "Temps_en_h"] + columns]
+
+    @classmethod
+    def get_stats_folder(cls) -> str:
+        """
+        Get the stats folder from the session state.
+        """
+        return st.session_state.get(cls.STATS_FOLDER_KEY, None)
+
+    @classmethod
+    def set_stats_folder(cls, stats_folder: str) -> None:
+        """
+        Set the stats folder in the session state.
+        """
+        st.session_state[cls.STATS_FOLDER_KEY] = stats_folder
+
+    @classmethod
+    def get_png_metadata(cls) -> Dict:
+        """
+        Get the PNG metadata from the session state.
+        """
+        return st.session_state.get(cls.PNG_METADATA_KEY, {})
+
+    @classmethod
+    def set_png_metadata(cls, png_metadata: Dict) -> None:
+        """
+        Set the PNG metadata in the session state.
+        """
+        st.session_state[cls.PNG_METADATA_KEY] = png_metadata

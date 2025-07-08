@@ -22,6 +22,8 @@ from gws_plate_reader.dashboard_components.select_replicates_input import \
     render_select_replicates_input
 from gws_plate_reader.features_extraction.linear_logistic_cv import \
     LogisticGrowthFitter
+from gws_core.streamlit.widgets.streamlit_df_paginator import \
+    dataframe_paginated
 
 def render_analysis_tab():
     # Récupération des filtres contenant le mot "Biomass"
@@ -57,9 +59,6 @@ def render_analysis_tab():
     df_analysis = _run_analysis_tab(filter_selection, selected_well_or_replicate, selected_replicates)
 
     # Statistics
-
-    #Create temporary directory for results
-    output_dir = Settings.make_temp_dir()
 
     with st.expander("Statistical Analysis", expanded=True):
         # Let the user filter the the dataframe based on the R2 threshold
@@ -106,9 +105,15 @@ def render_analysis_tab():
         )
 
 
-    st.info("We advice you to select a few variables for the analysis, otherwise the plots may be too crowded. ")
-    if st.button("Run Statistical tests", key="run_stats_button"):
+        st.info("We advice you to select a few variables for the analysis, otherwise the plots may be too crowded. ")
+
+        stats_button = st.button("Run Statistical tests", key="run_stats_button")
+
+    if stats_button:
         with st.spinner("Running statistical tests..."):
+            #Create temporary directory for results
+            output_dir = Settings.make_temp_dir()
+            png_metadata = []
             # Convert cross analysis selections to tuples
             cross_tuples = []
             for selection in analysis_plan_cross:
@@ -145,7 +150,7 @@ def render_analysis_tab():
             # === GLOBAL ===
             for group_var in analysis_plan.get('global', []):
                 for num_var in numerical_vars:
-                    kruskal_results, posthoc_all_dunn = run_test_and_plot(kruskal_results, posthoc_all_dunn,  df_analysis, group_var, num_var, context="Global", output_dir= output_dir)
+                    kruskal_results, posthoc_all_dunn, png_metadata = run_test_and_plot(kruskal_results, posthoc_all_dunn,  df_analysis, group_var, num_var, context="Global", output_dir= output_dir, png_metadata=png_metadata)
 
             # === COMPARAISONS 2 NIVEAUX ===
             for fixed_var, test_var in analysis_plan.get('cross', []):
@@ -153,7 +158,7 @@ def render_analysis_tab():
                     subset = df_analysis[df_analysis[fixed_var] == fixed_val]
                     for num_var in numerical_vars:
                         context = f"{test_var} in {fixed_var} {fixed_val}"
-                        kruskal_results, posthoc_all_dunn = run_test_and_plot(kruskal_results, posthoc_all_dunn, subset, test_var, num_var, context=context, output_dir= output_dir)
+                        kruskal_results, posthoc_all_dunn, png_metadata = run_test_and_plot(kruskal_results, posthoc_all_dunn, subset, test_var, num_var, context=context, output_dir= output_dir, png_metadata = png_metadata)
 
             # === COMPARAISONS 3 NIVEAUX ===
             for fixed_vars, test_var in analysis_plan.get('nested_cross', []):
@@ -163,7 +168,7 @@ def render_analysis_tab():
                         group_keys = [group_keys]
                     context = f"{test_var} in {' x '.join(fixed_vars)} = {', '.join(map(str, group_keys))}"
                     for num_var in numerical_vars:
-                        kruskal_results, posthoc_all_dunn = run_test_and_plot(kruskal_results, posthoc_all_dunn, group_df, test_var, num_var, context=context, output_dir = output_dir)
+                        kruskal_results, posthoc_all_dunn, png_metadata = run_test_and_plot(kruskal_results, posthoc_all_dunn, group_df, test_var, num_var, context=context, output_dir = output_dir, png_metadata =png_metadata)
 
             # === AJUSTEMENT MULTIPLE ===
             adjustable = [i for i, r in enumerate(kruskal_results) if r['Context'] == 'Global']
@@ -178,16 +183,97 @@ def render_analysis_tab():
             if posthoc_all_dunn:
                 pd.concat(posthoc_all_dunn, ignore_index=True).to_csv(f"{output_dir}/dunn_summary.csv", index=False)
 
-        # TODO faire affichage des figures du dossier
-        # Open the first png and display it
-        png_files = [f for f in os.listdir(output_dir) if f.endswith('.png')]
-        if png_files:
-            first_png = png_files[0]
-            st.image(os.path.join(output_dir, first_png))
+            #Set the stats folder in BiolectorState
+            BiolectorState.set_stats_folder(output_dir)
+            BiolectorState.set_png_metadata(png_metadata)
 
-        # Navigate thought results
-        # This part allows the user to navigate through the results
+    if not BiolectorState.get_stats_folder():
+        return
 
+    png_files = [f for f in os.listdir(BiolectorState.get_stats_folder()) if f.endswith('.png')]
+    if not png_files:
+        st.warning("Please select more wells to perform stastistical tests")
+        return
+
+    # Parse PNG files to extract metadata
+    png_metadata = BiolectorState.get_png_metadata()
+
+    if png_metadata:
+        # Create selection interface
+        st.write("**Statistical results**")
+
+        # Display summary results
+        with st.expander("Display Summary Results", expanded=False):
+            # Display Kruskal-Wallis summary results
+            kruskal_summary_path = os.path.join(BiolectorState.get_stats_folder(), "kruskal_summary.csv")
+            if os.path.exists(kruskal_summary_path):
+                kruskal_summary = pd.read_csv(kruskal_summary_path)
+                st.write("**Kruskal-Wallis Summary Results**")
+                st.dataframe(kruskal_summary, use_container_width=True)
+            else:
+                st.warning("No Kruskal-Wallis summary results found.")
+            # Display Dunn's post-hoc test summary results
+            dunn_summary_path = os.path.join(BiolectorState.get_stats_folder(), "dunn_summary.csv")
+            if os.path.exists(dunn_summary_path):
+                dunn_summary = pd.read_csv(dunn_summary_path)
+                st.write("**Dunn's Post-hoc Test Summary Results**")
+                dataframe_paginated(dunn_summary, key="dunn_summary_paginator", paginate_rows=True, row_page_size_options=[25, 50, 100],
+                paginate_columns=False, column_page_size_options=None, use_container_width = True)
+            else:
+                st.warning("No Dunn's post-hoc test summary results found.")
+
+        # Get unique values for selection
+        unique_group_vars = sorted(list(set([item['group_var'] for item in png_metadata])))
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            selected_group_var = st.selectbox(
+                "Select Group Variable:",
+                options=unique_group_vars,
+                key="selected_group_var"
+            )
+
+        with col2:
+            # Only show contexts that match the selected group variable
+            filtered_contexts = [item['context'] for item in png_metadata if item['group_var'] == selected_group_var]
+            unique_contexts = sorted(set(filtered_contexts))
+            if not unique_contexts:
+                st.warning("There are no contexts available for the selected group variable.")
+                return
+            selected_context = st.selectbox(
+                "Select Context:",
+                options=unique_contexts,
+                key="selected_context"
+            )
+
+        # Find matching PNG file
+        matching_png = None
+        for item in png_metadata:
+            if item['context'] == selected_context and item['group_var'] == selected_group_var:
+                matching_png = item
+                break
+
+        if not matching_png:
+            st.warning("No plot found for the selected combination.")
+            return
+
+        # Display the selected PNG
+        st.image(os.path.join(BiolectorState.get_stats_folder(), matching_png['file']))
+
+        # Option to see CSV data
+        if st.button("See Data", key="see_data_button"):
+            # Look for corresponding CSV file
+            csv_filename = f"dunn_{matching_png['num_var']}_by_{matching_png['group_var']}_{matching_png['context_with_underscores']}.csv"
+            csv_path = os.path.join(BiolectorState.get_stats_folder(), csv_filename)
+
+            if os.path.exists(csv_path):
+                csv_data = pd.read_csv(csv_path, index_col=0)
+                st.write("**Post-hoc test results (Dunn's Test)**")
+                st.dataframe(csv_data, use_container_width=True)
+
+            else:
+                st.warning("No corresponding CSV data found for this plot.")
 
 
 
@@ -255,8 +341,9 @@ def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
                             analysis_df_table, ResourceOrigin.UPLOADED, flagged=True)
                         st.success(
                             f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(analysis_df_resource.id)}")
-            st.plotly_chart(fig)
-            st.plotly_chart(histogram)
+            with st.expander("Analysis Plots", expanded=True):
+                st.plotly_chart(fig)
+                st.plotly_chart(histogram)
         except:
             st.error("Optimal parameters not found for some wells, try deselecting some wells.")
     return df_analysis
@@ -290,18 +377,18 @@ def annotate_posthoc(ax, posthoc_pvals, group_names, y_max=None):
 
 
 # === TEST + PLOT ===
-def run_test_and_plot(kruskal_results : list, posthoc_all_dunn : list, data, group_var, num_var, context, output_dir):
+def run_test_and_plot(kruskal_results : list, posthoc_all_dunn : list, data, group_var, num_var, context, output_dir, png_metadata):
     sub_df = data[[group_var, num_var]].dropna()
     if sub_df[group_var].nunique() < 2:
         print(f"[!] Skipped: Only one group found in {context} for {group_var}")
-        return kruskal_results, posthoc_all_dunn
+        return kruskal_results, posthoc_all_dunn, png_metadata
 
     try:
         groups = [g[num_var].values for _, g in sub_df.groupby(group_var)]
         stat, p_kw = stats.kruskal(*groups)
     except Exception as e:
         print(f"[!] Error in Kruskal-Wallis test for {context} ({group_var}): {e}")
-        return kruskal_results, posthoc_all_dunn
+        return kruskal_results, posthoc_all_dunn, png_metadata
 
     result = {
         'Context': context,
@@ -351,7 +438,17 @@ def run_test_and_plot(kruskal_results : list, posthoc_all_dunn : list, data, gro
         annotate_posthoc(ax, dunn, group_order, y_max=sub_df[num_var].max())
 
     plt.tight_layout()
-    plot_name = f"boxplot_{num_var}_by_{group_var}_{context.replace(' ', '_').replace('(', '').replace(')', '')}.png"
+    context_with_underscores = context.replace(' ', '_').replace('(', '').replace(')', '')
+    plot_name = f"boxplot_{num_var}_by_{group_var}_{context_with_underscores}.png"
     plt.savefig(f"{output_dir}/{plot_name}")
     plt.close()
-    return kruskal_results, posthoc_all_dunn
+
+    png_metadata.append({
+        'file': plot_name,
+        'num_var': num_var,
+        'group_var': group_var,
+        'context_with_underscores': context_with_underscores,
+        'context': context
+
+    })
+    return kruskal_results, posthoc_all_dunn, png_metadata

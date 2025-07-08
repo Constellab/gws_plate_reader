@@ -23,7 +23,7 @@ def render_select_replicates_input(selected_well_or_replicate: str):
     else:
         default = options
     selected_replicates: List[str] = st.multiselect(
-        '$\\textsf{\large{Select the replicates to be displayed}}$', options, default=default,
+        'Select the replicates to be displayed', options, default=default,
         key="select_replicates_input")
     if selected_replicates != init_value:
         BiolectorState.color_wells_replicates(dict_replicates, selected_replicates)

@@ -67,51 +67,51 @@ def render_stats_tab():
     if not BiolectorState.get_mode() == BiolectorStateMode.MULTIPLE_PLATES:
         return
 
-    with st.expander("Statistical parameters", expanded=True):
-        # Let the user filter the the dataframe based on the R2 threshold
-        filter_r2_threshold = st.number_input(
-            "R2 threshold",
-            min_value=0.0, max_value=1.0, value=0.8, step=0.01,
-            help="Minimum R2 value to consider a well for analysis.",
-            key="filter_r2_threshold"
-        )
-        numerical_vars = ['Max_Absorbance']
+    st.write("**Statistical parameters:**")
+    # Let the user filter the the dataframe based on the R2 threshold
+    filter_r2_threshold = st.number_input(
+        "R2 threshold",
+        min_value=0.0, max_value=1.0, value=0.8, step=0.01,
+        help="Minimum R2 value to consider a well for analysis.",
+        key="filter_r2_threshold"
+    )
+    numerical_vars = ['Max_Absorbance']
 
-        # === Analysis Plan ===
+    # === Analysis Plan ===
 
-        # Allow the user to select the analysis plan
-        # This is a dictionary that defines the analysis plan
-        # 'global' : test between the modalities of a variable on the whole dataset
-        # 'cross' : test of a variable ('test_var') in each modality of another ('fixed_var')
-        # 'nested_cross' : test of a variable in each combination of modalities
-        # of several variables (more fine-grained conditional comparison)
+    # Allow the user to select the analysis plan
+    # This is a dictionary that defines the analysis plan
+    # 'global' : test between the modalities of a variable on the whole dataset
+    # 'cross' : test of a variable ('test_var') in each modality of another ('fixed_var')
+    # 'nested_cross' : test of a variable in each combination of modalities
+    # of several variables (more fine-grained conditional comparison)
 
-        analysis_plan_global = st.multiselect(
-            "Select the global analysis variables",
-            options=['Well', 'Plate_Name', 'Label'],
-            default=['Well', 'Plate_Name', 'Label'],
-            key="analysis_plan_global",
-            help="Test between the modalities of a variable on the whole dataset"
-        )
-        analysis_plan_cross = st.multiselect(
-            "Select the cross analysis variables",
-            options=["Well vs Label", "Plate_Name vs Well", "Label vs Plate_Name"],
-            default=["Well vs Label", "Plate_Name vs Well", "Label vs Plate_Name"],
-            key="analysis_plan_cross",
-            help="Test of a variable (test_var) in each modality of another (fixed_var)"
-        )
+    analysis_plan_global = st.multiselect(
+        "Select the global analysis variables",
+        options=['Well', 'Plate_Name', 'Label'],
+        default=['Well', 'Plate_Name', 'Label'],
+        key="analysis_plan_global",
+        help="Test between the modalities of a variable on the whole dataset"
+    )
+    analysis_plan_cross = st.multiselect(
+        "Select the cross analysis variables",
+        options=["Well vs Label", "Plate_Name vs Well", "Label vs Plate_Name"],
+        default=["Well vs Label", "Plate_Name vs Well", "Label vs Plate_Name"],
+        key="analysis_plan_cross",
+        help="Test of a variable (test_var) in each modality of another (fixed_var)"
+    )
 
-        analysis_nested_cross = st.multiselect(
-            "Select the nested cross analysis variables",
-            options=["Well+Plate vs Label", "Label+Plate vs Well"],
-            default=["Well+Plate vs Label", "Label+Plate vs Well"],
-            key="analysis_plan_nested_cross",
-            help = "Test of a variable in each combination of modalities of several variables (more fine-grained conditional comparison)"
-        )
+    analysis_nested_cross = st.multiselect(
+        "Select the nested cross analysis variables",
+        options=["Well+Plate vs Label", "Label+Plate vs Well"],
+        default=["Well+Plate vs Label", "Label+Plate vs Well"],
+        key="analysis_plan_nested_cross",
+        help = "Test of a variable in each combination of modalities of several variables (more fine-grained conditional comparison)"
+    )
 
-        st.info("We advice you to select a few variables for the analysis, otherwise the plots may be too crowded. ")
+    st.info("We advice you to select a few variables for the analysis, otherwise the plots may be too crowded. ")
 
-        stats_button = st.button("Run Statistical tests", key="run_stats_button")
+    stats_button = st.button("Run Statistical tests", key="run_stats_button")
 
     if stats_button:
         with st.spinner("Running statistical tests..."):

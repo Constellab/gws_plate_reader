@@ -10,6 +10,8 @@ import itertools
 from statsmodels.stats.multitest import multipletests
 
 import streamlit as st
+
+from gws_plate_reader.biolector_xt_analysis.biolector_state import BiolectorStateMode
 from gws_core import (File, FrontService, ResourceModel, ResourceOrigin,
                       Settings, TableImporter)
 from gws_core.streamlit import StreamlitContainers, StreamlitAuthenticateUser
@@ -59,6 +61,9 @@ def render_analysis_tab():
     df_analysis = _run_analysis_tab(filter_selection, selected_well_or_replicate, selected_replicates)
 
     # Statistics
+    # run statistical tests only if there is the multiplate dashboard
+    if not BiolectorState.get_mode() == BiolectorStateMode.MULTIPLE_PLATES:
+        return
 
     with st.expander("Statistical Analysis", expanded=True):
         # Let the user filter the the dataframe based on the R2 threshold

@@ -13,7 +13,7 @@ def render_select_filter_mode_inputs():
             init_value = BiolectorState.get_filters_list()
         init_value = sorted(init_value)
         selected_filters: List[str] = st.multiselect(
-            '$\\textsf{\large{Select the observers to be displayed}}$', options=BiolectorState.get_filters_list(),
+            'Select the observers to be displayed', options=BiolectorState.get_filters_list(),
             default=init_value, key="selected_filters_input")
         if selected_filters != init_value:
             BiolectorState.set_selected_filters(selected_filters)
@@ -28,7 +28,7 @@ def render_select_filter_mode_inputs():
         if init_value is None:
             init_value = options[0]
 
-        selected_well_or_replicate: str = st.selectbox("$\\textsf{\large{Select by}}$",
+        selected_well_or_replicate: str = st.selectbox("Select by",
                                                        options=options, index=index, key="well_or_replicate_input")
         if selected_well_or_replicate != init_value:
             BiolectorState.set_current_replicate_mode(selected_well_or_replicate)

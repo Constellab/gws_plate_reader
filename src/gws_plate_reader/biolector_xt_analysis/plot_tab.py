@@ -16,10 +16,10 @@ def render_plot_tab():
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        selected_time = st.selectbox("$\\textsf{\large{Select the time unit}}$", [
+        selected_time = st.selectbox("Select the time unit", [
                                      "Hours", "Minutes", "Seconds"], index=0, key="plot_time")
     with col2:
-        selected_mode = st.selectbox("$\\textsf{\large{Select the display mode}}$",
+        selected_mode = st.selectbox("Select the display mode",
                                      ["Individual curves", "Mean"],
                                      index=0, key="plot_mode")
 

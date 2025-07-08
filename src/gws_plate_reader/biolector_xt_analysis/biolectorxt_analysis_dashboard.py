@@ -29,7 +29,7 @@ def show_content():
 
     tables_page = st.Page(render_table_page, title='Tables', url_path='tables', icon='📄')
     plots_page = st.Page(render_plot_page, title='Plots', url_path='plots', icon='📈')
-    analysis_page = st.Page(render_analysis_page, title='Analysis', url_path='protocols', icon='🔍')
+    analysis_page = st.Page(render_analysis_page, title='Growth rate analysis', url_path='protocols', icon='🔍')
 
     pg = st.navigation([tables_page, plots_page, analysis_page])
 

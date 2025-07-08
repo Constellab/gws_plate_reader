@@ -1,6 +1,6 @@
 import streamlit as st
 from gws_plate_reader.biolector_xt_analysis import (analysis_tab, plot_tab,
-                                                    table_tab)
+                                                    table_tab, stats_tab)
 from gws_plate_reader.biolector_xt_analysis.biolector_state import (
     BiolectorState, BiolectorStateMode)
 from gws_plate_reader.multiple_experiments_dashboard._parser_multiple_experiments_dashboard_code.pages import \
@@ -73,7 +73,8 @@ _find_experiments_page = st.Page(find_experiments.render_find_experiments_page,
                                  title='Find experiments', url_path='find_experiments', icon='🔍')
 _tables_page = st.Page(table_tab.render_table_tab, title='Tables', url_path='tables', icon='📄')
 _plots_page = st.Page(plot_tab.render_plot_tab, title='Plots', url_path='plots', icon='📈')
-_analysis_page = st.Page(analysis_tab.render_analysis_tab, title='Analysis', url_path='protocols', icon='🔍')
+_analysis_page = st.Page(analysis_tab.render_analysis_tab, title='Growth rate analysis', url_path='protocols', icon='🔍')
+_stats_page = st.Page(stats_tab.render_stats_tab, title='Statistics', url_path='statistics', icon='📊')
 
 pages = {'Experiments': [_find_experiments_page]}
 
@@ -96,7 +97,7 @@ if BiolectorState.is_init():
     if not [f for f in BiolectorState.get_filters_list() if "biomass" in f.lower()]:
         analysis_pages = [_tables_page, _plots_page]
     else:
-        analysis_pages = [_tables_page, _plots_page, _analysis_page]
+        analysis_pages = [_tables_page, _plots_page, _analysis_page, _stats_page]
     pages['Analysis'] = analysis_pages
 
     well_data = BiolectorState.get_well_data_description()

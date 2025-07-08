@@ -16,15 +16,39 @@ def render_plot_tab():
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        selected_time = st.selectbox("Select the time unit", [
-                                     "Hours", "Minutes", "Seconds"], index=0, key="plot_time")
+        options_time = ["Hours", "Minutes", "Seconds"]
+        init_value_time = BiolectorState.get_plot_time()
+        if init_value_time is None:
+            index_init_value_time = 0
+        else:
+            index_init_value_time = options_time.index(init_value_time)
+        selected_time = st.selectbox("Select the time unit", options_time, index=index_init_value_time, key="plot_time")
+        if selected_time != init_value_time:
+            BiolectorState.set_plot_time(selected_time)
+            st.rerun()
     with col2:
-        selected_mode = st.selectbox("Select the display mode",
-                                     ["Individual curves", "Mean"],
-                                     index=0, key="plot_mode")
+        options_mode = ["Individual curves", "Mean"]
+        init_value = BiolectorState.get_plot_mode()
+        if init_value is None:
+            index_init_value = 0
+        else:
+            index_init_value = options_mode.index(init_value)
+        display_mode_selected = st.selectbox("Select the display mode",
+                                    options_mode,
+                                    index=index_init_value,
+                                    key="plot_mode")
+        if display_mode_selected != init_value:
+            BiolectorState.set_plot_mode(display_mode_selected)
+            st.rerun()
 
-    if selected_mode == "Mean":
-        error_band = st.checkbox("Error band")
+    if BiolectorState.get_plot_mode() == "Mean":
+        init_value_error_band = BiolectorState.get_error_band()
+        if init_value_error_band is None:
+            init_value_error_band = False
+        error_band = st.checkbox("Error band", value=init_value_error_band, key="error_band")
+        if error_band != init_value_error_band:
+            BiolectorState.set_error_band(error_band)
+            st.rerun()
 
     selected_replicates = render_select_replicates_input(selected_well_or_replicate)
 
@@ -51,7 +75,7 @@ def render_plot_tab():
         dict_well_data_description = BiolectorState.get_well_data_description()
 
         # Individual curves
-        if selected_mode == "Individual curves":
+        if BiolectorState.get_plot_mode() == "Individual curves":
             for col in cols_y:
                 # Extract well name and plate if applicable
                 display_well = col
@@ -79,7 +103,7 @@ def render_plot_tab():
                     yaxis=yaxis_id
                 ))
         # Mean curves
-        elif selected_mode == "Mean":
+        elif BiolectorState.get_plot_mode() == "Mean":
             if selected_well_or_replicate == "Individual well":
                 if not BiolectorState.get_wells_clicked():
                     legend_mean = "(Mean of all wells)"

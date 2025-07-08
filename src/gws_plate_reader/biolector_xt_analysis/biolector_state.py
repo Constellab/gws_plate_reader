@@ -76,6 +76,9 @@ class BiolectorState():
     WELLS_TO_SHOW_KEY = 'wells_to_show'
     STATS_FOLDER_KEY = 'stats_folder'
     PNG_METADATA_KEY = 'png_metadata'
+    PLOT_MODE_KEY = 'plot_mode_saved'
+    PLOT_TIME_KEY = 'plot_time_saved'
+    ERROR_BAND_KEY = 'error_band_saved'
 
     @classmethod
     def init(
@@ -764,3 +767,45 @@ class BiolectorState():
         Set the PNG metadata in the session state.
         """
         st.session_state[cls.PNG_METADATA_KEY] = png_metadata
+
+    @classmethod
+    def get_plot_mode(cls) -> str:
+        """
+        Get the plot mode from the session state.
+        """
+        return st.session_state.get(cls.PLOT_MODE_KEY, None)
+
+    @classmethod
+    def set_plot_mode(cls, plot_mode: str) -> None:
+        """
+        Set the plot mode in the session state.
+        """
+        st.session_state[cls.PLOT_MODE_KEY] = plot_mode
+
+    @classmethod
+    def get_plot_time(cls) -> str:
+        """
+        Get the plot time from the session state.
+        """
+        return st.session_state.get(cls.PLOT_TIME_KEY, None)
+
+    @classmethod
+    def set_plot_time(cls, plot_time: str) -> None:
+        """
+        Set the plot time in the session state.
+        """
+        st.session_state[cls.PLOT_TIME_KEY] = plot_time
+
+    @classmethod
+    def get_error_band(cls) -> bool:
+        """
+        Get the error band from the session state.
+        """
+        return st.session_state.get(cls.ERROR_BAND_KEY, False)
+
+    @classmethod
+    def set_error_band(cls, error_band: bool) -> None:
+        """
+        Set the error band in the session state.
+        """
+        st.session_state[cls.ERROR_BAND_KEY] = error_band

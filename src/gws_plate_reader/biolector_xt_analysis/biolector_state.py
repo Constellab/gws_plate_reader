@@ -369,11 +369,6 @@ class BiolectorState():
         if cls.get_current_replicate_mode() == current_replicate_mode:
             return
 
-        cls.clear_selected_replicates_wells()
-        cls.clear_wells_clicked()
-        cls.clear_selected_rows()
-        cls.clear_selected_cols()
-        cls.set_replicates_saved(None)
         st.session_state[cls.CURRENT_REPLICATE_MODE_KEY] = current_replicate_mode if current_replicate_mode in cls.get_all_keys_well_description() else None
 
     ######################################## SELECTED WELLS ########################################

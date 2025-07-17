@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 from streamlit_extras.stylable_container import stylable_container
 from gws_plate_reader.dashboard_plate_layout.plate_layout_state import PlateLayoutState
-from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, JSONImporter
+from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, JSONImporter, TagService
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
 sources: list
@@ -26,6 +26,16 @@ def show_content():
 
     with tab_dict:
         st.header("Fill data")
+
+        """# Retrieve tags from the lab
+        tag_service = TagService()
+        tags = tag_service.get_all_tags()
+        st.write(tags)
+        st.write(tags[10].label)
+        st.write(tags[10].value_format)
+        st.write(tag_service.get_tag_value_by_id(tags[10].id))
+        st.write(tags[10].get_tag_value_model_by_id(tags[10].id))"""
+
 
         length_diff = len(st.session_state.compounds) - \
             len(st.session_state.dilutions)

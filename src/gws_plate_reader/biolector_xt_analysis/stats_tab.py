@@ -41,10 +41,6 @@ def render_stats_tab():
             'Select the observers', biomass_filters, index=0,
             key="analysis_filters")
 
-    # Select wells : all by default; otherwise those selected in the microplate
-    if len(BiolectorState.get_wells_clicked()) > 0:
-        st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_wells_clicked())}")
-
     # Allow the user to select duplicates
     init_value = BiolectorState.get_current_replicate_mode()
     options = ["Individual wells"] + BiolectorState.get_all_keys_well_description()

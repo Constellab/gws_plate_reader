@@ -33,8 +33,5 @@ def render_select_filter_mode_inputs():
         if selected_well_or_replicate != init_value:
             BiolectorState.set_current_replicate_mode(selected_well_or_replicate)
             st.rerun()
-    # Select wells : all by default; otherwise those selected in the microplate
-    if len(BiolectorState.get_wells_clicked()) > 0:
-        st.write(f"All the wells clicked are: {', '.join(BiolectorState.get_wells_clicked())}")
 
     return selected_filters, selected_well_or_replicate

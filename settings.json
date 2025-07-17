@@ -1,7 +1,7 @@
 {
     "name": "gws_plate_reader",
     "author": "Gencovery",
-    "version": "0.8.1",
+    "version": "0.8.2",
     "variables": {
         "gws_plate_reader:testdata_dir": "${CURRENT_DIR}/tests/testdata",
         "gws_plate_reader:data_dir": "${CURRENT_DIR}/data"

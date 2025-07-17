@@ -70,7 +70,7 @@ def get_well_data_help_tab(w_data: dict) -> str:
 
 
 _find_experiments_page = st.Page(find_experiments.render_find_experiments_page,
-                                 title='Find experiments', url_path='find_experiments', icon='🔍')
+                                 title='Experiments', url_path='find_experiments', icon='🔍')
 _tables_page = st.Page(table_tab.render_table_tab, title='Tables', url_path='tables', icon='📄')
 _plots_page = st.Page(plot_tab.render_plot_tab, title='Plots', url_path='plots', icon='📈')
 _analysis_page = st.Page(analysis_tab.render_analysis_tab, title='Growth rate analysis', url_path='protocols', icon='🔍')

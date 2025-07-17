@@ -36,12 +36,12 @@ def render_analysis_tab():
 
     # Allow the user to select duplicates
     init_value = BiolectorState.get_current_replicate_mode()
-    options = ["Individual well"] + BiolectorState.get_all_keys_well_description()
+    options = ["Individual wells"] + BiolectorState.get_all_keys_well_description()
     index = options.index(init_value) if init_value in options else 0
     if init_value is None:
         init_value = options[0]
     with col2:
-        selected_well_or_replicate: str = st.selectbox("Select by",
+        selected_well_or_replicate: str = st.selectbox("Filter by",
                                                     options=options, index=index, key="analysis_well_or_replicate")
     if selected_well_or_replicate != init_value:
         BiolectorState.set_current_replicate_mode(selected_well_or_replicate)

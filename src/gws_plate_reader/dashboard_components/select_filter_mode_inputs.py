@@ -13,7 +13,7 @@ def render_select_filter_mode_inputs():
             init_value = BiolectorState.get_filters_list()
         init_value = sorted(init_value)
         selected_filters: List[str] = st.multiselect(
-            'Select the observers to be displayed', options=BiolectorState.get_filters_list(),
+            'Select the observers to display', options=BiolectorState.get_filters_list(),
             default=init_value, key="selected_filters_input")
         if selected_filters != init_value:
             BiolectorState.set_selected_filters(selected_filters)
@@ -23,12 +23,12 @@ def render_select_filter_mode_inputs():
 
         # Allow the user to select duplicates
         init_value = BiolectorState.get_current_replicate_mode()
-        options = ["Individual well"] + BiolectorState.get_all_keys_well_description()
+        options = ["Individual wells"] + BiolectorState.get_all_keys_well_description()
         index = options.index(init_value) if init_value in options else 0
         if init_value is None:
             init_value = options[0]
 
-        selected_well_or_replicate: str = st.selectbox("Select by",
+        selected_well_or_replicate: str = st.selectbox("Filter by",
                                                        options=options, index=index, key="well_or_replicate_input")
         if selected_well_or_replicate != init_value:
             BiolectorState.set_current_replicate_mode(selected_well_or_replicate)

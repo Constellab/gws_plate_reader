@@ -46,7 +46,7 @@ def add_experiment_to_experiments_list(r: ResourceModel, table: Table) -> Dict[s
 
 
 def render_find_experiments_page():
-    st.title('Find experiments')
+    st.title('Select experiments')
     if 'selected_resources' in st.session_state:
         selected_resources = st.session_state['selected_resources']
     else:
@@ -59,7 +59,7 @@ def render_find_experiments_page():
     resource_select.add_column_tag_filter_key('dilution')
     resource_select.add_column_tag_filter_key('label')
     selected_resource = resource_select.select_resource(
-        placeholder='Search for resource', key="resource-selector", defaut_resource=None)
+        placeholder='Search and add experiment data', key="resource-selector", defaut_resource=None)
 
     if selected_resource:
         table = selected_resource.get_resource()
@@ -140,7 +140,7 @@ def render_find_experiments_page():
             st.session_state['selected_experiments'] = selected_experiments
             st.rerun()
     else:
-        st.info('No resource selected')
+        st.info('No data selected')
 
 
 class BiolectorExperimentWithDetails(BiolectorExperiment):

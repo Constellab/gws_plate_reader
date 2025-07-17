@@ -91,7 +91,7 @@ def render_plot_tab():
                 ))
         # Mean curves
         elif BiolectorState.get_plot_mode() == "Mean":
-            if selected_well_or_replicate == "Individual well":
+            if selected_well_or_replicate == "Individual wells":
                 if not BiolectorState.get_wells_clicked():
                     legend_mean = "(Mean of all wells)"
                 else:
@@ -124,7 +124,7 @@ def render_plot_tab():
                         name=f'Error Band {filter_name} (±1 SD)',
                         yaxis=yaxis_id
                     ))
-            elif selected_well_or_replicate != "Individual well":
+            elif selected_well_or_replicate != "Individual wells":
                 if selected_replicates:
                     # Define function to pair the wells and calculate the mean
                     def calculate_replicates_mean_std(df, selected_replicates, operation):

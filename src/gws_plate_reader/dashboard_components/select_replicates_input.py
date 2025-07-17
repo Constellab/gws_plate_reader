@@ -6,7 +6,7 @@ from gws_plate_reader.biolector_xt_analysis.biolector_state import \
 
 
 def render_select_replicates_input(selected_well_or_replicate: str):
-    if selected_well_or_replicate == "Individual well":
+    if selected_well_or_replicate == "Individual wells":
         return None
     dict_replicates = BiolectorState.group_wells_by_options(selected_well_or_replicate)
 

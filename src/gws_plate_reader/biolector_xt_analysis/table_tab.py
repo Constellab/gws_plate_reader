@@ -31,7 +31,7 @@ def render_table_tab():
             # If the dashboard is not standalone, we add a button to generate a resource
             if not BiolectorState.is_standalone():
                 # Add the button to resource containing the data parsed
-                if st.button(f"Generate {filter_selection} resource", icon=":material/note_add:"):
+                if st.button(f"Save {filter_selection} table", icon=":material/save:"):
                     with StreamlitAuthenticateUser():
                         path_temp = os.path.join(os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir())
                         resource_name = f"{st.session_state['raw_data']}_{filter_selection}" if 'raw_data' in st.session_state and st.session_state['raw_data'] is not None else filter_selection

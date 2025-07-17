@@ -24,6 +24,8 @@ def render_table_tab():
     for filter_selection in selected_filters:
         df = BiolectorState.get_table_by_filter(selected_well_or_replicate, filter_selection, selected_replicates)
         if df is not None and len(df.columns) > 2:
+            # display a horizontal line
+            st.markdown("---")
             st.write(f"$\\textsf{{\Large{{{filter_selection.replace('_', ' ')}}}}}$")
             with StreamlitContainers.full_width_dataframe_container('container-full-dataframe-' + str(filter_selection)):
                 st.dataframe(df.style.format(thousands=" ", precision=4), use_container_width=True)

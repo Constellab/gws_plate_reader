@@ -87,7 +87,8 @@ def render_plot_tab():
                     mode='lines',
                     name=display_name,
                     line={'shape': 'spline', 'smoothing': 1},
-                    yaxis=yaxis_id
+                    yaxis=yaxis_id,
+                    showlegend=True
                 ))
         # Mean curves
         elif BiolectorState.get_plot_mode() == "Mean":
@@ -104,7 +105,8 @@ def render_plot_tab():
                     mode='lines',
                     name=f"{filter_name} - mean",
                     line={'shape': 'spline', 'smoothing': 1},
-                    yaxis=yaxis_id
+                    yaxis=yaxis_id,
+                    showlegend=True
                 ))
                 if error_band:
                     fig.add_trace(go.Scatter(
@@ -166,7 +168,8 @@ def render_plot_tab():
                             mode='lines',
                             name=f"{filter_name} - mean",
                             line={'shape': 'spline', 'smoothing': 1},
-                            yaxis=yaxis_id
+                            yaxis=yaxis_id,
+                            showlegend=True
                         ))
 
                         if error_band:
@@ -212,7 +215,8 @@ def render_plot_tab():
     fig.update_layout(
         title_text=f'Plot of {selected_filters_str} {legend_mean}',
         xaxis=dict(title=f'Time ({selected_time})', domain=[0.1, 0.9]),
-        width=800
+        width=800,
+        showlegend=True
     )
 
     # Show the plot

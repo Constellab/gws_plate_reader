@@ -109,7 +109,7 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
 
             # Create css code
             css_template = """
-                div[class*="st-key-{label}"] .stButton button {{
+                div[class*="st-key-{label}"] .stButton button:not([kind="primary"]) {{
                     display: inline-block;
                     width: 41px;  /* Adjust width and height as needed */
                     height: 41px;
@@ -127,11 +127,24 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
 
                 """
             css_code = "".join(css_template.format(label=label, color=color) for label, color in label_colors.items())
+            
+            # Add CSS for primary buttons to keep normal styling
+            primary_button_css = """
+                button[kind="primary"] {
+                    border-radius: 0.5rem !important;
+                    width: auto !important;
+                    height: auto !important;
+                    padding: 0.25rem 0.75rem !important;
+                    line-height: normal !important;
+                    font-size: 14px !important;
+                }
+                """
+            
             active = """ button:active {
                         position:relative;
                         top:1px;
                         }"""
-            st.html(f"<style>{css_code} {active} </style>")
+            st.html(f"<style>{css_code} {primary_button_css} {active} </style>")
 
             # Define the structure of the 48-well microplate
             ROWS = 6

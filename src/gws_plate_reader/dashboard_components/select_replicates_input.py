@@ -21,7 +21,7 @@ def render_select_replicates_input(selected_well_or_replicate: str):
                 init_value.remove(v)
         default = init_value
     else:
-        default = options
+        default = options[0]
     selected_replicates: List[str] = st.multiselect(
         'Select the replicates to be displayed', options, default=default,
         key="select_replicates_input")

@@ -79,6 +79,7 @@ class BiolectorState():
     PLOT_MODE_KEY = 'plot_mode_saved'
     PLOT_TIME_KEY = 'plot_time_saved'
     ERROR_BAND_KEY = 'error_band_saved'
+    SUCCESS_MESSAGE_RESOURCE_TABLE_KEY = 'success_message_resource_table'
 
     @classmethod
     def init(
@@ -804,3 +805,17 @@ class BiolectorState():
         Set the error band in the session state.
         """
         st.session_state[cls.ERROR_BAND_KEY] = error_band
+
+    @classmethod
+    def get_display_success_message_resource_table(cls) ->bool:
+        """
+        Get the success message resource table from the session state.
+        """
+        return st.session_state.get(cls.SUCCESS_MESSAGE_RESOURCE_TABLE_KEY, False)
+
+    @classmethod
+    def set_display_success_message_resource_table(cls, display: bool) -> None:
+        """
+        Set the success message resource table in the session state.
+        """
+        st.session_state[cls.SUCCESS_MESSAGE_RESOURCE_TABLE_KEY] = display

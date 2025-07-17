@@ -1,4 +1,3 @@
-
 import re
 import unicodedata
 from typing import Any, Dict
@@ -144,7 +143,9 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
             wells = [[f"{chr(65 + row)}{col + 1:02d}" for col in range(COLS)] for row in range(ROWS)]
 
             # Column header buttons
-            cols_header = st.columns(COLS + 1)
+            # add a column for extra space to the right but shorter than the other
+            cols_header = st.columns([4] * (COLS +1) + [1])
+
             for col in range(COLS):
                 if cols_header[col + 1].button(str(col + 1), key=f"col_{col + 1}"):
                     if col + 1 in BiolectorState.get_selected_cols():
@@ -166,7 +167,8 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
             has_changed = False
             # Loop over the wells and create a grid of buttons
             for row in range(ROWS):
-                cols_object = st.columns(COLS + 1)
+                # Add space to the right of the plate
+                cols_object = st.columns([4] * (COLS +1) + [1])
                 # Row header button
                 if cols_object[0].button(chr(65 + row), key=f"row_{chr(65 + row)}"):
                     if chr(65 + row) in BiolectorState.get_selected_rows():

@@ -141,7 +141,7 @@ if BiolectorState.is_init():
 
         wells = [[f"{chr(65 + row)}{col + 1:02d}" for col in range(COLS)] for row in range(ROWS)]
 
-        cols_header = st.columns(COLS + 1)
+        cols_header = st.columns([4] * (COLS +1) + [1])
         for col in range(COLS):
             if cols_header[col + 1].button(str(col + 1), key=f"wellbt-col_{col + 1}"):
                 if col + 1 in BiolectorState.get_selected_cols():
@@ -166,7 +166,7 @@ if BiolectorState.is_init():
         replicated_wells_show = list(replicated_wells_show)
 
         for row in range(ROWS):
-            cols_object = st.columns(COLS + 1)
+            cols_object = st.columns([4] * (COLS +1) + [1])
             # Row header button
             if cols_object[0].button(chr(65 + row), key=f"wellbt-row_{chr(65 + row)}"):
                 if chr(65 + row) in BiolectorState.get_selected_rows():

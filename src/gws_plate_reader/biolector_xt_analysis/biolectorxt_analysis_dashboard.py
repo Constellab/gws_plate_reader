@@ -104,7 +104,7 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
             for i, label in enumerate(unique_labels):
                 # for empty labels, we assign a color
                 if label == "":
-                    label_colors[label] = "#F991C3"  # bleu"#49A8A9"
+                    label_colors[label] = "#F991C3"
                 else:
                     label_colors[label] = color_palette[i % len(color_palette)]
 
@@ -202,13 +202,9 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
                     if well in crossed_out_wells:
                         cols_object[col+1].button(f":gray[{well}]", key=key, help=help_tab, disabled=True)
                     elif well in BiolectorState.get_wells_clicked():
-                        if cols_object[col+1].button(f":green[{well}]", key=key, help=help_tab):
+                        if cols_object[col+1].button(f":green[**{well}**]", key=key, help=help_tab):
                             if well in BiolectorState.get_wells_clicked():
                                 BiolectorState.remove_well_clicked(well)
-                            has_changed = True
-                    elif well in BiolectorState.get_replicated_wells_show():
-                        if cols_object[col+1].button(f"**{well}**", key=key, help=help_tab):
-                            BiolectorState.append_well_clicked(well)
                             has_changed = True
                     else:
                         if cols_object[col+1].button(well, key=key, help=help_tab):

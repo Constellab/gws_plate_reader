@@ -191,7 +191,7 @@ if BiolectorState.is_init():
                 if well_data[well] == {}:
                     cols_object[col+1].button(f":gray[{well}]", key=key, help="No data available", disabled=True)
                 elif well in BiolectorState.get_wells_clicked():
-                    if cols_object[col + 1].button(f":green[**{well}**]", key=key,
+                    if cols_object[col + 1].button(f"**{well}**", key=key,
                                                    help=get_well_data_help_tab(well_data[well])):
                         if well in BiolectorState.get_wells_clicked():
                             BiolectorState.remove_well_clicked(well)

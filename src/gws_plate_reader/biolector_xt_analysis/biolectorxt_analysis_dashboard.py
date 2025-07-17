@@ -202,7 +202,7 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
                     if well in crossed_out_wells:
                         cols_object[col+1].button(f":gray[{well}]", key=key, help=help_tab, disabled=True)
                     elif well in BiolectorState.get_wells_clicked():
-                        if cols_object[col+1].button(f":green[**{well}**]", key=key, help=help_tab):
+                        if cols_object[col+1].button(f"**{well}**", key=key, help=help_tab):
                             if well in BiolectorState.get_wells_clicked():
                                 BiolectorState.remove_well_clicked(well)
                             has_changed = True

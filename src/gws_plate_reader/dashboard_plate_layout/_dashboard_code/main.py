@@ -114,19 +114,17 @@ def show_content():
                         values = [tv.get_tag_value() for tv in tag_values]
                         selected_key = st.selectbox(
                             label=value, options=values, placeholder="Choose an option", index=None, key=f"select_{key}")
-                        set_selected_key.append((selected_key, key))
+                        set_selected_key.append((selected_key, value))
 
 
                 # Save information for selected wells
                 if st.button("Save these informations", icon = ":material/save:"):
-                    for selected_key, key in set_selected_key:
-                        if selected_key is not None:
-                            for well in st.session_state['well_clicked']:
-                                if well not in st.session_state['plate_layout']:
-                                    st.session_state['plate_layout'][well] = {}
-                            if selected_key is not None:
-                                for well in st.session_state['well_clicked']:
-                                    st.session_state['plate_layout'][well][key] = selected_key
+                    for selected_key, value in set_selected_key:
+                        for well in st.session_state['well_clicked']:
+                            if well not in st.session_state['plate_layout']:
+                                st.session_state['plate_layout'][well] = {}
+                            # Save the value (even if None/empty)
+                            st.session_state['plate_layout'][well][value] = selected_key if selected_key is not None else ""
 
                     # Save the plate layout to a JSON file
                     file_plate_layout_path = os.path.join(

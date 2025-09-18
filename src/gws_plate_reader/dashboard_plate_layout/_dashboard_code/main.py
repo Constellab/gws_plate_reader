@@ -4,11 +4,57 @@ import streamlit as st
 import pandas as pd
 from streamlit_extras.stylable_container import stylable_container
 from gws_plate_reader.dashboard_plate_layout.plate_layout_state import PlateLayoutState
-from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, JSONImporter, TagService
+from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, JSONImporter, TagService, EntityTagList, TagList
+from gws_core import TagService, TagKeyModel, TagValueModel, Tag
+from typing import Optional, Tuple
+
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
 sources: list
 params: dict
+
+def key_tag_selector() -> Optional[Tuple[str, any]]:
+    """Simple tag key selector that returns (key, value) tuple"""
+
+    # Get all tag keys
+    tag_service = TagService()
+    all_tag_keys = tag_service.get_all_tags()
+
+    if not all_tag_keys:
+        st.warning("No tags found in the lab. Please create some tags first.")
+        return None
+
+    # Select tag key
+    tag_key_options = {tag.key: f"{tag.label}" for tag in all_tag_keys}
+
+    selected_keys = st.multiselect(
+        "Select tag(s):",
+        options=list(tag_key_options.keys()),
+        default=list(st.session_state['selected_key_tags'].keys()) if st.session_state['selected_key_tags'] else [],
+        format_func=lambda x: tag_key_options[x],
+        placeholder="Choose at least a tag...",
+        on_change=save_selected_keys,
+        args=(tag_key_options,),
+        key="multiselect_tag_keys"
+    )
+
+    if not selected_keys:
+        return None
+
+    # Return dictionary format {key: label}
+    return {key: tag_key_options[key] for key in selected_keys}
+
+
+def save_selected_keys(tag_key_options : dict):
+    selected_key_tags = {key: tag_key_options[key] for key in st.session_state.get('multiselect_tag_keys')}
+    # Store in session state
+    st.session_state['selected_key_tags'] = selected_key_tags
+
+    # Save the selected keys to keys.json
+    file_dict_keys_path = os.path.join(
+        folder_data, "keys.json")
+    with open(file_dict_keys_path, "w") as json_file:
+        json.dump(st.session_state['selected_key_tags'], json_file, indent=4)
 
 plate_layout_state = PlateLayoutState()
 
@@ -25,53 +71,17 @@ def show_content():
     tab_dict, tab_plate_layout = st.tabs(["Dict", "Plate Layout"])
 
     with tab_dict:
-        st.header("Fill data")
+        st.header("Select tag(s)")
 
-        """# Retrieve tags from the lab
-        tag_service = TagService()
-        tags = tag_service.get_all_tags()
-        st.write(tags)
-        st.write(tags[10].label)
-        st.write(tags[10].value_format)
-        st.write(tag_service.get_tag_value_by_id(tags[10].id))
-        st.write(tags[10].get_tag_value_model_by_id(tags[10].id))"""
+        selected_key_tags = key_tag_selector()
 
+        """if selected_key_tags:
+            # Store in session state
+            st.session_state['selected_key_tags'] = selected_key_tags"""
 
-        length_diff = len(st.session_state.compounds) - \
-            len(st.session_state.dilutions)
-        # Add None to the shorter list
-        if length_diff > 0:  # Compounds list is longer
-            st.session_state.dilutions.extend([None] * length_diff)
-        elif length_diff < 0:  # Dilutions list is longer
-            st.session_state.compounds.extend([None] * abs(length_diff))
-
-        # Create the dataframe
-        dict_df = pd.DataFrame(columns=["Compounds", "Dilutions"])
-        dict_df["Compounds"] = st.session_state.compounds
-        dict_df["Dilutions"] = st.session_state.dilutions
-        dict_df["Compounds"] = dict_df["Compounds"].fillna('').astype('str')
-        dict_df["Dilutions"] = dict_df["Dilutions"].fillna('').astype('str')
-
-        edited_dict_df = st.data_editor(
-            dict_df, use_container_width=True, hide_index=True, num_rows="dynamic")
-
-        if st.button("Save data", icon = ":material/save:"):
-            st.session_state['compounds'] = edited_dict_df["Compounds"].to_list()
-            st.session_state['dilutions'] = edited_dict_df["Dilutions"].to_list()
-            file_dict_compounds_path = os.path.join(
-                folder_data, "compounds.json")
-            with open(file_dict_compounds_path, "w") as json_file:
-                json.dump(st.session_state.compounds, json_file, indent=4)
-
-            file_dict_dilutions_path = os.path.join(
-                folder_data, "dilutions.json")
-            with open(file_dict_dilutions_path, "w") as json_file:
-                json.dump(st.session_state.dilutions, json_file, indent=4)
-
-            st.success("Information saved successfully! ✅")
 
     with tab_plate_layout:
-        # Add the button to generate plate layout
+        # Add the button to generate plate layout ressource
         if st.button("Generate plate layout ressource", icon=":material/note_add:"):
             path_temp = os.path.join(os.path.abspath(
                 os.path.dirname(__file__)), Settings.make_temp_dir())
@@ -86,31 +96,37 @@ def show_content():
                 plate_layout_json_dict, ResourceOrigin.UPLOADED, flagged=True)
             st.success(
                 f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(plate_layout_resource.id)}")
-        if not st.session_state['compounds'] and not st.session_state['dilutions']:
-            st.warning("Please fill in at least one compound or dilution")
+        if not st.session_state['selected_key_tags']:
+            st.warning("Please select at least one key")
         else:
             if st.session_state['well_clicked']:
                 st.write(
                     f"Fill informations for {', '.join(st.session_state['well_clicked'])}:")
 
-                # Compound and dilution selection
-                selected_compound = st.selectbox(
-                    label="Compound", options=st.session_state['compounds'], placeholder="Choose an option", index=None)
-                selected_dilution = st.selectbox(
-                    label="Dilution", options=st.session_state['dilutions'], placeholder="Choose an option", index=None)
+                # Add selector for each key
+                set_selected_key = []
+                for key, value in st.session_state['selected_key_tags'].items():
+                    # Get values for selected key
+                    tag_values = list(TagValueModel.select().where(TagValueModel.tag_key == key))
+
+                    if tag_values:
+                        # Select from existing values
+                        values = [tv.get_tag_value() for tv in tag_values]
+                        selected_key = st.selectbox(
+                            label=value, options=values, placeholder="Choose an option", index=None, key=f"select_{key}")
+                        set_selected_key.append((selected_key, key))
+
 
                 # Save information for selected wells
                 if st.button("Save these informations", icon = ":material/save:"):
-                    if selected_compound is not None or selected_dilution is not None:
-                        for well in st.session_state['well_clicked']:
-                            if well not in st.session_state['plate_layout']:
-                                st.session_state['plate_layout'][well] = {}
-                        if selected_compound is not None:
+                    for selected_key, key in set_selected_key:
+                        if selected_key is not None:
                             for well in st.session_state['well_clicked']:
-                                st.session_state['plate_layout'][well]["compound"] = selected_compound
-                        if selected_dilution is not None:
-                            for well in st.session_state['well_clicked']:
-                                st.session_state['plate_layout'][well]["dilution"] = selected_dilution
+                                if well not in st.session_state['plate_layout']:
+                                    st.session_state['plate_layout'][well] = {}
+                            if selected_key is not None:
+                                for well in st.session_state['well_clicked']:
+                                    st.session_state['plate_layout'][well][key] = selected_key
 
                     # Save the plate layout to a JSON file
                     file_plate_layout_path = os.path.join(
@@ -151,8 +167,8 @@ def show_content():
 # -------------------------------------------------------------------------------------------#
 if not sources:
     raise Exception("Source paths are not provided.")
-
 folder_data = sources[0].path
+# Retrieve existing plate layout if provided
 if len(sources)>1:
     existing_plate_layout = sources[1].get_data()
 else :
@@ -173,29 +189,18 @@ def validate_plate_layout(existing_plate_layout, number_wells):
     return True
 
 
-files_compounds = [f for f in os.listdir(
-    folder_data) if f.endswith("compounds.json")]
+files_keys = [f for f in os.listdir(
+    folder_data) if f.endswith("keys.json")]
 
-if files_compounds:
+if files_keys:
     # Load the file and display its contents
-    file_path = os.path.join(folder_data, files_compounds[0])
+    file_path = os.path.join(folder_data, files_keys[0])
     with open(file_path, "r") as f:
-        st.session_state.compounds = json.load(f)
+        st.session_state.selected_key_tags = json.load(f)
 else:
     # Create a dictionary to store  data
-    if 'compounds' not in st.session_state:
-        st.session_state['compounds'] = []
-
-files_dilutions = [f for f in os.listdir(
-    folder_data) if f.endswith("dilutions.json")]
-if files_dilutions:
-    file_path = os.path.join(folder_data, files_dilutions[0])
-    with open(file_path, "r") as f:
-        st.session_state.dilutions = json.load(f)
-else:
-    # Create a dictionary to store  data
-    if 'dilutions' not in st.session_state:
-        st.session_state['dilutions'] = []
+    if 'selected_key_tags' not in st.session_state:
+        st.session_state['selected_key_tags'] = {}
 
 files_plate_layout = [f for f in os.listdir(
     folder_data) if f.endswith("plate_layout.json")]
@@ -213,12 +218,33 @@ elif existing_plate_layout:
         st.write(e)
     st.session_state.plate_layout = existing_plate_layout
 
-    #Retrieve unique compounds and dilutions
-    # Extract unique values while handling missing keys
-    unique_compounds = list({v.get("compound") for v in st.session_state.plate_layout.values() if "compound" in v})
-    unique_dilutions = list({v.get("dilution") for v in st.session_state.plate_layout.values() if "dilution" in v})
-    st.session_state['compounds'] = unique_compounds
-    st.session_state['dilutions'] = unique_dilutions
+    # Retrieve keys from the existing plate layout and get their labels
+    existing_keys = {}
+    tag_service = TagService()
+    all_tag_keys = tag_service.get_all_tags()
+    tag_key_options = {tag.key: f"{tag.label}" for tag in all_tag_keys}
+
+    for well_name, well_data in st.session_state.plate_layout.items():
+        for key in well_data.keys():
+            if key not in existing_keys and key in tag_key_options:
+                existing_keys[key] = tag_key_options[key]
+
+    st.session_state['selected_key_tags'].update(existing_keys)
+    # Save the selected keys to keys.json
+    file_dict_keys_path = os.path.join(
+        folder_data, "keys.json")
+    with open(file_dict_keys_path, "w") as json_file:
+        json.dump(st.session_state['selected_key_tags'], json_file, indent=4)
+
+    # Save the plate layout to a JSON file
+    file_plate_layout_path = os.path.join(
+        folder_data, "plate_layout.json")
+    os.makedirs(os.path.dirname(file_plate_layout_path),
+                exist_ok=True)  # Ensure directory exists
+    with open(file_plate_layout_path, "w") as json_file:
+        json.dump(
+            st.session_state['plate_layout'], json_file, indent=4)
+
 else:
     if "plate_layout" not in st.session_state:
         st.session_state["plate_layout"] = {}

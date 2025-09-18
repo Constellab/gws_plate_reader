@@ -32,8 +32,7 @@ class StreamlitGeneratorPlateLayout(Task):
 
     })
     input_specs: InputSpecs = InputSpecs(
-        {'metadata': InputSpec(JSONDict, human_name="JSONDict containing the metadata", is_optional=False),
-         'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)
+        {'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)
          })
 
     output_specs: OutputSpecs = OutputSpecs(
@@ -49,9 +48,6 @@ class StreamlitGeneratorPlateLayout(Task):
         folder_data: Folder = Folder(self.create_tmp_dir())
         folder_data.name = "Data"
         streamlit_resource.add_resource(folder_data, create_new_resource=True)
-
-        metadata: JSONDict = inputs.get('metadata')
-        streamlit_resource.add_resource(metadata, create_new_resource=False)
 
         # set the input in the streamlit resource
         plate_layout: JSONDict = inputs.get('plate_layout')

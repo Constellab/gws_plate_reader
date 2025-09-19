@@ -46,8 +46,34 @@ def key_tag_selector() -> Optional[Tuple[str, any]]:
 
 
 def save_selected_keys(tag_key_options : dict):
-    selected_key_tags = {key: tag_key_options[key] for key in st.session_state.get('multiselect_tag_keys')}
-    # Store in session state
+    current_selected = set(st.session_state.get('multiselect_tag_keys', []))
+    previous_selected = set(st.session_state.get('selected_key_tags', {}).keys())
+
+    # Check for removed keys
+    removed_keys = previous_selected - current_selected
+
+    if removed_keys:
+        # Check if any removed key has data in wells
+        keys_with_data = []
+        for key in removed_keys:
+            for well_data in st.session_state.get('plate_layout', {}).values():
+                if key in well_data and well_data[key]:  # Check if key exists and has non-empty value
+                    keys_with_data.append(key)
+                    break
+
+        if keys_with_data:
+            # Store the removal request for confirmation
+            st.session_state['pending_key_removal'] = {
+                'keys': list(removed_keys),
+                'keys_with_data': keys_with_data,
+                'new_selection': current_selected
+            }
+            # Revert the multiselect to previous state temporarily
+            st.session_state['selected_key_tags'] = list(previous_selected)
+            return
+
+    # If no data conflicts, proceed with normal update
+    selected_key_tags = {key: tag_key_options[key] for key in current_selected}
     st.session_state['selected_key_tags'] = selected_key_tags
 
     # Save the selected keys to keys.json
@@ -65,6 +91,64 @@ def show_success_message():
         # Clear message after displaying
         st.session_state["success_message"] = None
 
+@st.dialog("Delete key(s)")
+def dialog_delete_keys():
+    removal_data = st.session_state['pending_key_removal']
+    keys_with_data = removal_data['keys_with_data']
+
+    st.warning(f"⚠️ The following key(s) have data in wells: **{', '.join(keys_with_data)}**")
+    st.write("Do you want to really delete this key? Data related to this key will be deleted.")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("❌ No, keep the key(s)", key="keep_keys"):
+            # Revert to previous selection
+            del st.session_state['pending_key_removal']
+            st.rerun()
+
+    with col2:
+        if st.button("✅ Yes, delete key(s) and data", key="delete_keys"):
+            # Proceed with removal
+            removed_keys = removal_data['keys']
+            new_selection = removal_data['new_selection']
+
+            # Remove keys from selected_key_tags
+            tag_service = TagService()
+            all_tag_keys = tag_service.get_all_tags()
+            tag_key_options = {tag.key: f"{tag.label}" for tag in all_tag_keys}
+
+            selected_key_tags = {key: tag_key_options[key] for key in new_selection if key in tag_key_options}
+            st.session_state['selected_key_tags'] = selected_key_tags
+
+            # Remove data from all wells for the removed keys
+            for well_name in st.session_state.get('plate_layout', {}):
+                for key in removed_keys:
+                    if key in st.session_state['plate_layout'][well_name]:
+                        del st.session_state['plate_layout'][well_name][key]
+
+            # Remove well entries that are now empty
+            wells_to_delete = [well for well, data in st.session_state['plate_layout'].items() if not data]
+            for well in wells_to_delete:
+                del st.session_state['plate_layout'][well]
+
+            # Save updated data
+            file_dict_keys_path = os.path.join(folder_data, "keys.json")
+            with open(file_dict_keys_path, "w") as json_file:
+                json.dump(st.session_state['selected_key_tags'], json_file, indent=4)
+
+            file_plate_layout_path = os.path.join(folder_data, "plate_layout.json")
+            with open(file_plate_layout_path, "w") as json_file:
+                json.dump(st.session_state['plate_layout'], json_file, indent=4)
+
+            # Update multiselect state
+            st.session_state['selected_key_tags'] = list(new_selection)
+
+            # Clean up
+            del st.session_state['pending_key_removal']
+            st.rerun()
+
+
 def show_content():
 
     # Create tabs
@@ -73,11 +157,13 @@ def show_content():
     with tab_dict:
         st.header("Select tag(s)")
 
-        selected_key_tags = key_tag_selector()
+        # Check for pending key removal confirmation
+        if 'pending_key_removal' in st.session_state:
+            dialog_delete_keys()
 
-        """if selected_key_tags:
-            # Store in session state
-            st.session_state['selected_key_tags'] = selected_key_tags"""
+        else:
+            selected_key_tags = key_tag_selector()
+
 
 
     with tab_plate_layout:

@@ -294,6 +294,33 @@ def validate_plate_layout(existing_plate_layout, number_wells):
     return True
 
 
+def update_labels(dict_keys: dict):
+    # Check if the label has changed for any key
+    tag_service = TagService()
+    all_tag_keys = tag_service.get_all_tags()
+    tag_key_options = {tag.key: f"{tag.label}" for tag in all_tag_keys}
+    updated = False
+
+    # Handle selected_key_tags format (flat dictionary)
+    if dict_keys and isinstance(next(iter(dict_keys.values()), None), str):
+        for key in list(dict_keys.keys()):
+            if key in tag_key_options and dict_keys[key] != tag_key_options[key]:
+                dict_keys[key] = tag_key_options[key]
+                updated = True
+
+    # Handle plate_layout format (nested dictionary)
+    else:
+        for well_name, well_data in dict_keys.items():
+            if isinstance(well_data, dict):
+                for key, data in well_data.items():
+                    if isinstance(data, dict) and 'label' in data:
+                        if key in tag_key_options and data['label'] != tag_key_options[key]:
+                            data['label'] = tag_key_options[key]
+                            updated = True
+
+    return updated, dict_keys
+
+
 files_keys = [f for f in os.listdir(
     folder_data) if f.endswith("keys.json")]
 
@@ -302,8 +329,16 @@ if files_keys:
     file_path = os.path.join(folder_data, files_keys[0])
     with open(file_path, "r") as f:
         st.session_state.selected_key_tags = json.load(f)
+    # Check if the label has changed for any key
+    updated, st.session_state.selected_key_tags = update_labels(st.session_state.selected_key_tags)
+    if updated:
+        # Save the updated selected keys to keys.json
+        file_dict_keys_path = os.path.join(
+            folder_data, "keys.json")
+        with open(file_dict_keys_path, "w") as json_file:
+            json.dump(st.session_state['selected_key_tags'], json_file, indent=4)
 else:
-    # Create a dictionary to store  data
+    # Create a dictionary to store data
     if 'selected_key_tags' not in st.session_state:
         st.session_state['selected_key_tags'] = {}
 
@@ -314,9 +349,17 @@ if files_plate_layout:
     file_path_plate_layout = os.path.join(folder_data, files_plate_layout[0])
     with open(file_path_plate_layout, "r") as f:
         st.session_state.plate_layout = json.load(f)
-#If is the first execution and there is an existing plate layout given in input, then we load it
+
+    # Check if the label has changed for any key
+    updated, st.session_state.plate_layout = update_labels(st.session_state.plate_layout)
+    if updated:
+        # Save the updated selected keys to keys.json
+        with open(file_path_plate_layout, "w") as json_file:
+            json.dump(st.session_state['plate_layout'], json_file, indent=4)
+
+# If is the first execution and there is an existing plate layout given in input, then we load it
 elif existing_plate_layout:
-    #check if the existing_plate_layout have the same size than the number entered in the parameters of the task
+    # check if the existing_plate_layout have the same size than the number entered in the parameters of the task
     try:
         validate_plate_layout(existing_plate_layout, number_wells)
     except ValueError as e:
@@ -335,6 +378,11 @@ elif existing_plate_layout:
                 existing_keys[key] = tag_key_options[key]
 
     st.session_state['selected_key_tags'].update(existing_keys)
+
+    # Check if the label has changed for any key
+    updated, st.session_state.plate_layout = update_labels(st.session_state.plate_layout)
+    updated, st.session_state['selected_key_tags'] = update_labels(st.session_state['selected_key_tags'])
+
     # Save the selected keys to keys.json
     file_dict_keys_path = os.path.join(
         folder_data, "keys.json")

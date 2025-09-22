@@ -1,11 +1,10 @@
 import os
 import json
 import streamlit as st
-import pandas as pd
 from streamlit_extras.stylable_container import stylable_container
 from gws_plate_reader.dashboard_plate_layout.plate_layout_state import PlateLayoutState
-from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, JSONImporter, TagService, EntityTagList, TagList
-from gws_core import TagService, TagKeyModel, TagValueModel, Tag
+from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, JSONImporter, TagService
+from gws_core import TagService, TagValueModel
 from typing import Optional, Tuple
 
 # thoses variable will be set by the streamlit app
@@ -46,6 +45,7 @@ def key_tag_selector() -> Optional[Tuple[str, any]]:
 
 
 def save_selected_keys(tag_key_options : dict):
+    # Quand je save une nouvelle key, ajouter cette key à chaque well qui n'a pas cette key TODO
     current_selected = set(st.session_state.get('multiselect_tag_keys', []))
     previous_selected = set(st.session_state.get('selected_key_tags', {}).keys())
 
@@ -57,7 +57,7 @@ def save_selected_keys(tag_key_options : dict):
         keys_with_data = []
         for key in removed_keys:
             for well_data in st.session_state.get('plate_layout', {}).values():
-                if key in well_data and well_data[key]:  # Check if key exists and has non-empty value
+                if key in well_data and isinstance(well_data.get(key), dict): # Check if key exists
                     keys_with_data.append(key)
                     break
 
@@ -205,12 +205,33 @@ def show_content():
 
                 # Save information for selected wells
                 if st.button("Save these informations", icon = ":material/save:"):
-                    for selected_key, value in set_selected_key:
+                    for selected_key, label in set_selected_key:
                         for well in st.session_state['well_clicked']:
                             if well not in st.session_state['plate_layout']:
                                 st.session_state['plate_layout'][well] = {}
-                            # Save the value (even if None/empty)
-                            st.session_state['plate_layout'][well][value] = selected_key if selected_key is not None else ""
+
+                            # Find the actual key from the label
+                            key = None
+                            for k, v in st.session_state['selected_key_tags'].items():
+                                if v == label:
+                                    key = k
+                                    break
+
+                            if key:
+                                # Save in new format with label and value
+                                st.session_state['plate_layout'][well][key] = {
+                                    "label": label,
+                                    "value": selected_key if selected_key is not None else ""
+                                }
+
+                    # Remove wells where all values are empty
+                    wells_to_delete = []
+                    for well, well_data in st.session_state['plate_layout'].items():
+                        if all(data.get('value', '') == '' for data in well_data.values() if isinstance(data, dict)):
+                            wells_to_delete.append(well)
+
+                    for well in wells_to_delete:
+                        del st.session_state['plate_layout'][well]
 
                     # Save the plate layout to a JSON file
                     file_plate_layout_path = os.path.join(
@@ -436,13 +457,14 @@ with st.sidebar:
                     # Dynamically create tooltip text from the st.session_state['plate_layout'] dictionary
                     if well in st.session_state['plate_layout']:
                         sorted_items = sorted(st.session_state['plate_layout'][well].items())
-                        help_tab =  "| Property | Value |\n|----------|-------|\n" + "\n".join(
-                                    [f"| **{key}** | {value} |" for key, value in sorted_items])
+                        help_tab = "| Property | Value |\n|----------|-------|\n" + "\n".join(
+                            [f"| **{data.get('label', key)}** | {data.get('value', '')} |"
+                             for key, data in sorted_items if isinstance(data, dict)])
                     else:
                         help_tab = "No data available"
 
                     if well in st.session_state['well_clicked']:
-                        if well in st.session_state['plate_layout'] and st.session_state['plate_layout'][well].get("compound") and st.session_state['plate_layout'][well].get("dilution"):
+                        if well in st.session_state['plate_layout'] and all(st.session_state['plate_layout'][well].get(key, {}).get('value') for key in st.session_state.get('selected_key_tags').keys()):
                             if cols_object[col+1].button(f":green[{well}] ✓", key=well, help=help_tab):
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
@@ -455,7 +477,7 @@ with st.sidebar:
                                 st.session_state['well_clicked'].remove(well)
                                 st.rerun(scope="app")
                     else:
-                        if well in st.session_state['plate_layout'] and st.session_state['plate_layout'][well].get("compound") and st.session_state['plate_layout'][well].get("dilution"):
+                        if well in st.session_state['plate_layout'] and all(st.session_state['plate_layout'][well].get(key, {}).get('value') for key in st.session_state.get('selected_key_tags').keys()):
                             if cols_object[col+1].button(f"{well} ✓", key=well, help=help_tab):
                                 st.session_state['well_clicked'].append(well)
                                 st.rerun(scope="app")

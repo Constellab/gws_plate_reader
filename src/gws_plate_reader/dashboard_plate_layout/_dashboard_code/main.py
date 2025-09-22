@@ -45,7 +45,6 @@ def key_tag_selector() -> Optional[Tuple[str, any]]:
 
 
 def save_selected_keys(tag_key_options : dict):
-    # Quand je save une nouvelle key, ajouter cette key à chaque well qui n'a pas cette key TODO
     current_selected = set(st.session_state.get('multiselect_tag_keys', []))
     previous_selected = set(st.session_state.get('selected_key_tags', {}).keys())
 
@@ -72,9 +71,28 @@ def save_selected_keys(tag_key_options : dict):
             st.session_state['selected_key_tags'] = list(previous_selected)
             return
 
+    # Check for newly added keys
+    added_keys = current_selected - previous_selected
+    
     # If no data conflicts, proceed with normal update
     selected_key_tags = {key: tag_key_options[key] for key in current_selected}
     st.session_state['selected_key_tags'] = selected_key_tags
+
+    # Add new keys with empty values to existing wells
+    if added_keys and st.session_state.get('plate_layout'):
+        for well_name, well_data in st.session_state['plate_layout'].items():
+            if well_data:  # Only add to wells that already have some data
+                for new_key in added_keys:
+                    if new_key not in well_data:
+                        well_data[new_key] = {
+                            "label": tag_key_options[new_key],
+                            "value": ""
+                        }
+        
+        # Save the updated plate layout
+        file_plate_layout_path = os.path.join(folder_data, "plate_layout.json")
+        with open(file_plate_layout_path, "w") as json_file:
+            json.dump(st.session_state['plate_layout'], json_file, indent=4)
 
     # Save the selected keys to keys.json
     file_dict_keys_path = os.path.join(

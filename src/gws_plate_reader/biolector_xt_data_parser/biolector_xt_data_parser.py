@@ -19,7 +19,7 @@ class BiolectorXTDataParser(Task):
     input_specs: InputSpecs = InputSpecs(
         {'raw_data': InputSpec(Table, human_name="Table containing the raw data"),
          'folder_metadata': InputSpec(Folder, human_name="Folder containing the metadata"),
-         'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)})
+         'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", optional=True)})
 
     output_specs: OutputSpecs = OutputSpecs(
         {'parsed_data_tables': OutputSpec(ResourceSet, human_name="Parsed data tables resource set", sub_class=True)})

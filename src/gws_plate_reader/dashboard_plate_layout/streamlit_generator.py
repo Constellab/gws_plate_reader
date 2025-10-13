@@ -32,7 +32,7 @@ class StreamlitGeneratorPlateLayout(Task):
 
     })
     input_specs: InputSpecs = InputSpecs(
-        {'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", is_optional=True)
+        {'plate_layout': InputSpec(JSONDict, human_name="JSONDict containing the plate_layout", optional=True)
          })
 
     output_specs: OutputSpecs = OutputSpecs(

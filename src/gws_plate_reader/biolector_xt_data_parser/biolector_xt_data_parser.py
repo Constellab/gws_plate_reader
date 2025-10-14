@@ -12,6 +12,7 @@ from pandas import NA, DataFrame, Series
 
 DOWNLOAD_TAG_KEY = "biolector_download"
 
+
 @task_decorator("BiolectorXTDataParser", human_name="BiolectorXT Data Parser",
                 short_description="Task to parse BiolectorXT data before using the analysis dashboard",
                 style=TypingStyle.community_icon(icon_technical_name="table", background_color="#c3fa7f"))

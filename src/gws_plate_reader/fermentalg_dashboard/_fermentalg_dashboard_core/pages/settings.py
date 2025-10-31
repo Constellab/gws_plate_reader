@@ -1,9 +1,9 @@
 import streamlit as st
 from gws_core.streamlit import StreamlitContainers, StreamlitTranslateLang
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.state import State
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
 
 
-def render_settings_page(fermentalg_state: State):
+def render_settings_page(fermentalg_state: FermentalgState):
     """
     Render the settings page for Fermentalg dashboard.
     Includes language settings and information about interpolation methods.

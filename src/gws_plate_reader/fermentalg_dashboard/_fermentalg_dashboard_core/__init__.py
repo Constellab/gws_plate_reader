@@ -2,7 +2,7 @@
 Fermentalg Dashboard Core Module
 """
 
-from .analyse import Analyse
-from .state import State
+from .fermentalg_recipe import FermentalgRecipe
+from .fermentalg_state import FermentalgState
 
-__all__ = ['Analyse', 'State']
+__all__ = ['FermentalgRecipe', 'FermentalgState']

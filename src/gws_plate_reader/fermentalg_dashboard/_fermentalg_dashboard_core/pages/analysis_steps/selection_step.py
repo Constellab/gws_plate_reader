@@ -12,13 +12,13 @@ from gws_core.resource.resource_set.resource_set import ResourceSet
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitTaskRunner, StreamlitAuthenticateUser
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.state import State
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.analyse import Analyse
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
 from gws_plate_reader.fermentalg_filter import FilterFermentorAnalyseLoadedResourceSetBySelection, FermentalgInterpolation
 
 
 def launch_selection_scenario(
-        selected_df: pd.DataFrame, load_scenario: Scenario, fermentalg_state: State,
+        selected_df: pd.DataFrame, load_scenario: Scenario, fermentalg_state: FermentalgState,
         interpolation_config: dict = None) -> Optional[Scenario]:
     """Launch a scenario to filter the ResourceSet based on user selection."""
 
@@ -38,7 +38,7 @@ def launch_selection_scenario(
                 st.error(translate_service.translate('cannot_retrieve_resourceset'))
                 return None
 
-            resource_set_model = ScenarioProxy.from_existing_scenario(fermentalg_state.get_load_scenario().id).get_protocol(
+            resource_set_model = ScenarioProxy.from_existing_scenario(load_scenario.id).get_protocol(
             ).get_process('fermentalg_data_processing').get_output_resource_model('resource_set')
 
             # 3. Create a new scenario for the selection filtering with timestamp
@@ -114,10 +114,10 @@ def launch_selection_scenario(
             # Get the original analysis name from the parent scenario
             parent_entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, load_scenario.id)
 
-            # Get original analysis name from parent scenario
-            parent_analysis_name_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_ANALYSIS_NAME)
-            original_analysis_name = parent_analysis_name_tags[0].tag_value if parent_analysis_name_tags else load_scenario.title
+            # Get original recipe name from parent scenario
+            parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
+                fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+            original_recipe_name = parent_recipe_name_tags[0].tag_value if parent_recipe_name_tags else load_scenario.title
 
             # Get pipeline ID from parent scenario
             parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
@@ -133,8 +133,8 @@ def launch_selection_scenario(
                                    fermentalg_state.TAG_SELECTION_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags from parent scenario
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_ANALYSIS_NAME,
-                                   original_analysis_name, is_propagable=False))
+            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,
+                                   original_recipe_name, is_propagable=False))
             scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID,
                                    pipeline_id, is_propagable=False))
             scenario_proxy.add_tag(Tag(fermentalg_state.TAG_MICROPLATE_ANALYSIS,
@@ -162,7 +162,7 @@ def launch_selection_scenario(
         return None
 
 
-def render_selection_step(analyse: Analyse, fermentalg_state: State) -> None:
+def render_selection_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState) -> None:
     """Render the selection step with selectable table of valid data"""
 
     translate_service = fermentalg_state.get_translate_service()
@@ -184,7 +184,7 @@ def render_selection_step(analyse: Analyse, fermentalg_state: State) -> None:
         st.subheader(translate_service.translate('data_selection'))
 
         # Show existing selections info if any
-        existing_selections = analyse.get_selection_scenarios()
+        existing_selections = recipe.get_selection_scenarios()
         if existing_selections:
             st.info(f"📋 {len(existing_selections)} sélection(s) déjà créée(s). Vous pouvez en créer une nouvelle.")
 
@@ -285,7 +285,7 @@ def render_selection_step(analyse: Analyse, fermentalg_state: State) -> None:
                             interpolation_config = interpolation_config.get("config", None)
 
                         selection_scenario = launch_selection_scenario(
-                            selected_df, analyse.get_load_scenario(), fermentalg_state,
+                            selected_df, recipe.get_load_scenario(), fermentalg_state,
                             interpolation_config=interpolation_config
                         )
 
@@ -295,8 +295,8 @@ def render_selection_step(analyse: Analyse, fermentalg_state: State) -> None:
 
                             updated_selection_scenarios = [selection_scenario] + existing_selections
 
-                            # Update the analyse instance with the new selection scenario
-                            fermentalg_state.update_analyse_with_selection_scenarios(updated_selection_scenarios)
+                            # Update the recipe instance with the new selection scenario
+                            recipe.add_scenarios_by_step('selection', updated_selection_scenarios)
                             st.rerun()
                         else:
                             st.error(translate_service.translate('error_launching_scenario'))

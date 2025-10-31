@@ -1,6 +1,6 @@
 import streamlit as st
 
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.state import State
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
 from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.pages import first_page, new_analysis_page, analysis_page, settings
 from gws_core.streamlit import StreamlitRouter
 
@@ -8,14 +8,14 @@ sources: list
 params: dict
 
 # Initialize Fermentalg state
-fermentalg_state = State()
+fermentalg_state = FermentalgState()
 
 
-def display_first_page(fermentalg_state: State):
+def display_first_page(fermentalg_state: FermentalgState):
     first_page.render_first_page(fermentalg_state)
 
 
-def add_first_page(router: StreamlitRouter, fermentalg_state: State):
+def add_first_page(router: StreamlitRouter, fermentalg_state: FermentalgState):
     router.add_page(
         lambda: display_first_page(fermentalg_state),
         title='Analyses Fermentalg',
@@ -25,11 +25,11 @@ def add_first_page(router: StreamlitRouter, fermentalg_state: State):
     )
 
 
-def display_new_analysis_page(fermentalg_state: State):
+def display_new_analysis_page(fermentalg_state: FermentalgState):
     new_analysis_page.render_new_analysis_page(fermentalg_state)
 
 
-def add_new_analysis_page(router: StreamlitRouter, fermentalg_state: State):
+def add_new_analysis_page(router: StreamlitRouter, fermentalg_state: FermentalgState):
     router.add_page(
         lambda: display_new_analysis_page(fermentalg_state),
         title='Nouvelle Analyse',
@@ -39,11 +39,11 @@ def add_new_analysis_page(router: StreamlitRouter, fermentalg_state: State):
     )
 
 
-def display_analysis_page(fermentalg_state: State):
+def display_analysis_page(fermentalg_state: FermentalgState):
     analysis_page.render_analysis_page(fermentalg_state)
 
 
-def add_analysis_page(router: StreamlitRouter, fermentalg_state: State):
+def add_analysis_page(router: StreamlitRouter, fermentalg_state: FermentalgState):
     router.add_page(
         lambda: display_analysis_page(fermentalg_state),
         title='Analyse',
@@ -53,11 +53,11 @@ def add_analysis_page(router: StreamlitRouter, fermentalg_state: State):
     )
 
 
-def display_settings_page(fermentalg_state: State):
+def display_settings_page(fermentalg_state: FermentalgState):
     settings.render_settings_page(fermentalg_state)
 
 
-def add_settings_page(router: StreamlitRouter, fermentalg_state: State):
+def add_settings_page(router: StreamlitRouter, fermentalg_state: FermentalgState):
     router.add_page(
         lambda: display_settings_page(fermentalg_state),
         title='Paramètres',

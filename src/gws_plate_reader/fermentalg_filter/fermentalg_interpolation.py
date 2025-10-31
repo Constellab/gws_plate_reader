@@ -15,33 +15,378 @@ import numpy as np
 
 @task_decorator("FermentalgInterpolation",
                 human_name="Fermentalg Time Series Interpolation",
-                short_description="Interpolate fermentalg time series data with multiple advanced methods",
+                short_description="Interpolate fermentation time series data with multiple advanced methods",
                 style=TypingStyle.community_icon(icon_technical_name="chart-line", background_color="#17a2b8"))
 class FermentalgInterpolation(Task):
     """
-    Interpolate fermentalg time series data using various interpolation methods.
+    Interpolate fermentation time series data to create uniform time grids for analysis.
 
-    This task takes a ResourceSet of fermentalg data and applies interpolation to create
-    uniform time grids for all data series, enabling better comparison and analysis.
+    ## Overview
+    This task transforms fermentation data with irregular time sampling into uniformly
+    sampled time series, enabling direct comparison between experiments, better
+    visualization, and advanced time-series analysis.
 
-    Features:
-    - Multiple interpolation methods: linear, nearest, quadratic, cubic, pchip, akima, cubic_spline, univariate_spline
-    - Multiple grid strategies (global auto, per file, reference)
-    - Configurable edge handling strategies
-    - Automatic time grid generation based on data characteristics
-    - Preservation of metadata and tags
-    - Shape-preserving methods (PCHIP, Akima)
+    ## Purpose
+    - **Align Time Points**: Create common time grid across all samples
+    - **Fill Gaps**: Handle missing measurements through intelligent interpolation
+    - **Enable Comparison**: Make samples with different sampling rates comparable
+    - **Smooth Noise**: Apply shape-preserving methods to reduce measurement noise
+    - **Prepare for ML**: Create uniform input for machine learning algorithms
 
-    Supported Methods:
-    - linear: Fast linear interpolation (numpy)
-    - nearest: Nearest neighbor interpolation
-    - quadratic: Quadratic spline interpolation
-    - cubic: Cubic spline interpolation
-    - pchip: Piecewise Cubic Hermite Interpolating Polynomial (shape-preserving)
-    - akima: Akima spline interpolation (shape-preserving, smooth)
-    - cubic_spline: Natural cubic spline
-    - univariate_spline: Adaptive order univariate spline with fallback
-    - spline: Alias for univariate_spline
+    ## Interpolation Methods
+
+    ### Shape-Preserving Methods (Recommended for Biological Data)
+
+    #### `makima` (Default) ★ RECOMMENDED
+    - **Modified Akima Interpolation**: Enhanced shape-preserving method
+    - **Best For**: Biological time series with varying growth phases
+    - **Advantages**:
+      - Avoids overshoot in steep regions (pH, biomass)
+      - Natural-looking curves following data trends
+      - Robust to outliers
+      - Smooth transitions between regions
+    - **Use When**: General fermentation data analysis
+
+    #### `pchip`
+    - **Piecewise Cubic Hermite Interpolating Polynomial**
+    - **Best For**: Data with local extrema that must be preserved
+    - **Advantages**:
+      - Guarantees monotonicity (no artificial peaks/valleys)
+      - Shape-preserving in regions of constant slope
+      - Good for concentration measurements
+    - **Use When**: Substrate consumption, product formation curves
+
+    #### `akima`
+    - **Original Akima Spline**: Classic shape-preserving method
+    - **Best For**: Smooth biological responses
+    - **Advantages**:
+      - Very smooth curves
+      - Less sensitive to outliers than cubic splines
+      - Natural interpolation
+    - **Use When**: Temperature, pressure, flow rate data
+
+    ### Polynomial Methods
+
+    #### `linear`
+    - **Linear Interpolation**: Straight lines between points
+    - **Best For**: High-frequency data, preliminary analysis
+    - **Advantages**: Fast, simple, no overshoot
+    - **Disadvantages**: Angular appearance, not smooth
+    - **Use When**: Quick checks, high sampling rate data
+
+    #### `quadratic`
+    - **Quadratic Spline**: Piecewise second-degree polynomials
+    - **Best For**: Slowly varying parameters
+    - **Advantages**: Smoother than linear, faster than cubic
+    - **Use When**: Steady-state measurements
+
+    #### `cubic`
+    - **Cubic Spline**: Piecewise third-degree polynomials
+    - **Best For**: Very smooth data
+    - **Advantages**: Smooth, twice differentiable
+    - **Disadvantages**: Can overshoot between points
+    - **Use When**: High-quality data with minimal noise
+
+    ### Advanced Spline Methods
+
+    #### `cubic_spline`
+    - **Natural Cubic Spline**: Global smoothing with boundary conditions
+    - **Best For**: Complete curve fitting
+    - **Advantages**: Global smoothness, natural boundary behavior
+    - **Use When**: Need derivatives, mathematical modeling
+
+    #### `univariate_spline` or `spline`
+    - **Adaptive Order B-Spline**: Automatic order selection
+    - **Best For**: Complex curves with varying smoothness
+    - **Advantages**: Adaptive, handles varied data patterns
+    - **Configuration**: `spline_order` (1-5, default=3)
+    - **Use When**: Unknown data behavior, exploratory analysis
+
+    #### `nearest`
+    - **Nearest Neighbor**: Step-wise interpolation
+    - **Best For**: Categorical data, control parameters
+    - **Use When**: Binary states, control settings over time
+
+    ## Grid Strategies
+
+    ### `global_auto` (Default) ★ RECOMMENDED
+    - Creates ONE common time grid for ALL samples
+    - **Advantages**:
+      - Direct sample comparison at same time points
+      - Optimal for plotting multiple samples together
+      - Consistent analysis across dataset
+    - **Algorithm**:
+      1. Finds global min/max time across all samples
+      2. Calculates median time step from all samples
+      3. Generates uniform grid spanning entire range
+    - **Use When**: Comparing multiple fermentations
+
+    ### `per_file`
+    - Creates INDIVIDUAL time grid for EACH sample
+    - **Advantages**:
+      - Preserves each sample's specific time range
+      - Better for samples with very different durations
+      - Optimal grid density per sample
+    - **Use When**: Samples have vastly different durations
+
+    ### `reference`
+    - Uses time grid from ONE specific sample as template
+    - **Configuration**: `reference_index` (0-based index of reference sample)
+    - **Advantages**:
+      - Forces all samples to exact same time points
+      - Perfect alignment for direct arithmetic operations
+    - **Use When**:
+      - Need exact alignment for calculations
+      - One sample is the "gold standard"
+
+    ## Configuration Parameters
+
+    ### Essential Parameters
+
+    #### `method` (String)
+    - **Default**: `"makima"`
+    - **Options**: See Interpolation Methods section
+    - **Impact**: Determines curve shape and smoothness
+    - **Recommendation**: Start with `makima`, try `pchip` if issues
+
+    #### `grid_strategy` (String)
+    - **Default**: `"global_auto"`
+    - **Options**: `"global_auto"`, `"per_file"`, `"reference"`
+    - **Impact**: Determines time alignment across samples
+    - **Recommendation**: Use default unless specific needs
+
+    #### `n_points` (Integer)
+    - **Default**: 500
+    - **Range**: 10 to 20,000
+    - **Impact**:
+      - Higher: Smoother curves, larger files, slower processing
+      - Lower: Faster processing, may miss details
+    - **Auto Mode**: If not set, calculated from data characteristics
+    - **Recommendation**:
+      - 100-300: Quick previews
+      - 500-1000: Standard analysis
+      - 1000-5000: Publication quality
+      - 5000+: Detailed mathematical analysis
+
+    ### Advanced Parameters
+
+    #### `spline_order` (Integer)
+    - **Default**: 3
+    - **Range**: 1 to 5
+    - **Only For**: `univariate_spline` / `spline` method
+    - **Values**:
+      - 1: Linear (same as linear method)
+      - 2: Quadratic
+      - 3: Cubic (smooth, flexible) ★
+      - 4-5: Very smooth (may oscillate)
+
+    #### `edge_strategy` (String)
+    - **Default**: `"nearest"`
+    - **Options**:
+      - `"nearest"`: Extend with nearest value (flat)
+      - `"linear"`: Linear extrapolation
+      - `"nan"`: Fill with NaN (missing)
+    - **Impact**: How to handle time points outside original range
+    - **Recommendation**: Use default (`nearest`) for safety
+
+    #### `reference_index` (Integer)
+    - **Default**: 0
+    - **Only For**: `grid_strategy="reference"`
+    - **Range**: 0 to (number_of_samples - 1)
+    - **Impact**: Which sample's time grid to use as template
+
+    ## Input Requirements
+
+    ### ResourceSet Structure
+    - **Source**: FermentalgLoadData or Filter task output
+    - **Contents**: Table resources with time series data
+    - **Required Column**: `"Temps de culture (h)"` (culture time in hours)
+    - **Required Tags**:
+      - `batch`: Experiment identifier (preserved in output)
+      - `sample`: Sample identifier (preserved in output)
+      - Column tag `is_index_column='true'` on time column
+
+    ### Data Quality Requirements
+    - **Numeric Data**: All measurement columns must be numeric
+    - **Decimal Format**: Commas automatically converted to dots
+    - **Time Values**: Must be finite (no NaN/Inf in time column)
+    - **Minimum Points**: At least 2 time points per sample
+    - **Sorting**: Time column will be sorted automatically
+
+    ## Processing Steps
+
+    1. **Data Loading**: Extracts Tables from input ResourceSet
+    2. **Decimal Normalization**: Converts commas to dots in numeric columns
+    3. **Time Grid Generation**: Creates interpolation grid(s) based on strategy
+    4. **Quality Checks**: Validates sufficient data points, handles edge cases
+    5. **Interpolation**: Applies selected method to each numeric column
+    6. **Tag Preservation**: Copies all tags from original to interpolated Tables
+    7. **Metadata**: Adds interpolation method tag for traceability
+    8. **Output Assembly**: Combines all interpolated Tables into ResourceSet
+
+    ## Output Structure
+
+    ### interpolated_resource_set (ResourceSet)
+    Contains one Table per input sample with:
+
+    #### Columns
+    - `Temps de culture (h)`: Uniform time grid
+    - All measurement columns: Interpolated values
+    - Metadata columns: Preserved as-is (ESSAI, FERMENTEUR, MILIEU)
+
+    #### Tags (Preserved)
+    - `batch`: Original experiment ID
+    - `sample`: Original sample ID
+    - `medium`: Original medium name
+    - `missing_value`: Original missing data info
+    - `interpolation_method`: NEW - Records method used
+
+    #### Column Tags (Preserved)
+    - `is_index_column='true'`: On time column
+    - `is_data_column='true'`: On measurement columns
+    - `unit`: Units of measurement
+
+    #### Properties
+    - Same number of rows across all samples (if global_auto)
+    - Aligned time points for easy comparison
+    - Smooth, continuous curves
+    - Ready for plotting and analysis
+
+    ## Use Cases
+
+    ### 1. Multi-Sample Comparison
+    ```
+    Filter → Interpolate (global_auto, makima) →
+    Plot all samples on same axes
+    ```
+
+    ### 2. Growth Rate Calculation
+    ```
+    Interpolate (cubic_spline) →
+    Calculate derivatives → Analyze growth kinetics
+    ```
+
+    ### 3. Gap Filling
+    ```
+    Data with missing points →
+    Interpolate (pchip) → Complete time series
+    ```
+
+    ### 4. Noise Reduction
+    ```
+    Noisy measurements →
+    Interpolate (makima, fewer points) → Smoother curves
+    ```
+
+    ### 5. Machine Learning Prep
+    ```
+    Interpolate (global_auto, 200 points) →
+    Fixed-length feature vectors → ML model
+    ```
+
+    ## Example Workflows
+
+    ### Standard Analysis Pipeline
+    ```
+    FermentalgLoadData
+      ↓ (50 samples with irregular sampling)
+    Filter (select 10 samples)
+      ↓
+    Interpolate (method=makima, grid_strategy=global_auto, n_points=500)
+      ↓
+    [10 samples, each with 500 uniform time points]
+      ↓
+    Visualization / Statistical Analysis
+    ```
+
+    ### High-Quality Publication
+    ```
+    Filter (select best samples)
+      ↓
+    Interpolate (method=pchip, n_points=2000)
+      ↓
+    Export smooth, high-resolution curves
+    ```
+
+    ### Quick Preview
+    ```
+    Interpolate (method=linear, n_points=50)
+      ↓
+    Fast visualization for QC
+    ```
+
+    ## Performance Considerations
+
+    - **Speed**: linear > nearest > quadratic > cubic > akima > pchip > cubic_spline > univariate_spline
+    - **Memory**: Proportional to (n_samples × n_points × n_columns)
+    - **Quality**: Shape-preserving methods generally best for biological data
+    - **Recommendations**:
+      - < 10 samples: Any method, high n_points OK
+      - 10-100 samples: Use makima/pchip, n_points=500-1000
+      - > 100 samples: Consider linear or lower n_points
+
+    ## Error Handling
+
+    ### Automatic Fallbacks
+    - **Too Few Points**: Skips sample with warning
+    - **Non-numeric Data**: Preserves original values
+    - **NaN in Time**: Filters out invalid rows
+    - **Method Failure**: Falls back to linear interpolation
+    - **Spline Order**: Reduces order if insufficient points
+
+    ### Common Issues
+
+    | Issue | Cause | Solution |
+    |-------|-------|----------|
+    | Oscillations | Cubic with sparse data | Use pchip or makima |
+    | Angular curves | Linear method | Switch to makima/pchip |
+    | Overshoot | Cubic spline | Use shape-preserving method |
+    | Slow processing | Too many points | Reduce n_points to 500-1000 |
+    | Missing columns | Time column not found | Check column name exactly |
+
+    ## Best Practices
+
+    1. **Start Simple**: Begin with default settings (makima, global_auto)
+    2. **Visual Check**: Plot original + interpolated to verify quality
+    3. **Match Purpose**: Choose method based on analysis goal
+    4. **Document Choice**: Interpolation method affects results
+    5. **Validate**: Check that interpolation preserves key features
+    6. **Right Resolution**: More points ≠ better (avoid over-sampling)
+
+    ## Scientific Considerations
+
+    ### For Growth Curves
+    - Use `makima` or `pchip` (preserve exponential growth)
+    - Avoid cubic spline (may create artificial inflection points)
+
+    ### For Substrate/Product
+    - Use `pchip` (preserves monotonic consumption/production)
+    - Avoid methods that create overshoots
+
+    ### For Environmental
+    - Use `akima` (smooth physical parameter changes)
+    - Linear OK if high-frequency logging
+
+    ### For Derivatives
+    - Use `cubic_spline` (smooth second derivative)
+    - Higher n_points for accurate derivatives
+
+    ## Integration with Dashboard
+
+    The Fermentalg dashboard provides:
+    1. **Interactive Selection**: Choose method from dropdown
+    2. **Live Preview**: See interpolation results immediately
+    3. **Comparison**: View original vs interpolated side-by-side
+    4. **Export**: Download interpolated data as CSV
+
+    ## Notes
+
+    - Time column name is hardcoded: `"Temps de culture (h)"`
+    - All numeric columns are interpolated (metadata columns preserved)
+    - Original data is never modified (creates new Tables)
+    - Interpolation tag added for traceability
+    - Compatible with all Fermentalg workflow tasks
+    - Designed for biological time-series (fermentation focus)
     """
 
     TIME_COL = "Temps de culture (h)"  # fixed column name
@@ -53,6 +398,7 @@ class FermentalgInterpolation(Task):
         "cubic",                # interp1d(kind='cubic')
         "pchip",                # PchipInterpolator (shape-preserving)
         "akima",                # Akima1DInterpolator
+        "makima",               # MakimaInterpolator (shape-preserving)
         "cubic_spline",         # CubicSpline
         "univariate_spline",    # UnivariateSpline (adaptive order)
         "spline",               # alias -> univariate_spline
@@ -74,8 +420,8 @@ class FermentalgInterpolation(Task):
     config_specs = ConfigSpecs({
         'method': StrParam(
             human_name="Interpolation method",
-            short_description="Method: linear, nearest, quadratic, cubic, pchip, akima, cubic_spline, univariate_spline, spline",
-            default_value="akima",
+            short_description="Method: linear, nearest, quadratic, cubic, pchip, akima, makima, cubic_spline, univariate_spline, spline",
+            default_value="makima",
             allowed_values=list(SUPPORTED_METHODS)
         ),
         'grid_strategy': StrParam(
@@ -232,7 +578,12 @@ class FermentalgInterpolation(Task):
 
         # Akima - shape-preserving and smooth
         if method == "akima":
-            f = Akima1DInterpolator(t_valid, y_valid, axis=0)
+            f = Akima1DInterpolator(t_valid, y_valid, method='akima', axis=0)
+            return f(t_new)
+
+        # Makima
+        if method == "makima":
+            f = Akima1DInterpolator(t_valid, y_valid, method='makima', axis=0)
             return f(t_new)
 
         # Natural cubic spline

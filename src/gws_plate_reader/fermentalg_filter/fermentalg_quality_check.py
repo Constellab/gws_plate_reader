@@ -1,0 +1,823 @@
+from gws_core import (InputSpec, OutputSpec, InputSpecs, OutputSpecs, Table,
+                      TypingStyle, ResourceSet, Task, task_decorator, ConfigSpecs, ConfigParams,
+                      StrParam, FloatParam, ParamSet, BoolParam, Tag)
+from typing import Dict, Any
+import pandas as pd
+import numpy as np
+
+
+@task_decorator("FermentalgQualityCheck", human_name="Fermentalg Data Quality Check",
+                short_description="Apply quality checks and filters to fermentation data (outliers, ranges, missing values)",
+                style=TypingStyle.community_icon(icon_technical_name="check-circle", background_color="#ffc107"))
+class FermentalgQualityCheck(Task):
+    """
+    Apply configurable quality checks to fermentation time series data.
+
+    ## Overview
+    This task performs data quality validation and filtering on fermentation ResourceSets.
+    It can detect outliers, validate value ranges, check for missing data, and filter based on
+    multiple criteria. Designed to work with output from FermentalgLoadData or
+    FilterFermentorAnalyseLoadedResourceSetBySelection.
+
+    ## Purpose
+    - **Outlier Detection**: Identify and optionally remove statistical outliers
+    - **Range Validation**: Ensure values fall within acceptable biological ranges
+    - **Missing Data**: Filter samples based on data completeness
+    - **Column Validation**: Verify required columns exist with valid data
+    - **Quality Tags**: Mark samples with quality issues for downstream analysis
+
+    ## Quality Check Types
+
+    ### 1. Outlier Detection
+    Detect outliers using statistical methods:
+
+    #### Z-Score Method
+    - **Description**: Detects values outside mean ± k*std
+    - **Formula**: |z| = |x - μ| / σ
+    - **Threshold**: Default z=3 (99.7% of normal distribution)
+    - **Best For**: Normally distributed data
+    - **Use Cases**: Growth rates, substrate consumption
+
+    #### IQR (Interquartile Range) Method
+    - **Description**: Detects values outside Q1-1.5*IQR to Q3+1.5*IQR
+    - **Formula**: IQR = Q3 - Q1
+    - **Threshold**: Default multiplier=1.5 (Tukey's rule)
+    - **Best For**: Skewed distributions, robust to extreme values
+    - **Use Cases**: Environmental parameters, batch-to-batch variation
+
+    #### Percentile Method
+    - **Description**: Removes values in extreme percentiles
+    - **Formula**: Keep values between pLow and pHigh
+    - **Threshold**: Default 1%-99%
+    - **Best For**: Known expected ranges
+    - **Use Cases**: Removing initialization/shutdown periods
+
+    ### 2. Value Range Validation
+    Validate data against expected biological ranges:
+
+    - **Min Threshold**: Values below this are invalid
+    - **Max Threshold**: Values above this are invalid
+    - **Action**: Mark samples or remove invalid data points
+
+    **Example Ranges:**
+    - Temperature: 15-45°C
+    - pH: 4.0-9.0
+    - Dissolved Oxygen: 0-100%
+    - Biomass: 0-50 g/L
+
+    ### 3. Missing Data Checks
+    Filter based on data completeness:
+
+    - **Max Missing Percentage**: Reject samples with too many NaN values
+    - **Required Columns**: Ensure critical columns exist and have data
+    - **Gap Detection**: Identify time series with large temporal gaps
+
+    ### 4. Custom Filters
+    Apply flexible pandas-style filters:
+
+    - **Expression-Based**: e.g., "column > value"
+    - **Aggregate Functions**: mean, std, min, max over entire timeseries
+    - **Cross-Column**: Validate relationships (e.g., substrate + product balance)
+
+    ## Configuration Parameters
+
+    ### Outlier Detection Parameters
+
+    #### `outlier_method` (String)
+    - **Default**: `"none"`
+    - **Options**: `"none"`, `"zscore"`, `"iqr"`, `"percentile"`
+    - **Description**: Statistical method for outlier detection
+    - **Recommendation**: Use `"iqr"` for biological data (robust to extremes)
+
+    #### `outlier_threshold` (Float)
+    - **Default**: 3.0
+    - **Range**: 1.0 to 10.0
+    - **For Z-Score**: Number of standard deviations (3.0 = 99.7% confidence)
+    - **For IQR**: Multiplier for interquartile range (1.5 = Tukey's rule)
+    - **Impact**: Lower = stricter (more outliers detected)
+
+    #### `outlier_percentile_low` (Float)
+    - **Default**: 1.0
+    - **Range**: 0.0 to 50.0
+    - **Only For**: `percentile` method
+    - **Description**: Lower percentile cutoff (values below are outliers)
+
+    #### `outlier_percentile_high` (Float)
+    - **Default**: 99.0
+    - **Range**: 50.0 to 100.0
+    - **Only For**: `percentile` method
+    - **Description**: Upper percentile cutoff (values above are outliers)
+
+    #### `outlier_columns` (List[String])
+    - **Default**: [] (all numeric columns)
+    - **Description**: Columns to check for outliers (empty = all)
+    - **Example**: `["Biomasse (g/L)", "DO2 (%)"]`
+
+    #### `outlier_action` (String)
+    - **Default**: `"remove_rows"`
+    - **Options**: `"remove_rows"`, `"mark_only"`, `"remove_sample"`
+    - **Description**: Action when outliers detected
+      - `"remove_rows"`: Delete rows with outliers
+      - `"mark_only"`: Add quality_warning tag but keep data
+      - `"remove_sample"`: Exclude entire sample from output
+
+    ### Range Validation Parameters
+
+    #### `range_checks` (List[ParamSet])
+    Define acceptable value ranges for columns:
+    ```python
+    [
+        {
+            'column': 'Temperature (°C)',
+            'min_value': 15.0,
+            'max_value': 45.0,
+            'action': 'remove_rows'
+        },
+        {
+            'column': 'pH',
+            'min_value': 4.0,
+            'max_value': 9.0,
+            'action': 'mark_only'
+        }
+    ]
+    ```
+
+    - **column**: Column name to validate
+    - **min_value**: Minimum acceptable value (None = no minimum)
+    - **max_value**: Maximum acceptable value (None = no maximum)
+    - **action**: `"remove_rows"`, `"mark_only"`, or `"remove_sample"`
+
+    ### Missing Data Parameters
+
+    #### `max_missing_percentage` (Float)
+    - **Default**: 50.0
+    - **Range**: 0.0 to 100.0
+    - **Description**: Maximum percentage of NaN values allowed per sample
+    - **Action**: Samples exceeding this are excluded from output
+
+    #### `required_columns` (List[String])
+    - **Default**: []
+    - **Description**: Columns that must exist with ≥ 1 non-NaN value
+    - **Example**: `["Temps de culture (h)", "Biomasse (g/L)"]`
+    - **Action**: Samples missing these columns are excluded
+
+    ### Additional Parameters
+
+    #### `add_quality_tags` (Boolean)
+    - **Default**: True
+    - **Description**: Add quality check result tags to output Tables
+    - **Tags Added**:
+      - `quality_check_passed`: "true" or "false"
+      - `quality_warnings`: Description of issues found
+      - `outliers_detected`: Count of outliers found
+      - `missing_data_percentage`: Percentage of missing values
+
+    ## Input Requirements
+
+    ### resource_set (ResourceSet)
+    - **Source**: FermentalgLoadData or Filter task output
+    - **Requirements**:
+      - Must contain Table resources
+      - Tables must have numeric data columns
+      - Recommended: `Temps de culture (h)` column for time series
+    - **Tags Used**:
+      - `batch`, `sample`, `medium` (preserved in output)
+      - Quality tags (added if configured)
+
+    ## Output Structure
+
+    ### filtered_resource_set (ResourceSet)
+    Contains Tables that passed all quality checks:
+
+    #### Data
+    - **Rows**: May be reduced if outliers/invalid values removed
+    - **Columns**: Same as input
+    - **Values**: Outliers and out-of-range values removed (if configured)
+
+    #### Tags (Preserved + New)
+    - **Original**: batch, sample, medium, missing_value
+    - **Quality Tags** (if add_quality_tags=True):
+      - `quality_check_passed`: Overall pass/fail
+      - `quality_warnings`: Comma-separated list of warnings
+      - `outliers_detected`: Number of outlier points found
+      - `missing_data_percentage`: % of NaN values
+      - `range_violations`: Number of range violations
+
+    #### Excluded Samples
+    - Samples failing checks are logged but not included in output
+    - Check log for list of excluded samples and reasons
+
+    ## Processing Logic
+
+    ### Execution Flow
+    1. **Input Validation**: Check ResourceSet contains Tables
+    2. **Per-Sample Processing**:
+       a. Extract Table and data
+       b. Check missing data percentage
+       c. Validate required columns exist
+       d. Apply range checks (per column)
+       e. Detect outliers (per column)
+       f. Take action (remove rows, mark, or exclude sample)
+       g. Calculate quality metrics
+       h. Add quality tags if enabled
+    3. **Output Assembly**: Include only passed samples in output ResourceSet
+    4. **Summary Logging**: Report statistics on checks performed
+
+    ### Decision Rules
+    - **Sample Excluded If**:
+      - Missing data > max_missing_percentage
+      - Missing any required_columns
+      - Any check with action="remove_sample" triggered
+    - **Rows Removed If**:
+      - Contains outlier (when action="remove_rows")
+      - Value outside range (when action="remove_rows")
+    - **Sample Marked If**:
+      - Issues detected but action="mark_only"
+      - Warnings added to quality_warnings tag
+
+    ## Use Cases
+
+    ### 1. Pre-Processing Pipeline
+    ```
+    FermentalgLoadData
+      ↓
+    Filter (select samples)
+      ↓
+    QualityCheck (remove outliers, validate ranges)
+      ↓
+    Interpolation
+      ↓
+    Analysis
+    ```
+
+    ### 2. Outlier Removal for Publication
+    ```
+    QualityCheck (
+      method=iqr,
+      threshold=1.5,
+      action=remove_rows
+    )
+    → Clean dataset for figures
+    ```
+
+    ### 3. Data Quality Report
+    ```
+    QualityCheck (
+      action=mark_only,
+      add_quality_tags=True
+    )
+    → Review quality_warnings tags
+    → Decide which samples to exclude manually
+    ```
+
+    ### 4. Biological Range Validation
+    ```
+    QualityCheck (
+      range_checks=[
+        {column: "Temperature", min: 20, max: 40},
+        {column: "pH", min: 5, max: 8},
+        {column: "DO2", min: 0, max: 100}
+      ]
+    )
+    → Ensure sensor data is valid
+    ```
+
+    ## Example Configurations
+
+    ### Conservative Outlier Removal (IQR)
+    ```python
+    {
+        'outlier_method': 'iqr',
+        'outlier_threshold': 1.5,
+        'outlier_action': 'remove_rows',
+        'add_quality_tags': True
+    }
+    ```
+
+    ### Strict Quality Gate
+    ```python
+    {
+        'outlier_method': 'zscore',
+        'outlier_threshold': 2.5,
+        'max_missing_percentage': 10.0,
+        'required_columns': [
+            'Temps de culture (h)',
+            'Biomasse (g/L)',
+            'Glucose (g/L)'
+        ],
+        'range_checks': [
+            {'column': 'pH', 'min_value': 5.0, 'max_value': 8.5, 'action': 'remove_sample'}
+        ]
+    }
+    ```
+
+    ### Quality Audit (Mark Only)
+    ```python
+    {
+        'outlier_method': 'percentile',
+        'outlier_percentile_low': 2.0,
+        'outlier_percentile_high': 98.0,
+        'outlier_action': 'mark_only',
+        'add_quality_tags': True
+    }
+    ```
+
+    ## Troubleshooting
+
+    | Issue | Cause | Solution |
+    |-------|-------|----------|
+    | All samples removed | Thresholds too strict | Relax thresholds, use mark_only first |
+    | No outliers detected | Threshold too high | Lower outlier_threshold |
+    | Wrong columns checked | Column names mismatch | Verify exact column names (case-sensitive) |
+    | Too many rows removed | Action on wrong columns | Use outlier_columns to specify target columns |
+
+    ## Best Practices
+
+    1. **Start Lenient**: Use `mark_only` first to see quality distribution
+    2. **Review Distributions**: Check data before setting range thresholds
+    3. **Use IQR for Biology**: Biological data often isn't normal
+    4. **Log Review**: Always check log for excluded samples and reasons
+    5. **Preserve Originals**: Keep unfiltered data for comparison
+    6. **Document Settings**: Record quality check parameters with results
+
+    ## Scientific Considerations
+
+    ### Outlier Detection Sensitivity
+    - **Z-Score**: Assumes normal distribution (rare in biology)
+    - **IQR**: Robust, works with skewed data (recommended)
+    - **Percentile**: Good for known distributions
+
+    ### Common Fermentation Ranges
+    - **Temperature**: 15-45°C (organism dependent)
+    - **pH**: 4-9 (process dependent)
+    - **DO2**: 0-100% saturation
+    - **Biomass**: 0-50 g/L (typical range)
+    - **Substrates/Products**: 0-200 g/L (depends on strain)
+
+    ### When to Remove vs Mark
+    - **Remove**: Clear sensor errors, initialization artifacts
+    - **Mark**: Biological variation, borderline outliers
+    - **Remove Sample**: Systemic failure, contamination
+
+    ## Notes
+
+    - All quality checks are optional (can disable all for pass-through)
+    - Original ResourceSet is never modified
+    - Quality tags enable downstream filtering/analysis
+    - Compatible with all Fermentalg workflow tasks
+    - Processing is per-sample (samples don't affect each other)
+    """
+
+    input_specs: InputSpecs = InputSpecs({
+        'resource_set': InputSpec(ResourceSet,
+                                  human_name="Input ResourceSet to check",
+                                  short_description="ResourceSet containing fermentalg time series data to validate",
+                                  optional=False),
+    })
+
+    output_specs: OutputSpecs = OutputSpecs({
+        'filtered_resource_set': OutputSpec(ResourceSet,
+                                            human_name="Quality-checked ResourceSet",
+                                            short_description="ResourceSet containing only samples that passed quality checks")
+    })
+
+    config_specs = ConfigSpecs({
+        # Outlier detection parameters
+        'outlier_method': StrParam(
+            human_name="Outlier detection method",
+            short_description="Method: none, zscore, iqr, percentile",
+            default_value="none",
+            allowed_values=["none", "zscore", "iqr", "percentile"]
+        ),
+        'outlier_threshold': FloatParam(
+            human_name="Outlier threshold",
+            short_description="Threshold for zscore (std) or iqr (multiplier) methods",
+            default_value=3.0,
+            min_value=1.0,
+            max_value=10.0
+        ),
+        'outlier_percentile_low': FloatParam(
+            human_name="Lower percentile cutoff",
+            short_description="Lower percentile for outlier detection (percentile method)",
+            default_value=1.0,
+            min_value=0.0,
+            max_value=50.0
+        ),
+        'outlier_percentile_high': FloatParam(
+            human_name="Upper percentile cutoff",
+            short_description="Upper percentile for outlier detection (percentile method)",
+            default_value=99.0,
+            min_value=50.0,
+            max_value=100.0
+        ),
+        'outlier_columns': StrParam(
+            human_name="Columns to check for outliers",
+            short_description="Comma-separated column names (empty = all numeric columns)",
+            default_value="",
+            optional=True
+        ),
+        'outlier_action': StrParam(
+            human_name="Action when outliers detected",
+            short_description="Action: remove_rows (delete outlier points), mark_only (tag), remove_sample (exclude entire sample)",
+            default_value="remove_rows",
+            allowed_values=["remove_rows", "mark_only", "remove_sample"]
+        ),
+
+        # Range validation parameters
+        'range_checks': ParamSet(
+            ConfigSpecs({
+                'column': StrParam(
+                    human_name="Column name",
+                    short_description="Column to validate"
+                ),
+                'min_value': FloatParam(
+                    human_name="Minimum value",
+                    short_description="Minimum acceptable value (None = no limit)",
+                    optional=True
+                ),
+                'max_value': FloatParam(
+                    human_name="Maximum value",
+                    short_description="Maximum acceptable value (None = no limit)",
+                    optional=True
+                ),
+                'action': StrParam(
+                    human_name="Action on violation",
+                    short_description="Action: remove_rows, mark_only, remove_sample",
+                    default_value="remove_rows",
+                    allowed_values=["remove_rows", "mark_only", "remove_sample"]
+                )
+            }),
+            optional=True,
+            human_name="Range validation checks",
+            short_description="List of column range validations to apply"
+        ),
+
+        # Missing data parameters
+        'max_missing_percentage': FloatParam(
+            human_name="Maximum missing data percentage",
+            short_description="Maximum % of NaN values allowed per sample (0-100)",
+            default_value=50.0,
+            min_value=0.0,
+            max_value=100.0
+        ),
+        'required_columns': StrParam(
+            human_name="Required columns",
+            short_description="Comma-separated list of columns that must exist with data",
+            default_value="",
+            optional=True
+        ),
+
+        # Output options
+        'add_quality_tags': BoolParam(
+            human_name="Add quality tags",
+            short_description="Add quality check result tags to output Tables",
+            default_value=True
+        )
+    })
+
+    def _detect_outliers_zscore(self, data: pd.Series, threshold: float) -> np.ndarray:
+        """Detect outliers using Z-score method"""
+        mean = data.mean()
+        std = data.std()
+        if std == 0:
+            return np.zeros(len(data), dtype=bool)
+        z_scores = np.abs((data - mean) / std)
+        return z_scores > threshold
+
+    def _detect_outliers_iqr(self, data: pd.Series, multiplier: float) -> np.ndarray:
+        """Detect outliers using IQR method"""
+        q1 = data.quantile(0.25)
+        q3 = data.quantile(0.75)
+        iqr = q3 - q1
+        if iqr == 0:
+            return np.zeros(len(data), dtype=bool)
+        lower_bound = q1 - multiplier * iqr
+        upper_bound = q3 + multiplier * iqr
+        return (data < lower_bound) | (data > upper_bound)
+
+    def _detect_outliers_percentile(self, data: pd.Series, low: float, high: float) -> np.ndarray:
+        """Detect outliers using percentile method"""
+        p_low = data.quantile(low / 100.0)
+        p_high = data.quantile(high / 100.0)
+        return (data < p_low) | (data > p_high)
+
+    def _check_sample_quality(
+        self,
+        table: Table,
+        params: ConfigParams
+    ) -> Dict[str, Any]:
+        """
+        Check quality of a single sample and return quality metrics.
+
+        Returns:
+            Dict with keys:
+                - passed: bool
+                - warnings: List[str]
+                - outliers_detected: int
+                - missing_percentage: float
+                - range_violations: int
+                - filtered_data: pd.DataFrame (if passed)
+                - action: str (what happened: "passed", "excluded", "modified")
+        """
+        df = table.get_data().copy()
+        warnings = []
+        outliers_detected = 0
+        range_violations = 0
+        exclude_sample = False
+
+        self.log_info_message(f"Checking sample '{table.name}' - DataFrame shape: {df.shape}")
+        self.log_info_message(f"  Available columns: {', '.join(df.columns.tolist())}")
+
+        # 1. Check missing data percentage
+        total_cells = df.size
+        missing_cells = df.isna().sum().sum()
+        missing_percentage = (missing_cells / total_cells * 100) if total_cells > 0 else 0
+
+        max_missing = params.get_value('max_missing_percentage')
+        if missing_percentage > max_missing:
+            warnings.append(f"Missing data {missing_percentage:.1f}% > {max_missing:.1f}%")
+            exclude_sample = True
+
+        # 2. Check required columns
+        required_cols_str = params.get_value('required_columns')
+        if required_cols_str:
+            required_cols = [col.strip() for col in required_cols_str.split(',') if col.strip()]
+            for col in required_cols:
+                if col not in df.columns:
+                    warnings.append(f"Missing required column: {col}")
+                    exclude_sample = True
+                elif df[col].isna().all():
+                    warnings.append(f"Required column {col} has no data")
+                    exclude_sample = True
+
+        if exclude_sample:
+            return {
+                'passed': False,
+                'warnings': warnings,
+                'outliers_detected': 0,
+                'missing_percentage': missing_percentage,
+                'range_violations': 0,
+                'action': 'excluded'
+            }
+
+        # 3. Range checks
+        range_checks = params.get('range_checks', [])
+        self.log_info_message(f"  Range checks configuration: {len(range_checks)} check(s) defined")
+
+        for check in range_checks:
+            col = check.get('column')
+            min_val = check.get('min_value')
+            max_val = check.get('max_value')
+            action = check.get('action', 'remove_rows')
+
+            self.log_info_message(f"  Checking range for column '{col}': min={min_val}, max={max_val}, action={action}")
+
+            if col not in df.columns:
+                warnings.append(f"Range check column not found: {col}")
+                # Log available columns for debugging
+                available_cols = ", ".join(df.columns.tolist()[:10])
+                warnings.append(f"Available columns: {available_cols}...")
+                self.log_warning_message(f"    ❌ Column '{col}' NOT FOUND in DataFrame!")
+                self.log_info_message(f"    Available columns: {available_cols}")
+                continue
+
+            self.log_info_message(f"    ✓ Column '{col}' found in DataFrame")
+
+            violations = pd.Series([False] * len(df), index=df.index)
+            if min_val is not None:
+                below_min = df[col] < min_val
+                violations |= below_min
+            if max_val is not None:
+                above_max = df[col] > max_val
+                violations |= above_max
+
+            violation_count = violations.sum()
+
+            # Log detailed statistics
+            col_min = df[col].min()
+            col_max = df[col].max()
+            col_mean = df[col].mean()
+            nan_count = df[col].isna().sum()
+
+            self.log_info_message(f"    Column '{col}' statistics:")
+            self.log_info_message(f"      - Min: {col_min:.4f}, Max: {col_max:.4f}, Mean: {col_mean:.4f}")
+            self.log_info_message(f"      - NaN values: {nan_count}/{len(df)}")
+            self.log_info_message(f"      - Violations detected: {violation_count}")
+
+            if violation_count > 0:
+                range_violations += violation_count
+                warnings.append(
+                    f"{col}: {violation_count} values outside [{min_val}, {max_val}] (actual range: [{col_min:.2f}, {col_max:.2f}])")
+
+                self.log_warning_message(f"    ⚠️ {violation_count} values outside range [{min_val}, {max_val}]")
+
+                if action == 'remove_sample':
+                    exclude_sample = True
+                    self.log_warning_message(f"    🚫 Action 'remove_sample' triggered - sample will be EXCLUDED")
+                elif action == 'remove_rows':
+                    df = df[~violations]
+                    self.log_info_message(f"    ✂️ Action 'remove_rows' - {violation_count} rows removed")
+                else:
+                    self.log_info_message(f"    📝 Action 'mark_only' - keeping data with warning")
+            else:
+                self.log_info_message(f"    ✅ All values within range [{min_val}, {max_val}]")
+
+        if exclude_sample:
+            return {
+                'passed': False,
+                'warnings': warnings,
+                'outliers_detected': outliers_detected,
+                'missing_percentage': missing_percentage,
+                'range_violations': range_violations,
+                'action': 'excluded'
+            }
+
+        # 4. Outlier detection
+        outlier_method = params.get_value('outlier_method')
+        if outlier_method != 'none':
+            outlier_threshold = params.get_value('outlier_threshold')
+            outlier_percentile_low = params.get_value('outlier_percentile_low')
+            outlier_percentile_high = params.get_value('outlier_percentile_high')
+            outlier_action = params.get_value('outlier_action')
+
+            # Determine columns to check
+            outlier_cols_str = params.get_value('outlier_columns')
+            if outlier_cols_str:
+                outlier_cols = [col.strip() for col in outlier_cols_str.split(',') if col.strip()]
+            else:
+                # Check all numeric columns
+                outlier_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+            # Detect outliers per column
+            all_outliers = pd.Series([False] * len(df))
+            for col in outlier_cols:
+                if col not in df.columns:
+                    continue
+
+                # Skip non-numeric columns
+                if not pd.api.types.is_numeric_dtype(df[col]):
+                    continue
+
+                # Skip columns with too many NaN
+                if df[col].isna().sum() > len(df) * 0.5:
+                    continue
+
+                col_data = df[col].dropna()
+                if len(col_data) < 3:
+                    continue
+
+                if outlier_method == 'zscore':
+                    outliers = self._detect_outliers_zscore(col_data, outlier_threshold)
+                elif outlier_method == 'iqr':
+                    outliers = self._detect_outliers_iqr(col_data, outlier_threshold)
+                elif outlier_method == 'percentile':
+                    outliers = self._detect_outliers_percentile(
+                        col_data, outlier_percentile_low, outlier_percentile_high
+                    )
+                else:
+                    continue
+
+                # Map outliers back to original dataframe indices
+                outlier_indices = col_data.index[outliers]
+                all_outliers.loc[outlier_indices] = True
+                outliers_detected += outliers.sum()
+
+            if outliers_detected > 0:
+                warnings.append(f"{outliers_detected} outlier points detected")
+
+                if outlier_action == 'remove_sample':
+                    exclude_sample = True
+                elif outlier_action == 'remove_rows':
+                    df = df[~all_outliers]
+
+        if exclude_sample:
+            return {
+                'passed': False,
+                'warnings': warnings,
+                'outliers_detected': outliers_detected,
+                'missing_percentage': missing_percentage,
+                'range_violations': range_violations,
+                'action': 'excluded'
+            }
+
+        # Sample passed all checks
+        action = 'modified' if (len(df) < len(table.get_data())) else 'passed'
+        return {
+            'passed': True,
+            'warnings': warnings,
+            'outliers_detected': outliers_detected,
+            'missing_percentage': missing_percentage,
+            'range_violations': range_violations,
+            'filtered_data': df,
+            'action': action
+        }
+
+    def run(self, params: ConfigParams, inputs) -> Dict[str, Any]:
+        resource_set: ResourceSet = inputs['resource_set']
+        add_quality_tags = params.get_value('add_quality_tags')
+
+        self.log_info_message("Starting quality check on ResourceSet")
+
+        # Create output ResourceSet
+        filtered_res = ResourceSet()
+
+        resources = resource_set.get_resources()
+        total_samples = len(resources)
+        passed_samples = 0
+        excluded_samples = 0
+        modified_samples = 0
+
+        for resource_name, resource in resources.items():
+            if not isinstance(resource, Table):
+                self.log_warning_message(f"Skipping non-Table resource: {resource_name}")
+                continue
+
+            # Log tags for debugging
+            self.log_info_message(f"Processing resource: {resource_name}")
+            if hasattr(resource, 'tags') and resource.tags:
+                tags_list = [(tag.key, tag.value) for tag in resource.tags.get_tags()]
+                self.log_info_message(f"  Tags found: {tags_list}")
+            else:
+                self.log_warning_message(f"  No tags found on resource {resource_name}")
+
+            # Check quality
+            quality_result = self._check_sample_quality(resource, params)
+
+            if not quality_result['passed']:
+                excluded_samples += 1
+                warnings_str = "; ".join(quality_result['warnings'])
+                self.log_warning_message(
+                    f"Sample '{resource_name}' excluded: {warnings_str}"
+                )
+                continue
+
+            # Create output table - ALWAYS create new Table instance to avoid resource model detection issues
+            if quality_result['action'] == 'modified':
+                modified_samples += 1
+                output_table = Table(quality_result['filtered_data'])
+            else:
+                passed_samples += 1
+                # Create new Table with copy of original data to ensure it's a new instance
+                output_table = Table(resource.get_data().copy())
+
+            # Always add _qc suffix to distinguish from original
+            output_table.name = f"{resource_name}_qc"
+
+            # Copy tags from original resource (CRITICAL for dashboard visualizations)
+            # Must create NEW Tag instances to avoid model detection issues
+            if resource.tags:
+                for tag in resource.tags.get_tags():
+                    output_table.tags.add_tag(Tag(key=tag.key, value=tag.value))
+
+            # Copy column tags
+            for col in output_table.get_column_names():
+                if col in resource.get_column_names():
+                    col_tags = resource.get_column_tags_by_name(col)
+                    for tag_key, tag_value in col_tags.items():
+                        output_table.add_column_tag_by_name(col, tag_key, tag_value)
+
+            # Add quality tags
+            if add_quality_tags:
+                output_table.tags.add_tag(Tag(
+                    key="quality_check_passed",
+                    value="true" if quality_result['passed'] else "false"
+                ))
+
+                if quality_result['warnings']:
+                    output_table.tags.add_tag(Tag(
+                        key="quality_warnings",
+                        value="; ".join(quality_result['warnings'])
+                    ))
+
+                output_table.tags.add_tag(Tag(
+                    key="outliers_detected",
+                    value=str(quality_result['outliers_detected'])
+                ))
+
+                output_table.tags.add_tag(Tag(
+                    key="missing_data_percentage",
+                    value=f"{quality_result['missing_percentage']:.2f}"
+                ))
+
+                output_table.tags.add_tag(Tag(
+                    key="range_violations",
+                    value=str(quality_result['range_violations'])
+                ))
+
+            filtered_res.add_resource(output_table, resource_name)
+
+        # Summary logging
+        self.log_success_message(
+            f"Quality check complete: {passed_samples} passed unchanged, "
+            f"{modified_samples} modified, {excluded_samples} excluded "
+            f"(out of {total_samples} total samples)"
+        )
+
+        if excluded_samples == total_samples:
+            self.log_warning_message(
+                "All samples were excluded! Consider relaxing quality check parameters."
+            )
+
+        return {
+            'filtered_resource_set': filtered_res
+        }

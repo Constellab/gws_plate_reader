@@ -7,48 +7,70 @@ import pandas as pd
 import plotly.graph_objects as go
 from typing import Optional
 
-from gws_core import Scenario, ScenarioStatus
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core import State
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.analyse import Analyse
+from gws_core import Scenario, ScenarioStatus, ScenarioProxy
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
 
 
-def render_graph_view_step(
-        analyse: Analyse, fermentalg_state: State, selection_scenario: Optional[Scenario] = None) -> None:
+def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+                           scenario: Optional[Scenario] = None,
+                           output_name: str = None) -> None:
     """Render the graph view step with data visualizations using Plotly
 
-    :param analyse: The Analyse instance
+    :param recipe: The Recipe instance
     :param fermentalg_state: The fermentalg state
-    :param selection_scenario: Specific selection scenario to use (if None, use latest)
+    :param scenario: The scenario to display (selection or quality check)
+    :param output_name: The output name to retrieve from the scenario (e.g., INTERPOLATION_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
     """
 
     translate_service = fermentalg_state.get_translate_service()
 
     try:
-        # Check if selection scenarios exist
-        if not analyse.has_selection_scenarios():
-            st.warning(translate_service.translate('no_selection_made'))
-            return
+        # If scenario is provided, use it
+        if scenario:
+            target_scenario = scenario
+            st.info(f"� Affichage des graphiques : **{target_scenario.title}**")
 
-        # Use provided selection scenario or get the latest one
-        if selection_scenario:
-            target_scenario = selection_scenario
-            st.info(f"🎯 Affichage des graphiques pour : **{target_scenario.title}**")
+            if target_scenario.status != ScenarioStatus.SUCCESS:
+                st.warning("Le scénario n'est pas encore terminé avec succès.")
+                return
+
+            # Get data from scenario using the provided output name
+            if not output_name:
+                # Default to interpolation output for backward compatibility
+                output_name = fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+
+            scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
+            protocol_proxy = scenario_proxy.get_protocol()
+
+            try:
+                filtered_resource_set = protocol_proxy.get_output(output_name)
+                if not filtered_resource_set:
+                    st.error(translate_service.translate('cannot_retrieve_data'))
+                    return
+            except Exception as e:
+                st.error(f"Erreur lors de la récupération des données: {str(e)}")
+                return
+
+        # Backward compatibility: if no scenario provided, try to get latest selection
         else:
-            # Get the latest selection scenario (backward compatibility)
-            selection_scenarios = analyse.get_selection_scenarios()
+            if not recipe.has_selection_scenarios():
+                st.warning(translate_service.translate('no_selection_made'))
+                return
+
+            selection_scenarios = recipe.get_selection_scenarios()
             target_scenario = selection_scenarios[0] if selection_scenarios else None
 
-        if not target_scenario or target_scenario.status != ScenarioStatus.SUCCESS:
-            st.warning(translate_service.translate('selection_not_successful'))
-            return
+            if not target_scenario or target_scenario.status != ScenarioStatus.SUCCESS:
+                st.warning(translate_service.translate('selection_not_successful'))
+                return
+
+            filtered_resource_set = fermentalg_state.get_interpolation_scenario_output(target_scenario)
+            if not filtered_resource_set:
+                st.error(translate_service.translate('cannot_retrieve_filtered_data'))
+                return
 
         st.subheader(translate_service.translate('graph_visualizations'))
-
-        # Get interpolated data from selection scenario
-        filtered_resource_set = fermentalg_state.get_interpolation_scenario_output(target_scenario)
-        if not filtered_resource_set:
-            st.error(translate_service.translate('cannot_retrieve_filtered_data'))
-            return
 
         # Extract data for visualization using State method
         visualization_data = fermentalg_state.prepare_data_for_visualization(filtered_resource_set)
@@ -57,15 +79,18 @@ def render_graph_view_step(
             st.warning(translate_service.translate('no_data_for_visualization'))
             return
 
-        # Create dataframe from visualization data
-        # We need to expand the data to include all columns from the tables
+        # Get unique values for filters (excluding empty strings)
+        unique_batches = sorted(list(set(item['Batch'] for item in visualization_data if item['Batch'])))
+        unique_samples = sorted(list(set(item['Sample'] for item in visualization_data if item['Sample'])))
+
+        # Create dataframe from all resources for detailed plotting
         from gws_core import Table
         all_data_rows = []
         resources = filtered_resource_set.get_resources()
 
         for resource_name, resource in resources.items():
             if isinstance(resource, Table):
-                # Extract metadata
+                # Extract metadata from tags
                 batch = ""
                 sample = ""
                 medium = ""
@@ -99,28 +124,44 @@ def render_graph_view_step(
         st.markdown("---")
         st.subheader(translate_service.translate('filters_and_selection'))
 
-        # Get unique values for filters
-        unique_batches = sorted(df_all['Batch'].unique().tolist())
-        unique_samples = sorted(df_all['Sample'].unique().tolist())
-
         # Create 2x2 grid for filters
         col1, col2 = st.columns(2)
 
         with col1:
-            st.write(translate_service.translate('batch_selection'))
+            col1_header, col1_button = st.columns([3, 1])
+            with col1_header:
+                st.write(translate_service.translate('batch_selection'))
+            with col1_button:
+                if st.button(translate_service.translate('select_all_batches'), key="select_all_batches_graph", use_container_width=True):
+                    st.session_state.graph_view_batches = unique_batches
+                    st.rerun()
+
+            # Reset selection if batches changed
+            if 'graph_view_batches' not in st.session_state or len([batch for batch in st.session_state.graph_view_batches if batch not in unique_batches]) > 0:
+                st.session_state.graph_view_batches = []
+
             selected_batches = st.multiselect(
-                "Choisir les batches à afficher",
+                translate_service.translate('choose_batches'),
                 options=unique_batches,
-                default=unique_batches,  # All batches selected by default
                 key="graph_view_batches"
             )
 
         with col2:
-            st.write(translate_service.translate('sample_selection'))
+            col2_header, col2_button = st.columns([3, 1])
+            with col2_header:
+                st.write(translate_service.translate('sample_selection'))
+            with col2_button:
+                if st.button(translate_service.translate('select_all_samples'), key="select_all_samples_graph", use_container_width=True):
+                    st.session_state.graph_view_samples = unique_samples
+                    st.rerun()
+
+            # Reset selection if samples changed
+            if 'graph_view_samples' not in st.session_state or len([sample for sample in st.session_state.graph_view_samples if sample not in unique_samples]) > 0:
+                st.session_state.graph_view_samples = []
+
             selected_samples = st.multiselect(
-                "Choisir les échantillons à afficher",
+                translate_service.translate('choose_samples'),
                 options=unique_samples,
-                default=unique_samples,  # All samples selected by default
                 key="graph_view_samples"
             )
 
@@ -132,11 +173,11 @@ def render_graph_view_step(
             # Check if index columns are available
             if index_columns:
                 selected_index = st.selectbox(
-                    "Choisir la colonne à utiliser comme index",
+                    translate_service.translate('choose_index_column'),
                     options=index_columns,
                     index=0,
                     key="graph_view_index",
-                    help="La colonne sélectionnée sera utilisée comme axe X pour les graphiques"
+                    help=translate_service.translate('index_column_help_graph')
                 )
             else:
                 st.warning(translate_service.translate('no_index_column'))
@@ -150,13 +191,15 @@ def render_graph_view_step(
 
         with col4:
             st.write(translate_service.translate('column_selection'))
+            help_text = translate_service.translate('available_data_columns')
+            if selected_index:
+                help_text += " " + translate_service.translate('excluding_index').format(index=selected_index)
             selected_columns = st.multiselect(
-                "Choisir les colonnes à afficher",
+                translate_service.translate('choose_columns'),
                 options=filtered_data_columns,
                 default=[],  # No columns selected by default
                 key="graph_view_columns",
-                help=f"Colonnes de données disponibles" +
-                (f" (excluant l'index '{selected_index}')" if selected_index else "")
+                help=help_text
             )
 
         # Show info message if a data column is used as index

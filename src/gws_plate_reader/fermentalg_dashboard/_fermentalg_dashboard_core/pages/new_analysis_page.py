@@ -12,11 +12,11 @@ from gws_core import (
 from gws_core.streamlit import (
     StreamlitResourceSelect, StreamlitRouter, StreamlitTaskRunner, StreamlitContainers
 )
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.state import State
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
 from gws_plate_reader.fermentalg_load_data.fermentalg_load_data import FermentalgLoadData
 
 
-def render_new_analysis_page(fermentalg_state: State) -> None:
+def render_new_analysis_page(fermentalg_state: FermentalgState) -> None:
     """Render the new analysis creation page"""
 
     translate_service = fermentalg_state.get_translate_service()
@@ -34,31 +34,36 @@ def render_new_analysis_page(fermentalg_state: State) -> None:
         router = StreamlitRouter.load_from_session()
 
         if st.button(
-            f"← {translate_service.translate('return_to_analyses')}", icon=":material/arrow_back:",
+            f"{translate_service.translate('return_to_recipes')}", icon=":material/arrow_back:",
                 use_container_width=False):
             router.navigate("first-page")
 
         with st.form(clear_on_submit=False, enter_to_submit=True, key="new_analysis_form"):
-            st.markdown(f"## 🧬 {translate_service.translate('new_analysis_fermentalg')}")
+            st.markdown(f"## 🧬 {translate_service.translate('new_recipe_fermentalg')}")
 
-            # Analysis details (moved to first position)
-            st.subheader(f"📝 {translate_service.translate('analysis_details')}")
+            # Recipe details (moved to first position)
+            st.subheader(f"📝 {translate_service.translate('recipe_details')}")
 
             analysis_name = st.text_input(
-                translate_service.translate("analysis_name_label"),
+                translate_service.translate("recipe_name_label"),
                 key="analysis_name_input",
-                placeholder=translate_service.translate("analysis_name_placeholder")
+                placeholder=translate_service.translate("recipe_name_placeholder")
             )
 
             # Microplate checkbox (full width)
             is_microplate = st.checkbox(
-                translate_service.translate("microplate_analysis"),
+                translate_service.translate("microplate_recipe"),
                 key="is_microplate_checkbox",
                 help=translate_service.translate("microplate_help")
             )
 
             # Upload the 4 required files (moved to second position with 2x2 grid)
             st.subheader(f"📁 {translate_service.translate('import_required_files')}")
+
+            # Documentation link button
+            url_doc_context = "https://constellab.community/bricks/gws_plate_reader/latest/doc/technical-folder/task/FermentalgLoadData"
+            st.link_button("**?**", url_doc_context)
+
             st.info(translate_service.translate('import_files_info'))
 
             # Create 2x2 grid for file uploads
@@ -100,7 +105,7 @@ def render_new_analysis_page(fermentalg_state: State) -> None:
 
             # Submit button
             submit_button = st.form_submit_button(
-                label=f"🚀 {translate_service.translate('create_analysis_button')}",
+                label=f"🚀 {translate_service.translate('create_recipe_button')}",
                 type="primary",
                 use_container_width=True
             )
@@ -123,7 +128,7 @@ def render_new_analysis_page(fermentalg_state: State) -> None:
 
                 # Check analysis name
                 if not analysis_name or not analysis_name.strip():
-                    missing_fields.append(translate_service.translate("analysis_name_label"))
+                    missing_fields.append(translate_service.translate("recipe_name_label"))
 
                 if missing_fields:
                     # Construire le message d'erreur sous forme "Champs manquant : '..', '...'"
@@ -216,11 +221,18 @@ def render_new_analysis_page(fermentalg_state: State) -> None:
                         out_port=follow_up_zip_input >> 'resource',
                         in_port=fermentalg_load_process << 'follow_up_zip')
 
-                    # Add output
+                    # Add outputs
                     protocol.add_output(
                         fermentalg_state.LOAD_SCENARIO_OUTPUT_NAME,
                         fermentalg_load_process >> 'resource_set',
                         flag_resource=True
+                    )
+
+                    # Add venn diagram output (optional)
+                    protocol.add_output(
+                        'venn_diagram',
+                        fermentalg_load_process >> 'venn_diagram',
+                        flag_resource=False
                     )
 
                     # Add tags for identification
@@ -231,7 +243,7 @@ def render_new_analysis_page(fermentalg_state: State) -> None:
                     scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG,
                                          fermentalg_state.TAG_DATA_PROCESSING,
                                          is_propagable=False))
-                    scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_ANALYSIS_NAME,
+                    scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,
                                          analysis_name_parsed,
                                          is_propagable=False))
                     scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID,
@@ -256,11 +268,11 @@ def render_new_analysis_page(fermentalg_state: State) -> None:
                     # Add to queue and navigate back
                     scenario.add_to_queue()
 
-                    st.success(translate_service.translate('analysis_created').format(analysis_name=analysis_name))
-                    st.info(translate_service.translate('creating_analysis'))
+                    st.success(translate_service.translate('recipe_created').format(recipe_name=analysis_name))
+                    st.info(translate_service.translate('creating_recipe'))
 
                     # Navigate back after a short delay
-                    with st.spinner(translate_service.translate('view_analysis')):
+                    with st.spinner(translate_service.translate('view_recipe')):
                         import time
                         time.sleep(2)
 
@@ -269,7 +281,7 @@ def render_new_analysis_page(fermentalg_state: State) -> None:
 
                 except Exception as e:
                     # Construire le message d'erreur complet
-                    error_message = f"{translate_service.translate('error_creating_analysis')}\n\n**{translate_service.translate('error_details')}** {str(e)}"
+                    error_message = f"{translate_service.translate('error_creating_recipe')}\n\n**{translate_service.translate('error_details')}** {str(e)}"
                     st.error(error_message)
 
                     # Afficher la stack trace en mode expandable pour le debug

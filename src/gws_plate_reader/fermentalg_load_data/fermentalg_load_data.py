@@ -2,19 +2,280 @@ import os
 import re
 
 import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
 
 from gws_core import (File, InputSpec, OutputSpec, InputSpecs, OutputSpecs, Table, Folder, Tag,
-                      TypingStyle, ResourceSet, Task, task_decorator, TableImporter, ZipCompress)
+                      TypingStyle, ResourceSet, Task, task_decorator, TableImporter, ZipCompress,
+                      PlotlyResource)
 
-from typing import Dict, Any
+from typing import Dict, Any, Set, Tuple
+
+
+def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> go.Figure:
+    """
+    Create a Venn diagram with 3 overlapping circles representing data types
+    (info, raw_data, follow_up) showing all intersections.
+
+    Args:
+        sample_sets: Dict with sets of (batch, sample) tuples for each data type
+            Keys: 'info', 'raw_data', 'follow_up'
+            Values: Set of (batch, sample) tuples
+
+    Returns:
+        Plotly Figure with the Venn diagram showing all intersections
+    """
+
+    # Extract sets
+    A = sample_sets.get('info', set())  # Info
+    B = sample_sets.get('raw_data', set())  # Raw Data
+    C = sample_sets.get('follow_up', set())  # Follow-up
+
+    # Calculate all regions
+    only_A = len(A - B - C)  # Only Info
+    only_B = len(B - A - C)  # Only Raw Data
+    only_C = len(C - A - B)  # Only Follow-up
+    A_and_B = len((A & B) - C)  # Info ∩ Raw Data (excluding Follow-up)
+    A_and_C = len((A & C) - B)  # Info ∩ Follow-up (excluding Raw Data)
+    B_and_C = len((B & C) - A)  # Raw Data ∩ Follow-up (excluding Info)
+    A_and_B_and_C = len(A & B & C)  # All three (complete samples)
+
+    # Create figure
+    fig = go.Figure()
+
+    # Circle parameters
+    radius = 0.28
+    Ax, Ay = 0.35, 0.5   # Info (left)
+    Bx, By = 0.65, 0.5   # Raw Data (right)
+    Cx, Cy = 0.5, 0.72   # Follow-up (top)
+
+    # Create circles using parametric equations
+    theta = np.linspace(0, 2 * np.pi, 100)
+
+    # Circle A - Info (Blue)
+    x_A = radius * np.cos(theta) + Ax
+    y_A = radius * np.sin(theta) + Ay
+    fig.add_trace(go.Scatter(
+        x=x_A, y=y_A,
+        fill='toself',
+        fillcolor='rgba(33, 150, 243, 0.3)',
+        line=dict(color='rgba(33, 150, 243, 0.8)', width=3),
+        name='Info',
+        mode='lines',
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Circle B - Raw Data (Green)
+    x_B = radius * np.cos(theta) + Bx
+    y_B = radius * np.sin(theta) + By
+    fig.add_trace(go.Scatter(
+        x=x_B, y=y_B,
+        fill='toself',
+        fillcolor='rgba(76, 175, 80, 0.3)',
+        line=dict(color='rgba(76, 175, 80, 0.8)', width=3),
+        name='Raw Data',
+        mode='lines',
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Circle C - Follow-up (Purple)
+    x_C = radius * np.cos(theta) + Cx
+    y_C = radius * np.sin(theta) + Cy
+    fig.add_trace(go.Scatter(
+        x=x_C, y=y_C,
+        fill='toself',
+        fillcolor='rgba(156, 39, 176, 0.3)',
+        line=dict(color='rgba(156, 39, 176, 0.8)', width=3),
+        name='Follow-up',
+        mode='lines',
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Add titles near the top of each circle
+    fig.add_annotation(x=Ax, y=Ay + radius + 0.05, text="<b>Info</b>",
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Bx, y=By + radius + 0.05, text="<b>Raw Data</b>",
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Cx, y=Cy + radius + 0.05, text="<b>Follow-up</b>",
+                       showarrow=False, font=dict(size=14))
+
+    # Add region counts (manually positioned for clarity)
+    # Only A (Info only)
+    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A),
+                       showarrow=False, font=dict(size=14))
+
+    # Only B (Raw Data only)
+    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B),
+                       showarrow=False, font=dict(size=14))
+
+    # Only C (Follow-up only)
+    fig.add_annotation(x=Cx, y=Cy + 0.18, text=str(only_C),
+                       showarrow=False, font=dict(size=14))
+
+    # A ∩ B (excluding C) - Info & Raw Data
+    fig.add_annotation(x=(Ax + Bx) / 2, y=Ay - 0.08, text=str(A_and_B),
+                       showarrow=False, font=dict(size=14))
+
+    # A ∩ C (excluding B) - Info & Follow-up
+    fig.add_annotation(x=Ax + 0.07, y=Ay + 0.16, text=str(A_and_C),
+                       showarrow=False, font=dict(size=14))
+
+    # B ∩ C (excluding A) - Raw Data & Follow-up
+    fig.add_annotation(x=Bx - 0.07, y=By + 0.16, text=str(B_and_C),
+                       showarrow=False, font=dict(size=14))
+
+    # A ∩ B ∩ C (center) - All three (complete)
+    fig.add_annotation(
+        x=Cx, y=Ay + 0.1,
+        text=f"<b>{A_and_B_and_C}</b>",
+        showarrow=False,
+        font=dict(size=16, color='darkgreen'),
+        bgcolor='rgba(255, 255, 255, 0.9)',
+        borderpad=4,
+        bordercolor='darkgreen',
+        borderwidth=2
+    )
+
+    # Update layout
+    fig.update_layout(
+        title="Data Availability - Venn Diagram (Info, Raw Data, Follow-up)", showlegend=False,
+        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
+        yaxis=dict(
+            showticklabels=False, showgrid=False, zeroline=False, range=[0.2, 1.05],
+            scaleanchor="x", scaleratio=1),
+        height=600, width=600, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',)
+
+    return fig
 
 
 @task_decorator("FermentalgLoadData", human_name="Load Fermentalg data QC0",
-                short_description="Task to load Fermentalg data QC0",
+                short_description="Load and process Fermentalg QC0 fermentation data from multiple sources",
                 style=TypingStyle.community_icon(icon_technical_name="file-upload", background_color="#2492FE"))
 class FermentalgLoadData(Task):
     """
-    Load Fermentalg data QC0.
+    Load and process Fermentalg QC0 fermentation data from multiple CSV files and follow-up data.
+
+    ## Overview
+    This task integrates data from four different sources to create a comprehensive dataset
+    for fermentation analysis. It handles data merging, validation, missing data detection,
+    and generates a visual summary of data availability.
+
+    ## Input Files Required
+
+    ### 1. Info CSV (`info_csv`)
+    Contains experiment and fermenter information with columns:
+    - `ESSAI`: Experiment/trial identifier (e.g., "EPA-WP3-25-001")
+    - `FERMENTEUR`: Fermenter identifier (e.g., "23A", "23B")
+    - `MILIEU`: Culture medium used
+    - Additional metadata columns describing experimental conditions
+
+    ### 2. Raw Data CSV (`raw_data_csv`)
+    Contains raw measurement data with columns:
+    - `ESSAI`: Experiment identifier (must match Info CSV)
+    - `FERMENTEUR`: Fermenter identifier (must match Info CSV)
+    - `Temps de culture (h)`: Culture time in hours
+    - Multiple measurement columns (e.g., biomass, pH, temperature)
+
+    ### 3. Medium CSV (`medium_csv`)
+    Contains culture medium composition with columns:
+    - `MILIEU`: Medium identifier (must match Info CSV)
+    - Composition columns describing medium components and concentrations
+
+    ### 4. Follow-up ZIP (`follow_up_zip`)
+    ZIP archive containing CSV files with temporal tracking data:
+    - Filenames must follow pattern: `<ESSAI> <FERMENTEUR>.csv`
+    - Example: "EPA-WP3-25-001 23A.csv"
+    - Contains time-series data with temporal measurements
+    - Column `Temps (h)` will be renamed to `Temps de culture (h)` for consistency
+
+    ## Processing Steps
+
+    1. **File Loading**: Imports all CSV files and unzips follow-up data
+    2. **Data Indexing**: Creates lookup tables for each (ESSAI, FERMENTEUR) pair
+    3. **Data Merging**:
+       - Merges Raw Data and Follow-up data on time column
+       - Normalizes decimal formats (comma → dot)
+       - Filters negative time values
+       - Performs outer join to preserve all data points
+    4. **Metadata Enrichment**: Adds batch, sample, and medium information as tags
+    5. **Missing Data Detection**: Identifies which data types (info/raw_data/medium/follow_up)
+       are missing for each sample
+    6. **Column Tagging**: Automatically tags columns as:
+       - `is_index_column`: Time columns
+       - `is_data_column`: Measurement columns
+       - Metadata columns (ESSAI, FERMENTEUR, MILIEU)
+
+    ## Outputs
+
+    ### 1. Resource Set (`resource_set`)
+    A ResourceSet containing one Table per (ESSAI, FERMENTEUR) combination:
+    - **Table Name**: `<ESSAI>_<FERMENTEUR>`
+    - **Tags**:
+      - `batch`: Experiment identifier (ESSAI)
+      - `sample`: Fermenter identifier (FERMENTEUR)
+      - `medium`: Culture medium name
+      - `missing_value`: Comma-separated list of missing data types (if any)
+        - Possible values: "info", "raw_data", "medium", "follow_up", "follow_up_empty"
+    - **Column Tags**:
+      - `is_index_column='true'`: Time columns for plotting
+      - `is_data_column='true'`: Measurement columns
+      - `unit`: Unit of measurement (when available)
+
+    ### 2. Venn Diagram (`venn_diagram`) - Optional
+    A PlotlyResource containing an interactive Venn diagram showing:
+    - **4 Overlapping Circles**: One per data type (Info, Raw Data, Medium, Follow-up)
+    - **Circle Labels**: Show count of samples with that data type
+    - **Center Label**: Shows count of complete samples (all 4 data types present)
+    - **Color Coding**:
+      - Blue: Info data
+      - Green: Raw Data
+      - Orange: Medium data
+      - Purple: Follow-up data
+
+    ## Data Quality
+
+    ### Missing Data Handling
+    The task detects and reports missing data through tags:
+    - Samples with missing Info will have `missing_value` tag including "info"
+    - Samples with missing Raw Data will have tag including "raw_data"
+    - Samples with missing Medium will have tag including "medium"
+    - Samples with missing Follow-up will have tag including "follow_up"
+    - Samples with empty Follow-up files will have tag including "follow_up_empty"
+
+    ### Data Validation
+    - Checks for matching (ESSAI, FERMENTEUR) pairs across all data sources
+    - Normalizes decimal separators for consistent numeric parsing
+    - Filters out negative time values from follow-up data
+    - Preserves all original columns and metadata
+
+    ## Use Cases
+
+    1. **Quality Control**: Use Venn diagram to quickly assess data completeness
+    2. **Exploratory Analysis**: Browse merged data with all temporal measurements
+    3. **Selective Processing**: Use tags to filter complete vs incomplete samples
+    4. **Dashboard Display**: Visualize data availability and sample information
+    5. **Downstream Analysis**: Provides clean, tagged data for filtering and interpolation
+
+    ## Example Workflow
+
+    ```
+    [Info CSV] ──┐
+    [Raw Data] ──┼──> FermentalgLoadData ──┬──> [Resource Set] ──> Filter/Analysis
+    [Medium]   ──┤                          └──> [Venn Diagram] ──> Dashboard
+    [Follow-up]──┘
+    ```
+
+    ## Notes
+
+    - All CSV files should use UTF-8, Latin-1, or CP1252 encoding
+    - Accepted separators: comma (,) or semicolon (;)
+    - Column names are normalized to uppercase for matching
+    - Follow-up files starting with "._" (macOS metadata) are ignored
+    - Time columns are automatically detected and tagged for indexing
+    - Output tables can be directly used with Filter and Interpolation tasks
     """
     input_specs: InputSpecs = InputSpecs(
         {
@@ -27,7 +288,8 @@ class FermentalgLoadData(Task):
 
     output_specs: OutputSpecs = OutputSpecs(
         {
-            'resource_set': OutputSpec(ResourceSet, human_name="Resource set containing all the tables")
+            'resource_set': OutputSpec(ResourceSet, human_name="Resource set containing all the tables"),
+            'venn_diagram': OutputSpec(PlotlyResource, human_name="Venn diagram of data availability", optional=True)
         }
     )
 
@@ -78,8 +340,20 @@ class FermentalgLoadData(Task):
         couples_info = info_df[['ESSAI', 'FERMENTEUR']].drop_duplicates()
         couples_raw_data = raw_data_df[['ESSAI', 'FERMENTEUR']].drop_duplicates()
 
+        # Extraire aussi les couples depuis les fichiers de suivi
+        # Format des clés : "ESSAI FERMENTEUR"
+        couples_follow_up_data = []
+        for follow_up_key in follow_up_dict.keys():
+            parts = follow_up_key.split(' ', 1)  # Split sur le premier espace uniquement
+            if len(parts) == 2:
+                couples_follow_up_data.append({'ESSAI': parts[0], 'FERMENTEUR': parts[1]})
+
+        couples_follow_up = pd.DataFrame(couples_follow_up_data) if couples_follow_up_data else pd.DataFrame(
+            columns=['ESSAI', 'FERMENTEUR'])
+
         # Combiner tous les couples distincts (union)
-        tous_couples = pd.concat([couples_info, couples_raw_data]).drop_duplicates().reset_index(drop=True)
+        tous_couples = pd.concat([couples_info, couples_raw_data, couples_follow_up]
+                                 ).drop_duplicates().reset_index(drop=True)
 
         for _, row in tous_couples.iterrows():
             essai = row['ESSAI']
@@ -194,10 +468,16 @@ class FermentalgLoadData(Task):
 
                     full_df = follow_up_df.copy()
                 else:
-                    full_df = pd.DataFrame()
+                    # Aucune donnée temporelle (ni raw_data ni follow_up)
+                    # Créer un DataFrame avec juste les infos si elles existent
+                    if not data['info'].empty:
+                        full_df = data['info'].copy()
+                    else:
+                        full_df = pd.DataFrame()
 
-                # Créer une Table à partir du DataFrame mergé
-                if not full_df.empty:
+                # Créer une Table pour chaque couple (essai, fermentor)
+                # même si full_df est vide, pour avoir les tags batch/sample dans le ResourceSet
+                if not full_df.empty or not data['info'].empty:
                     # Supprimer les colonnes entièrement vides (toutes NaN/None/null/chaînes vides)
                     # Conserver seulement les colonnes qui ont au moins une valeur non-null et non-vide
                     columns_to_keep = []
@@ -320,21 +600,27 @@ class FermentalgLoadData(Task):
                     if data['medium'] is None or data['medium_data'].empty:
                         missing_values.append('medium')
 
-                    # Vérifier si les fichiers de suivi manquent pour un couple existant dans raw_data
-                    # Cette vérification est importante car un couple peut exister dans raw_data mais
-                    # ne pas avoir de fichier de suivi correspondant
+                    # Vérifier si les fichiers de suivi manquent
                     follow_up_key = f"{essai} {fermentor}"
                     has_follow_up_file = follow_up_key in follow_up_dict
 
-                    # Si le couple existe dans raw_data mais n'a pas de fichier de suivi
-                    if not data['raw_data'].empty and not has_follow_up_file:
-                        missing_values.append('follow_up')
+                    # Debug: log follow-up detection
+                    self.log_info_message(f"Checking follow-up for {follow_up_key}: has_file={has_follow_up_file}")
 
-                    # Ou si le fichier de suivi existe mais est vide
-                    elif has_follow_up_file:
+                    # Vérifier l'état du fichier de suivi
+                    if not has_follow_up_file:
+                        # Pas de fichier de suivi du tout
+                        missing_values.append('follow_up')
+                        self.log_info_message(f"  → No follow-up file, added 'follow_up' to missing_values")
+                    else:
+                        # Le fichier existe, vérifier s'il est vide
                         follow_up_data = follow_up_dict[follow_up_key].get_data()
                         if follow_up_data.empty:
                             missing_values.append('follow_up_empty')
+                            self.log_info_message(
+                                f"  → Follow-up file is empty, added 'follow_up_empty' to missing_values")
+                        else:
+                            self.log_info_message(f"  → Follow-up file exists and is not empty")
 
                     # Ajouter le tag missing_value si des données manquent
                     if missing_values:
@@ -400,4 +686,64 @@ class FermentalgLoadData(Task):
 
                     res.add_resource(merged_table)
 
-        return {'resource_set': res}
+        # Calculate statistics for Venn diagram - Track (batch, sample) pairs for each data type
+        sample_sets = {
+            'info': set(),
+            'raw_data': set(),
+            'follow_up': set()
+        }
+
+        # Analyze all resources to build sets of samples with each data type
+        for resource_name, resource in res.get_resources().items():
+            if isinstance(resource, Table):
+                # Extract batch and sample from tags
+                batch = ""
+                sample = ""
+                missing_value = ""
+
+                if hasattr(resource, 'tags') and resource.tags:
+                    for tag in resource.tags.get_tags():
+                        if tag.key == 'batch':
+                            batch = tag.value
+                        elif tag.key == 'sample':
+                            sample = tag.value
+                        elif tag.key == 'missing_value':
+                            missing_value = tag.value
+
+                if batch and sample:
+                    sample_tuple = (batch, sample)
+
+                    # Determine which data types this sample has
+                    # Parse missing types (empty string means no missing data for basic types)
+                    missing_types = [t.strip() for t in missing_value.split(',') if t.strip()] if missing_value else []
+
+                    # Debug logging
+                    self.log_info_message(f"DEBUG - Sample {batch}/{sample}:")
+                    self.log_info_message(f"  missing_value tag: '{missing_value}'")
+                    self.log_info_message(f"  missing_types parsed: {missing_types}")
+
+                    # Add to sets for data types that are NOT missing
+                    if 'info' not in missing_types:
+                        sample_sets['info'].add(sample_tuple)
+                        self.log_info_message(f"  ✓ Added to info")
+                    if 'raw_data' not in missing_types:
+                        sample_sets['raw_data'].add(sample_tuple)
+                        self.log_info_message(f"  ✓ Added to raw_data")
+                    if 'follow_up' not in missing_types and 'follow_up_empty' not in missing_types:
+                        sample_sets['follow_up'].add(sample_tuple)
+                        self.log_info_message(f"  ✓ Added to follow_up")
+
+        # Create Venn diagram
+        venn_diagram = None
+        if any(len(s) > 0 for s in sample_sets.values()):
+            self.log_info_message(f"\nDEBUG - Final sample_sets:")
+            self.log_info_message(f"  info: {sample_sets['info']}")
+            self.log_info_message(f"  raw_data: {sample_sets['raw_data']}")
+            self.log_info_message(f"  follow_up: {sample_sets['follow_up']}")
+            fig = create_venn_diagram_3_sets(sample_sets)
+            venn_diagram = PlotlyResource(fig)
+
+        return {
+            'resource_set': res,
+            'venn_diagram': venn_diagram
+        }

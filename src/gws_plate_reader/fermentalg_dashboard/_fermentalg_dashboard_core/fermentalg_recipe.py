@@ -1,75 +1,52 @@
 """
-Analyse class for Fermentalg Dashboard
-Encapsulates analysis information and scenarios
+Fermentalg Recipe class - extends CellCultureRecipe with Fermentalg-specific logic
 """
-from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
-from gws_core import Scenario, User
+from gws_core import Scenario
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 
+from gws_cell_culture import CellCultureRecipe
+
 
 @dataclass
-class Analyse:
+class FermentalgRecipe(CellCultureRecipe):
     """
-    Represents a Fermentalg analysis with its metadata and scenarios
+    Represents a Fermentalg recipe with its metadata and scenarios.
+    Extends CellCultureRecipe with Fermentalg-specific tag extraction.
     """
-    # Basic information
-    id: str
-    name: str
-    analysis_type: str  # "standard" or "microplate"
-    created_by: User
-    created_at: datetime
-
-    # Analysis scenarios organized by step
-    scenarios: Dict[str, List[Scenario]]
-
-    # Main scenario (data processing)
-    main_scenario: Optional[Scenario] = None
-
-    # Additional metadata
-    pipeline_id: Optional[str] = None
-    file_info: Optional[Dict[str, str]] = None  # Info about uploaded files
 
     @classmethod
-    def from_scenario(cls, scenario: Scenario) -> 'Analyse':
+    def from_scenario(cls, scenario: Scenario) -> 'FermentalgRecipe':
         """
-        Create an Analyse object from a scenario (independent of state)
+        Create a Fermentalg Recipe object from a scenario with Fermentalg-specific tags.
 
-        :param scenario: The main scenario of the analysis
-        :return: Analyse instance
+        :param scenario: The main scenario of the recipe
+        :return: FermentalgRecipe instance
         """
         # Get tags from scenario
         entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
 
-        # Extract analysis name using known tag keys
-        analysis_name_tags = entity_tag_list.get_tags_by_key("fermentor_analysis_name")
-        name = analysis_name_tags[0].tag_value if analysis_name_tags else scenario.title
+        # Extract recipe name using Fermentalg-specific tag
+        name = cls._extract_tag_value(entity_tag_list, "fermentor_recipe_name", scenario.title)
 
-        # Extract pipeline ID
-        pipeline_id_tags = entity_tag_list.get_tags_by_key("fermentor_fermentalg_pipeline_id")
-        pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else scenario.id
+        # Extract pipeline ID using Fermentalg-specific tag
+        pipeline_id = cls._extract_tag_value(entity_tag_list, "fermentor_fermentalg_pipeline_id", scenario.id)
 
         # Extract analysis type (microplate or standard)
-        microplate_tags = entity_tag_list.get_tags_by_key("microplate_analysis")
-        analysis_type = "microplate" if (microplate_tags and
-                                         microplate_tags[0].tag_value == "true") else "standard"
+        microplate_value = cls._extract_tag_value(entity_tag_list, "microplate_analysis", "false")
+        analysis_type = "microplate" if microplate_value == "true" else "standard"
 
-        # Extract file information
-        file_info = {}
+        # Extract Fermentalg-specific file information
         file_tags = [
             ("info_csv_file", "Info CSV"),
             ("raw_data_csv_file", "Raw Data CSV"),
             ("medium_csv_file", "Medium CSV"),
             ("followup_zip_file", "Follow-up ZIP")
         ]
-
-        for tag_key, display_name in file_tags:
-            file_name_tags = entity_tag_list.get_tags_by_key(tag_key)
-            if file_name_tags:
-                file_info[display_name] = file_name_tags[0].tag_value
+        file_info = cls._extract_file_info(entity_tag_list, file_tags)
 
         # Initialize with main scenario only, other scenarios will be loaded separately
         scenarios_by_step = {
@@ -90,7 +67,7 @@ class Analyse:
 
     def add_selection_scenarios(self, selection_scenarios: List[Scenario]) -> None:
         """
-        Add selection scenarios to this analysis
+        Add selection scenarios to this recipe
 
         :param selection_scenarios: List of selection scenarios to add
         """
@@ -124,11 +101,55 @@ class Analyse:
 
     def get_selection_scenarios(self) -> List[Scenario]:
         """
-        Get selection scenarios for this analysis
+        Get selection scenarios for this recipe
 
         :return: List of selection scenarios
         """
         return self.get_scenarios_for_step('selection')
+
+    def get_quality_check_scenarios(self) -> List[Scenario]:
+        """
+        Get all quality check scenarios for this recipe
+
+        :return: List of quality check scenarios
+        """
+        return self.get_scenarios_for_step('quality_check')
+
+    def get_quality_check_scenarios_for_selection(self, selection_id: str) -> List[Scenario]:
+        """
+        Get quality check scenarios linked to a specific selection scenario
+
+        :param selection_id: ID of the parent selection scenario
+        :return: List of quality check scenarios for this selection
+        """
+        all_qc_scenarios = self.get_quality_check_scenarios()
+
+        # Filter by parent selection ID tag
+        filtered_scenarios = []
+        for scenario in all_qc_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_selection_tags = entity_tag_list.get_tags_by_key("fermentor_quality_check_parent_selection")
+
+            if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
+                filtered_scenarios.append(scenario)
+
+        return filtered_scenarios
+
+    def add_quality_check_scenario(self, selection_id: str, quality_check_scenario: Scenario) -> None:
+        """
+        Add a quality check scenario to this recipe
+
+        :param selection_id: ID of the parent selection scenario
+        :param quality_check_scenario: Quality check scenario to add
+        """
+        # Get existing quality check scenarios
+        existing_qc_scenarios = self.get_quality_check_scenarios()
+
+        # Add new scenario
+        updated_qc_scenarios = [quality_check_scenario] + existing_qc_scenarios
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('quality_check', updated_qc_scenarios)
 
     def get_selection_scenarios_organized(self) -> Dict[str, Scenario]:
         """
@@ -152,7 +173,7 @@ class Analyse:
 
     def get_visualization_scenarios(self) -> List[Scenario]:
         """
-        Get visualization scenarios for this analysis
+        Get visualization scenarios for this recipe
 
         :return: List of visualization scenarios
         """
@@ -160,15 +181,23 @@ class Analyse:
 
     def has_selection_scenarios(self) -> bool:
         """
-        Check if analysis has selection scenarios
+        Check if recipe has selection scenarios
 
         :return: True if selection scenarios exist
         """
         return 'selection' in self.scenarios and len(self.scenarios['selection']) > 0
 
+    def has_quality_check_scenarios(self) -> bool:
+        """
+        Check if recipe has quality check scenarios
+
+        :return: True if quality check scenarios exist
+        """
+        return 'quality_check' in self.scenarios and len(self.scenarios['quality_check']) > 0
+
     def has_visualization_scenarios(self) -> bool:
         """
-        Check if analysis has visualization scenarios
+        Check if recipe has visualization scenarios
 
         :return: True if visualization scenarios exist
         """
@@ -186,7 +215,7 @@ class Analyse:
         """
         Convert to dictionary representation
 
-        :return: Dictionary with analysis information
+        :return: Dictionary with recipe information
         """
         return {
             'id': self.id,

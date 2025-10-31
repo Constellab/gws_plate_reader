@@ -6,10 +6,10 @@ import streamlit as st
 import pandas as pd
 from typing import List, Dict, Any, Optional
 
-from gws_core import Table, Scenario, ScenarioStatus
+from gws_core import Table, Scenario, ScenarioStatus, ScenarioProxy
 from gws_core.resource.resource_set.resource_set import ResourceSet
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.state import State
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.analyse import Analyse
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
 
 
 def get_available_columns_from_resource_set(resource_set: ResourceSet) -> Dict[str, Dict[str, str]]:
@@ -39,7 +39,7 @@ def get_available_columns_from_resource_set(resource_set: ResourceSet) -> Dict[s
         return {}
 
 
-def prepare_extended_data_for_visualization(resource_set: ResourceSet, fermentalg_state: State,
+def prepare_extended_data_for_visualization(resource_set: ResourceSet, fermentalg_state: FermentalgState,
                                             selected_columns: List[str] = None) -> List[Dict[str, Any]]:
     """Prepare extended data from ResourceSet including selected columns"""
     try:
@@ -97,7 +97,7 @@ def prepare_extended_data_for_visualization(resource_set: ResourceSet, fermental
 
 def get_col_tag_list_from_available_columns(
         available_columns: Dict[str, Dict[str, str]],
-        fermentalg_state: State) -> List[str]:
+        fermentalg_state: FermentalgState) -> List[str]:
     """Get a list of column tags from the available columns."""
     col_tags = []
     for col_info in available_columns.values():
@@ -105,43 +105,65 @@ def get_col_tag_list_from_available_columns(
     return col_tags
 
 
-def render_table_view_step(
-        analyse: Analyse, fermentalg_state: State, selection_scenario: Optional[Scenario] = None) -> None:
+def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+                           scenario: Optional[Scenario] = None,
+                           output_name: str = None) -> None:
     """Render the table view step with filtered data visualization
 
-    :param analyse: The Analyse instance
+    :param recipe: The Recipe instance
     :param fermentalg_state: The fermentalg state
-    :param selection_scenario: Specific selection scenario to use (if None, use latest)
+    :param scenario: The scenario to display (selection or quality check)
+    :param output_name: The output name to retrieve from the scenario (e.g., INTERPOLATION_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
     """
 
     translate_service = fermentalg_state.get_translate_service()
 
     try:
-        # Check if selection scenarios exist
-        if not analyse.has_selection_scenarios():
-            st.warning(translate_service.translate('no_selection_made'))
-            return
+        # If scenario is provided, use it
+        if scenario:
+            target_scenario = scenario
+            st.info(f"� Affichage des données : **{target_scenario.title}**")
 
-        # Use provided selection scenario or get the latest one
-        if selection_scenario:
-            target_scenario = selection_scenario
-            st.info(f"🎯 Affichage des données pour : **{target_scenario.title}**")
+            if target_scenario.status != ScenarioStatus.SUCCESS:
+                st.warning("Le scénario n'est pas encore terminé avec succès.")
+                return
+
+            # Get data from scenario using the provided output name
+            if not output_name:
+                # Default to interpolation output for backward compatibility
+                output_name = fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+
+            scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
+            protocol_proxy = scenario_proxy.get_protocol()
+
+            try:
+                filtered_resource_set = protocol_proxy.get_output(output_name)
+                if not filtered_resource_set:
+                    st.error(translate_service.translate('cannot_retrieve_data'))
+                    return
+            except Exception as e:
+                st.error(f"Erreur lors de la récupération des données: {str(e)}")
+                return
+
+        # Backward compatibility: if no scenario provided, try to get latest selection
         else:
-            # Get the latest selection scenario (backward compatibility)
-            selection_scenarios = analyse.get_selection_scenarios()
+            if not recipe.has_selection_scenarios():
+                st.warning(translate_service.translate('no_selection_made'))
+                return
+
+            selection_scenarios = recipe.get_selection_scenarios()
             target_scenario = selection_scenarios[0] if selection_scenarios else None
 
-        if not target_scenario or target_scenario.status != ScenarioStatus.SUCCESS:
-            st.warning(translate_service.translate('selection_not_successful'))
-            return
+            if not target_scenario or target_scenario.status != ScenarioStatus.SUCCESS:
+                st.warning(translate_service.translate('selection_not_successful'))
+                return
+
+            filtered_resource_set = fermentalg_state.get_interpolation_scenario_output(target_scenario)
+            if not filtered_resource_set:
+                st.error(translate_service.translate('cannot_retrieve_filtered_data'))
+                return
 
         st.subheader(translate_service.translate('table_visualization'))
-
-        # Get interpolated data from selection scenario
-        filtered_resource_set = fermentalg_state.get_interpolation_scenario_output(target_scenario)
-        if not filtered_resource_set:
-            st.error(translate_service.translate('cannot_retrieve_filtered_data'))
-            return
 
         # Extract data for visualization
         visualization_data = fermentalg_state.prepare_data_for_visualization(filtered_resource_set)
@@ -150,35 +172,55 @@ def render_table_view_step(
             st.warning(translate_service.translate('no_data_for_visualization'))
             return
 
-        # Get unique batches and samples for filters
-        unique_batches = sorted(list(set(item['Batch'] for item in visualization_data)))
-        unique_samples = sorted(list(set(item['Sample'] for item in visualization_data)))
+        # Get unique batches and samples for filters (excluding empty strings)
+        unique_batches = sorted(list(set(item['Batch'] for item in visualization_data if item['Batch'])))
+        unique_samples = sorted(list(set(item['Sample'] for item in visualization_data if item['Sample'])))
 
         # Get available columns for selection using the new tagging system
         index_columns = fermentalg_state.get_index_columns_from_resource_set(filtered_resource_set)
         data_columns = fermentalg_state.get_data_columns_from_resource_set(filtered_resource_set)
 
         st.markdown("---")
-        st.subheader("🔍 Filtres et Sélection")
+        st.subheader(translate_service.translate('filters_selection_title'))
 
         # Create 2x2 grid with batches and samples first
         col1, col2 = st.columns(2)
 
         with col1:
-            st.write("**Sélection des Batches:**")
+            col1_header, col1_button = st.columns([3, 1])
+            with col1_header:
+                st.write(translate_service.translate('batch_selection_label'))
+            with col1_button:
+                if st.button(translate_service.translate('select_all_batches'), key="select_all_batches_table", use_container_width=True):
+                    st.session_state.table_view_batches = unique_batches
+                    st.rerun()
+
+            # Reset selection if batches changed
+            if 'table_view_batches' not in st.session_state or len([batch for batch in st.session_state.table_view_batches if batch not in unique_batches]) > 0:
+                st.session_state.table_view_batches = []
+
             selected_batches = st.multiselect(
-                "Choisir les batches à afficher",
+                translate_service.translate('choose_batches'),
                 options=unique_batches,
-                default=unique_batches,  # Sélectionner tous les batches par défaut
                 key="table_view_batches"
             )
 
         with col2:
-            st.write(translate_service.translate('sample_selection'))
+            col2_header, col2_button = st.columns([3, 1])
+            with col2_header:
+                st.write(translate_service.translate('sample_selection'))
+            with col2_button:
+                if st.button(translate_service.translate('select_all_samples'), key="select_all_samples_table", use_container_width=True):
+                    st.session_state.table_view_samples = unique_samples
+                    st.rerun()
+
+            # Reset selection if samples changed
+            if 'table_view_samples' not in st.session_state or len([sample for sample in st.session_state.table_view_samples if sample not in unique_samples]) > 0:
+                st.session_state.table_view_samples = []
+
             selected_samples = st.multiselect(
-                "Choisir les échantillons à afficher",
+                translate_service.translate('choose_samples'),
                 options=unique_samples,
-                default=unique_samples,  # Sélectionner tous les samples par défaut
                 key="table_view_samples"
             )
 
@@ -190,11 +232,11 @@ def render_table_view_step(
             # Check if index columns are available
             if index_columns:
                 selected_index = st.selectbox(
-                    "Choisir la colonne à utiliser comme index",
+                    translate_service.translate('choose_index_column'),
                     options=index_columns,
                     index=0,
                     key="table_view_index",
-                    help="La colonne sélectionnée sera utilisée comme index pour organiser les tableaux"
+                    help=translate_service.translate('index_column_help_table')
                 )
             else:
                 st.warning(translate_service.translate('no_index_column'))
@@ -209,7 +251,7 @@ def render_table_view_step(
         with col4:
             st.write(translate_service.translate('column_selection'))
             selected_columns = st.multiselect(
-                "Choisir les colonnes à afficher",
+                translate_service.translate('choose_columns'),
                 options=filtered_data_columns,
                 default=[],  # Aucune colonne sélectionnée par défaut
                 key="table_view_columns",
@@ -348,7 +390,7 @@ def render_table_view_step(
                     st.markdown("---")
 
         else:
-            st.info("💡 Sélectionnez des colonnes pour voir les tableaux organisés par index")
+            st.info(translate_service.translate('select_columns_table_hint'))
 
     except Exception as e:
         st.error(f"❌ Erreur lors du chargement de la vue tableau: {str(e)}")

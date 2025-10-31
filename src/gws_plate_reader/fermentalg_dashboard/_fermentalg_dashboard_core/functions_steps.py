@@ -3,7 +3,8 @@ import tempfile
 from typing import List, Dict, Optional, Any, Union
 import streamlit as st
 from streamlit_slickgrid import slickgrid
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.state import State
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
+from gws_core.streamlit import StreamlitTranslateService
 from gws_core import (
     ResourceModel, ResourceOrigin, Scenario, ScenarioSearchBuilder, ResourceSearchBuilder, ScenarioProxy,
     File, Tag, ScenarioStatus
@@ -27,18 +28,18 @@ def get_status_emoji(status: ScenarioStatus) -> str:
     return emoji_map.get(status, "❓")
 
 
-def get_status_prettify(status: ScenarioStatus) -> str:
+def get_status_prettify(status: ScenarioStatus, translate_service: StreamlitTranslateService) -> str:
     """Return a human-readable string for scenario status"""
     prettify_map = {
-        ScenarioStatus.DRAFT: "Brouillon",
-        ScenarioStatus.IN_QUEUE: "En attente",
-        ScenarioStatus.WAITING_FOR_CLI_PROCESS: "En pause",
-        ScenarioStatus.RUNNING: "En cours",
-        ScenarioStatus.SUCCESS: "Terminé",
-        ScenarioStatus.ERROR: "Erreur",
-        ScenarioStatus.PARTIALLY_RUN: "Partiellement exécuté"
+        ScenarioStatus.DRAFT: translate_service.translate('status_draft'),
+        ScenarioStatus.IN_QUEUE: translate_service.translate('status_in_queue'),
+        ScenarioStatus.WAITING_FOR_CLI_PROCESS: translate_service.translate('status_waiting'),
+        ScenarioStatus.RUNNING: translate_service.translate('status_running'),
+        ScenarioStatus.SUCCESS: translate_service.translate('status_success'),
+        ScenarioStatus.ERROR: translate_service.translate('status_error'),
+        ScenarioStatus.PARTIALLY_RUN: translate_service.translate('status_partially_run')
     }
-    return prettify_map.get(status, "Inconnu")
+    return prettify_map.get(status, translate_service.translate('status_unknown'))
 
 
 def get_microplate_emoji(is_microplate: bool) -> str:
@@ -46,7 +47,7 @@ def get_microplate_emoji(is_microplate: bool) -> str:
     return "🧪" if is_microplate else "🔬"
 
 
-def get_selection_step_status(scenario_id: str, fermentalg_state: State) -> str:
+def get_selection_step_status(scenario_id: str, fermentalg_state: FermentalgState) -> str:
     """Get the status of the selection step for a given analysis scenario."""
     try:
         # Search for resources tagged with the selection step for this analysis
@@ -67,36 +68,38 @@ def get_selection_step_status(scenario_id: str, fermentalg_state: State) -> str:
         return "❌ Erreur"
 
 
-def create_fermentalg_analysis_table_data(scenarios: List[Scenario], fermentalg_state: State) -> List[Dict]:
-    """Create table data from Fermentalg analysis scenarios, grouped by analysis."""
+def create_fermentalg_recipe_table_data(scenarios: List[Scenario], fermentalg_state: FermentalgState,
+                                        translate_service: StreamlitTranslateService) -> List[Dict]:
+    """Create table data from Fermentalg recipe scenarios, grouped by recipe."""
     table_data = []
 
-    # Group scenarios by analysis name
-    analyses_dict = {}
+    # Group scenarios by recipe name
+    recipes_dict = {}
 
     for scenario in scenarios:
         try:
             # Get tags for this scenario using find_by_entity to get existing tags
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
 
-            # Extract analysis name
-            analysis_name = "Sans nom"
-            analysis_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_ANALYSIS_NAME)
-            if analysis_name_tags:
-                analysis_name = analysis_name_tags[0].tag_value
+            # Extract recipe name
+            recipe_name = translate_service.translate('recipe_unnamed')
+            recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+            if recipe_name_tags:
+                recipe_name = recipe_name_tags[0].tag_value
             else:
                 # Fallback to scenario title if no tag found
-                analysis_name = scenario.title if scenario.title else f"Scénario {scenario.id[:8]}"
+                recipe_name = scenario.title if scenario.title else translate_service.translate(
+                    'summary_scenario').format(id=scenario.id[:8])
 
-            # Initialize analysis entry if not exists
-            if analysis_name not in analyses_dict:
-                analyses_dict[analysis_name] = {
-                    'analysis_name': analysis_name,
+            # Initialize recipe entry if not exists
+            if recipe_name not in recipes_dict:
+                recipes_dict[recipe_name] = {
+                    'recipe_name': recipe_name,
                     'load_scenario': None,
                     'selection_scenarios': [],
                     'pipeline_id': '',
                     'is_microplate': False,
-                    'folder_name': 'Dossier racine',
+                    'folder_name': translate_service.translate('summary_root_folder'),
                     'created_at': None,
                     'created_by': ''
                 }
@@ -111,85 +114,87 @@ def create_fermentalg_analysis_table_data(scenarios: List[Scenario], fermentalg_
                                         for tag in selection_tags)
 
             if is_load_scenario:
-                analyses_dict[analysis_name]['load_scenario'] = scenario
+                recipes_dict[recipe_name]['load_scenario'] = scenario
 
                 # Extract additional info from load scenario
                 pipeline_id_tags = entity_tag_list.get_tags_by_key(
                     fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
                 if pipeline_id_tags:
-                    analyses_dict[analysis_name]['pipeline_id'] = pipeline_id_tags[0].tag_value[:8] + "..."
+                    recipes_dict[recipe_name]['pipeline_id'] = pipeline_id_tags[0].tag_value[:8] + "..."
 
                 # Extract microplate status
                 microplate_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_MICROPLATE_ANALYSIS)
                 if microplate_tags:
-                    analyses_dict[analysis_name]['is_microplate'] = microplate_tags[0].tag_value.lower() == "true"
+                    recipes_dict[recipe_name]['is_microplate'] = microplate_tags[0].tag_value.lower() == "true"
 
                 # Get folder name
                 if scenario.folder:
-                    analyses_dict[analysis_name]['folder_name'] = scenario.folder.name
+                    recipes_dict[recipe_name]['folder_name'] = scenario.folder.name
 
                 # Set creation info
-                analyses_dict[analysis_name]['created_at'] = scenario.created_at
-                analyses_dict[analysis_name]['created_by'] = scenario.created_by.full_name if scenario.created_by else ""
+                recipes_dict[recipe_name]['created_at'] = scenario.created_at
+                recipes_dict[recipe_name]['created_by'] = scenario.created_by.full_name if scenario.created_by else ""
 
             elif is_selection_scenario:
-                analyses_dict[analysis_name]['selection_scenarios'].append(scenario)
+                recipes_dict[recipe_name]['selection_scenarios'].append(scenario)
 
         except Exception as e:
             # Si erreur lors du traitement d'un scénario, on l'ignore et continue
-            st.warning(f"Erreur lors du traitement du scénario {scenario.id}: {str(e)}")
+            st.warning(translate_service.translate('error_processing_scenario').format(id=scenario.id, error=str(e)))
             continue
 
-    # Create table rows from grouped analyses
-    for analysis_name, analysis_data in analyses_dict.items():
+    # Create table rows from grouped recipes
+    for recipe_name, recipe_data in recipes_dict.items():
         try:
-            load_scenario = analysis_data['load_scenario']
+            load_scenario = recipe_data['load_scenario']
+
+            # Only create a table row if there is a load scenario
+            # Selection scenarios alone should not create rows
+            if not load_scenario:
+                continue
 
             # Get Load Step status
-            if load_scenario:
-                load_step_status = f"{get_status_emoji(load_scenario.status)} {get_status_prettify(load_scenario.status)}"
-                analysis_id = load_scenario.id
-            else:
-                load_step_status = "❌ Non trouvé"
-                analysis_id = analysis_name.replace(" ", "_").lower()
+            load_step_status = f"{get_status_emoji(load_scenario.status)} {get_status_prettify(load_scenario.status, translate_service)}"
+            recipe_id = load_scenario.id
 
             # Get Selection Step status
-            selection_scenarios = analysis_data['selection_scenarios']
+            selection_scenarios = recipe_data['selection_scenarios']
             if selection_scenarios:
                 # Get the most recent selection scenario
                 latest_selection = max(selection_scenarios, key=lambda s: s.created_at or s.last_modified_at)
-                selection_step_status = f"{get_status_emoji(latest_selection.status)} {get_status_prettify(latest_selection.status)}"
+                selection_step_status = f"{get_status_emoji(latest_selection.status)} {get_status_prettify(latest_selection.status, translate_service)}"
             else:
-                selection_step_status = "⏳ Non effectuée"
+                selection_step_status = f"⏳ {translate_service.translate('selection_not_done')}"
 
             row_data = {
-                "id": analysis_id,  # Use load scenario ID or analysis name
-                "Analysis Name": analysis_data['analysis_name'],
-                "Type": f"{get_microplate_emoji(analysis_data['is_microplate'])} {'Microplaque' if analysis_data['is_microplate'] else 'Standard'}",
+                "id": recipe_id,  # Use load scenario ID
+                "Recipe Name": recipe_data['recipe_name'],
+                "Type": f"{get_microplate_emoji(recipe_data['is_microplate'])} {translate_service.translate('type_microplate') if recipe_data['is_microplate'] else translate_service.translate('type_standard')}",
                 "Load Step": load_step_status,
                 "Selection Step": selection_step_status,
-                "Folder": analysis_data['folder_name'],
-                "Created": analysis_data['created_at'].strftime("%d/%m/%Y %H:%M") if analysis_data['created_at'] else "",
-                "Created By": analysis_data['created_by'],
+                "Folder": recipe_data['folder_name'],
+                "Created": recipe_data['created_at'].strftime("%d/%m/%Y %H:%M") if recipe_data['created_at'] else "",
+                "Created By": recipe_data['created_by'],
             }
 
             table_data.append(row_data)
 
         except Exception as e:
-            # Si erreur lors du traitement d'une analyse, on l'ignore et continue
-            st.warning(f"Erreur lors du traitement de l'analyse {analysis_name}: {str(e)}")
+            # Si erreur lors du traitement d'une recette, on l'ignore et continue
+            st.warning(translate_service.translate('error_processing_recipe').format(
+                recipe_name=recipe_name, error=str(e)))
             continue
 
     return table_data
 
 
-def create_fermentalg_slickgrid_columns() -> List[Dict]:
-    """Create SlickGrid columns for Fermentalg analysis table with step columns."""
+def create_fermentalg_slickgrid_columns(translate_service: StreamlitTranslateService) -> List[Dict]:
+    """Create SlickGrid columns for Fermentalg recipe table with step columns."""
     columns = [
         {
-            "id": "Analysis Name",
-            "name": "Nom de l'analyse",
-            "field": "Analysis Name",
+            "id": "Recipe Name",
+            "name": translate_service.translate('column_recipe_name'),
+            "field": "Recipe Name",
             "sortable": True,
             "type": "string",
             "filterable": True,
@@ -197,7 +202,7 @@ def create_fermentalg_slickgrid_columns() -> List[Dict]:
         },
         {
             "id": "Type",
-            "name": "Type",
+            "name": translate_service.translate('column_type'),
             "field": "Type",
             "sortable": True,
             "type": "string",
@@ -206,7 +211,7 @@ def create_fermentalg_slickgrid_columns() -> List[Dict]:
         },
         {
             "id": "Load Step",
-            "name": "🔄 Étape Load",
+            "name": translate_service.translate('column_load_step'),
             "field": "Load Step",
             "sortable": True,
             "type": "string",
@@ -215,7 +220,7 @@ def create_fermentalg_slickgrid_columns() -> List[Dict]:
         },
         {
             "id": "Selection Step",
-            "name": "✅ Étape Sélection",
+            "name": translate_service.translate('column_selection_step'),
             "field": "Selection Step",
             "sortable": True,
             "type": "string",
@@ -224,7 +229,7 @@ def create_fermentalg_slickgrid_columns() -> List[Dict]:
         },
         {
             "id": "Folder",
-            "name": "Dossier",
+            "name": translate_service.translate('column_folder'),
             "field": "Folder",
             "sortable": True,
             "type": "string",
@@ -233,7 +238,7 @@ def create_fermentalg_slickgrid_columns() -> List[Dict]:
         },
         {
             "id": "Created",
-            "name": "Créé le",
+            "name": translate_service.translate('column_created'),
             "field": "Created",
             "sortable": True,
             "type": "date",
@@ -242,7 +247,7 @@ def create_fermentalg_slickgrid_columns() -> List[Dict]:
         },
         {
             "id": "Created By",
-            "name": "Créé par",
+            "name": translate_service.translate('column_created_by'),
             "field": "Created By",
             "sortable": True,
             "type": "string",
@@ -253,10 +258,10 @@ def create_fermentalg_slickgrid_columns() -> List[Dict]:
     return columns
 
 
-def render_fermentalg_analysis_table(scenarios: List[Scenario],
-                                     fermentalg_state: State) -> Union[Optional[str],
-                                                                       List[Dict]]:
-    """Render the Fermentalg analysis table using SlickGrid and return selected scenario ID."""
+def render_fermentalg_recipe_table(scenarios: List[Scenario],
+                                   fermentalg_state: FermentalgState) -> Union[Optional[str],
+                                                                               List[Dict]]:
+    """Render the Fermentalg recipe table using SlickGrid and return selected scenario ID."""
 
     translate_service = fermentalg_state.get_translate_service()
 
@@ -265,14 +270,14 @@ def render_fermentalg_analysis_table(scenarios: List[Scenario],
         return None
 
     # Create table data
-    table_data = create_fermentalg_analysis_table_data(scenarios, fermentalg_state)
+    table_data = create_fermentalg_recipe_table_data(scenarios, fermentalg_state, translate_service)
 
     if not table_data:
-        st.warning(translate_service.translate('cannot_load_analysis_data'))
+        st.warning(translate_service.translate('cannot_load_recipe_data'))
         return None
 
     # Create columns
-    columns = create_fermentalg_slickgrid_columns()
+    columns = create_fermentalg_slickgrid_columns(translate_service)
 
     # Configure SlickGrid options for row selection
     options = {
@@ -291,13 +296,12 @@ def render_fermentalg_analysis_table(scenarios: List[Scenario],
         data=table_data,
         columns=columns,
         options=options,
-        key="fermentalg_analyses_grid",
+        key="fermentalg_recipes_grid",
         on_click="rerun"
     )
 
     # Handle row selection like in ubiome
     if grid_response is not None:
-        print(grid_response)
         row_id, _ = grid_response  # _ is column, not needed for analysis selection
         # Return the selected scenario ID
         return row_id
@@ -305,13 +309,14 @@ def render_fermentalg_analysis_table(scenarios: List[Scenario],
     return None
 
 
-def get_fermentalg_input_files_info(scenario_id: str, fermentalg_state: State) -> Dict[str, str]:
+def get_fermentalg_input_files_info(scenario_id: str, fermentalg_state: FermentalgState,
+                                    translate_service: StreamlitTranslateService) -> Dict[str, str]:
     """Get information about input files for a Fermentalg analysis."""
     files_info = {
-        "info_csv": "Non trouvé",
-        "raw_data_csv": "Non trouvé",
-        "medium_csv": "Non trouvé",
-        "follow_up_zip": "Non trouvé"
+        "info_csv": translate_service.translate('file_not_found'),
+        "raw_data_csv": translate_service.translate('file_not_found'),
+        "medium_csv": translate_service.translate('file_not_found'),
+        "follow_up_zip": translate_service.translate('file_not_found')
     }
 
     try:
@@ -342,7 +347,7 @@ def get_fermentalg_input_files_info(scenario_id: str, fermentalg_state: State) -
                     files_info[file_type] = resource.name
 
     except Exception as e:
-        st.error(f"Erreur lors de la récupération des fichiers d'entrée: {str(e)}")
+        st.error(translate_service.translate('error_retrieving_input_files').format(error=str(e)))
 
     return files_info
 
@@ -361,7 +366,8 @@ def format_file_size(size_bytes: int) -> str:
     return f"{size_bytes:.1f} {size_names[i]}"
 
 
-def get_analysis_summary(scenario: Scenario, fermentalg_state: State) -> Dict[str, str]:
+def get_analysis_summary(scenario: Scenario, fermentalg_state: FermentalgState,
+                         translate_service: StreamlitTranslateService) -> Dict[str, str]:
     """Get a summary of the analysis including key information."""
     summary = {}
 
@@ -369,45 +375,52 @@ def get_analysis_summary(scenario: Scenario, fermentalg_state: State) -> Dict[st
         # Get tags
         entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
 
-        # Analysis name
-        analysis_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_ANALYSIS_NAME)
-        if analysis_name_tags:
-            summary["Nom de l'analyse"] = analysis_name_tags[0].tag_value
+        # Recipe name
+        recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+        if recipe_name_tags:
+            summary[translate_service.translate('summary_recipe_name')] = recipe_name_tags[0].tag_value
         else:
             # Fallback to scenario title if no tag found
-            summary["Nom de l'analyse"] = scenario.title if scenario.title else f"Scénario {scenario.id[:8]}"
+            summary[translate_service.translate('summary_recipe_name')] = scenario.title if scenario.title else translate_service.translate(
+                'summary_scenario').format(id=scenario.id[:8])
 
         # Pipeline ID
         pipeline_id_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
-        summary["ID Pipeline"] = pipeline_id_tags[0].tag_value if pipeline_id_tags else "N/A"
+        summary[translate_service.translate(
+            'summary_pipeline_id')] = pipeline_id_tags[0].tag_value if pipeline_id_tags else translate_service.translate('summary_not_available')
 
         # Microplate status
         microplate_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_MICROPLATE_ANALYSIS)
         is_microplate = microplate_tags[0].tag_value.lower() == "true" if microplate_tags else False
-        summary["Type d'analyse"] = f"{get_microplate_emoji(is_microplate)} {'Microplaque' if is_microplate else 'Standard'}"
+        summary[translate_service.translate(
+            'summary_analysis_type')] = f"{get_microplate_emoji(is_microplate)} {translate_service.translate('type_microplate') if is_microplate else translate_service.translate('type_standard')}"
 
         # Status
-        summary["Statut"] = f"{get_status_emoji(scenario.status)} {get_status_prettify(scenario.status)}"
+        summary[translate_service.translate(
+            'summary_status')] = f"{get_status_emoji(scenario.status)} {get_status_prettify(scenario.status, translate_service)}"
 
         # Dates
-        summary["Créé le"] = scenario.created_at.strftime("%d/%m/%Y à %H:%M") if scenario.created_at else "N/A"
-        summary["Modifié le"] = scenario.last_modified_at.strftime(
-            "%d/%m/%Y à %H:%M") if scenario.last_modified_at else "N/A"
+        summary[translate_service.translate('summary_created_at')] = scenario.created_at.strftime(
+            "%d/%m/%Y à %H:%M") if scenario.created_at else translate_service.translate('summary_not_available')
+        summary[translate_service.translate('summary_modified_at')] = scenario.last_modified_at.strftime(
+            "%d/%m/%Y à %H:%M") if scenario.last_modified_at else translate_service.translate('summary_not_available')
 
         # Creator
-        summary["Créé par"] = scenario.created_by.full_name if scenario.created_by else "N/A"
+        summary[translate_service.translate(
+            'summary_created_by')] = scenario.created_by.full_name if scenario.created_by else translate_service.translate('summary_not_available')
 
         # Folder
-        summary["Dossier"] = scenario.folder.name if scenario.folder else "Dossier racine"
+        summary[translate_service.translate(
+            'summary_folder')] = scenario.folder.name if scenario.folder else translate_service.translate('summary_root_folder')
 
     except Exception as e:
-        st.error(f"Erreur lors de la création du résumé: {str(e)}")
+        st.error(translate_service.translate('error_creating_summary').format(error=str(e)))
 
     return summary
 
 
 def save_uploaded_file(
-        uploaded_file: Any, analysis_name: Optional[str] = None, pipeline_id: Optional[str] = None,
+        uploaded_file: Any, recipe_name: Optional[str] = None, pipeline_id: Optional[str] = None,
         file_type: Optional[str] = None) -> Optional[ResourceModel]:
     """Sauvegarde un fichier uploadé et retourne un ResourceModel sauvegardé avec tags"""
     if uploaded_file is not None:
@@ -431,14 +444,14 @@ def save_uploaded_file(
         resource_model.save_full()
 
         # Ajouter les tags à la ressource
-        if analysis_name or pipeline_id or file_type:
+        if recipe_name or pipeline_id or file_type:
             user_origin = TagOrigin.current_user_origin()
             entity_tags = EntityTagList.find_by_entity(TagEntityType.RESOURCE, resource_model.id)
             entity_tags._default_origin = user_origin
 
-            if analysis_name:
-                analysis_name_parsed = Tag.parse_tag(analysis_name)
-                entity_tags.add_tag(Tag('fermentor_analysis_name', analysis_name_parsed))
+            if recipe_name:
+                recipe_name_parsed = Tag.parse_tag(recipe_name)
+                entity_tags.add_tag(Tag('fermentor_recipe_name', recipe_name_parsed))
 
             if pipeline_id:
                 pipeline_id_parsed = Tag.parse_tag(pipeline_id)
@@ -454,31 +467,31 @@ def save_uploaded_file(
     return None
 
 
-def setup_analysis_scenarios(analysis_name: str, fermentalg_state: State) -> bool:
+def setup_recipe_scenarios(recipe_name: str, fermentalg_state: FermentalgState,
+                           translate_service: StreamlitTranslateService) -> bool:
     """
-    Setup and configure all scenarios related to an analysis in the state.
-    This function finds the load scenario and all selection scenarios for a given analysis.
+    Set up the scenarios for a given recipe by finding and storing the load and selection scenarios.
 
     Args:
-        analysis_name: Name of the analysis to setup
-        fermentalg_state: State object to configure
+        recipe_name: Name of the recipe to set up
+        fermentalg_state: State object to store the scenarios
 
     Returns:
         bool: True if setup was successful, False otherwise
     """
     try:
-        # Reset current analysis scenarios
-        fermentalg_state.reset_analysis_scenarios()
+        # Reset current recipe scenarios
+        fermentalg_state.reset_recipe_scenarios()
 
-        # 1. Find the load scenario for this analysis
+        # 1. Find the load scenario for this recipe
         load_scenarios: List[Scenario] = ScenarioSearchBuilder() \
             .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_DATA_PROCESSING)) \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_ANALYSIS_NAME, value=analysis_name)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_RECIPE_NAME, value=recipe_name)) \
             .add_is_archived_filter(False) \
             .search_all()
 
         if not load_scenarios:
-            st.error(f"❌ Aucun scénario de load trouvé pour l'analyse '{analysis_name}'")
+            st.error(translate_service.translate('no_load_scenario_found').format(recipe_name=recipe_name))
             return False
 
         # Take the most recent load scenario and store it in state
@@ -493,13 +506,13 @@ def setup_analysis_scenarios(analysis_name: str, fermentalg_state: State) -> boo
         if pipeline_id_tags:
             fermentalg_state.set_pipeline_id(pipeline_id_tags[0].tag_value)
 
-        # Store analysis name in state
-        fermentalg_state.set_analysis_name(analysis_name)
+        # Store recipe name in state
+        fermentalg_state.set_recipe_name(recipe_name)
 
-        # 2. Find all selection scenarios for this analysis
+        # 2. Find all selection scenarios for this recipe
         selection_scenarios: List[Scenario] = ScenarioSearchBuilder() \
             .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_SELECTION_PROCESSING)) \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_ANALYSIS_NAME, value=analysis_name)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_RECIPE_NAME, value=recipe_name)) \
             .add_is_archived_filter(False) \
             .search_all()
 
@@ -507,21 +520,30 @@ def setup_analysis_scenarios(analysis_name: str, fermentalg_state: State) -> boo
         selection_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=True)
         fermentalg_state.set_selection_scenarios(selection_scenarios)
 
-        st.success(f"✅ Configuration réussie pour l'analyse '{analysis_name}': "
-                   f"1 scénario de load, {len(selection_scenarios)} scénario(s) de sélection")
+        # 3. Find all quality check scenarios for this recipe
+        quality_check_scenarios: List[Scenario] = ScenarioSearchBuilder() \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_QUALITY_CHECK_PROCESSING)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_RECIPE_NAME, value=recipe_name)) \
+            .add_is_archived_filter(False) \
+            .search_all()
 
-        # Log the stored scenarios for debugging
-        st.info(f"📊 Stocké dans le state: Load scenario ID {load_scenario.id}, "
-                f"{len(selection_scenarios)} scénario(s) de sélection")
+        # Sort quality check scenarios by creation date (most recent first) and store in state
+        quality_check_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=True)
+        fermentalg_state.set_quality_check_scenarios(quality_check_scenarios)
+
+        st.success(translate_service.translate('configuration_success').format(
+            recipe_name=recipe_name,
+            details=f"1 scénario de load, {len(selection_scenarios)} scénario(s) de sélection, "
+                   f"{len(quality_check_scenarios)} scénario(s) de quality check"))
 
         return True
 
     except Exception as e:
-        st.error(f"❌ Erreur lors de la configuration des scénarios: {str(e)}")
+        st.error(translate_service.translate('error_configuring_scenarios').format(error=str(e)))
         return False
 
 
-def get_analysis_resource_set(fermentalg_state: State) -> Optional[Any]:
+def get_analysis_resource_set(fermentalg_state: FermentalgState) -> Optional[Any]:
     """
     Get the ResourceSet output from the load scenario of the current analysis.
 

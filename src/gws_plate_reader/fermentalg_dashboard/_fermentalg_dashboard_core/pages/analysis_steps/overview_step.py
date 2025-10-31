@@ -5,15 +5,141 @@ Displays analysis overview, input files, basic statistics, missing data informat
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+import numpy as np
 from typing import List, Dict, Tuple, Optional, Any
 
 from gws_core import Table, Scenario
 from gws_core.resource.resource_set.resource_set import ResourceSet
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.state import State
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.analyse import Analyse
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
 
 
-def prepare_complete_data_for_visualization(resource_set: ResourceSet, fermentalg_state: State) -> List[Dict[str, str]]:
+def create_venn_diagram_3_sets_fallback(sample_sets: Dict[str, set], translate_service) -> go.Figure:
+    """
+    Create a Venn diagram with 3 overlapping circles (info, raw_data, follow_up)
+    showing all intersections - Fallback version for dashboard
+    """
+
+    # Extract sets
+    A = sample_sets.get('info', set())  # Info
+    B = sample_sets.get('raw_data', set())  # Raw Data
+    C = sample_sets.get('follow_up', set())  # Follow-up
+
+    # Calculate all regions
+    only_A = len(A - B - C)  # Only Info
+    only_B = len(B - A - C)  # Only Raw Data
+    only_C = len(C - A - B)  # Only Follow-up
+    A_and_B = len((A & B) - C)  # Info ∩ Raw Data (excluding Follow-up)
+    A_and_C = len((A & C) - B)  # Info ∩ Follow-up (excluding Raw Data)
+    B_and_C = len((B & C) - A)  # Raw Data ∩ Follow-up (excluding Info)
+    A_and_B_and_C = len(A & B & C)  # All three (complete samples)
+
+    # Create figure
+    fig = go.Figure()
+
+    # Circle parameters
+    radius = 0.28
+    Ax, Ay = 0.35, 0.5   # Info (left)
+    Bx, By = 0.65, 0.5   # Raw Data (right)
+    Cx, Cy = 0.5, 0.72   # Follow-up (top)
+
+    # Create circles using parametric equations
+    theta = np.linspace(0, 2 * np.pi, 100)
+
+    # Circle A - Info (Blue)
+    x_A = radius * np.cos(theta) + Ax
+    y_A = radius * np.sin(theta) + Ay
+    fig.add_trace(go.Scatter(
+        x=x_A, y=y_A,
+        fill='toself',
+        fillcolor='rgba(33, 150, 243, 0.3)',
+        line=dict(color='rgba(33, 150, 243, 0.8)', width=3),
+        name='Info',
+        mode='lines',
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Circle B - Raw Data (Green)
+    x_B = radius * np.cos(theta) + Bx
+    y_B = radius * np.sin(theta) + By
+    fig.add_trace(go.Scatter(
+        x=x_B, y=y_B,
+        fill='toself',
+        fillcolor='rgba(76, 175, 80, 0.3)',
+        line=dict(color='rgba(76, 175, 80, 0.8)', width=3),
+        name='Raw Data',
+        mode='lines',
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Circle C - Follow-up (Purple)
+    x_C = radius * np.cos(theta) + Cx
+    y_C = radius * np.sin(theta) + Cy
+    fig.add_trace(go.Scatter(
+        x=x_C, y=y_C,
+        fill='toself',
+        fillcolor='rgba(156, 39, 176, 0.3)',
+        line=dict(color='rgba(156, 39, 176, 0.8)', width=3),
+        name='Follow-up',
+        mode='lines',
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Add titles near the top of each circle
+    fig.add_annotation(x=Ax, y=Ay + radius + 0.05, text="<b>Info</b>",
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Bx, y=By + radius + 0.05, text="<b>Raw Data</b>",
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Cx, y=Cy + radius + 0.05, text="<b>Follow-up</b>",
+                       showarrow=False, font=dict(size=14))
+
+    # Add region counts
+    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A),
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B),
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Cx, y=Cy + 0.18, text=str(only_C),
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=(Ax + Bx) / 2, y=Ay - 0.08, text=str(A_and_B),
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Ax + 0.07, y=Ay + 0.16, text=str(A_and_C),
+                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Bx - 0.07, y=By + 0.16, text=str(B_and_C),
+                       showarrow=False, font=dict(size=14))
+
+    # Center - All three (complete)
+    fig.add_annotation(
+        x=Cx, y=Ay + 0.1,
+        text=f"<b>{A_and_B_and_C}</b>",
+        showarrow=False,
+        font=dict(size=16, color='darkgreen'),
+        bgcolor='rgba(255, 255, 255, 0.9)',
+        borderpad=4,
+        bordercolor='darkgreen',
+        borderwidth=2
+    )
+
+    # Update layout
+    fig.update_layout(
+        title=translate_service.translate('missing_data_pattern'),
+        showlegend=False,
+        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
+        yaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0.2, 1.05]),
+        height=500,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+    )
+
+    return fig
+
+
+def prepare_complete_data_for_visualization(
+        resource_set: ResourceSet, fermentalg_state: FermentalgState) -> List[
+        Dict[str, str]]:
     """Prepare complete (non-missing) data from ResourceSet for visualization"""
     try:
         resources = resource_set.get_resources()
@@ -52,7 +178,7 @@ def prepare_complete_data_for_visualization(resource_set: ResourceSet, fermental
         return []
 
 
-def prepare_extended_complete_data(resource_set: ResourceSet, fermentalg_state: State,
+def prepare_extended_complete_data(resource_set: ResourceSet, fermentalg_state: FermentalgState,
                                    selected_columns: List[str] = None) -> List[Dict[str, Any]]:
     """Prepare extended complete data from ResourceSet including selected columns"""
     try:
@@ -104,13 +230,13 @@ def prepare_extended_complete_data(resource_set: ResourceSet, fermentalg_state: 
         return []
 
 
-def render_overview_step(analyse: Analyse, fermentalg_state: State) -> None:
-    """Render the overview step showing basic analysis information and visualizations"""
+def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState) -> None:
+    """Render the overview step showing basic recipe information and visualizations"""
 
     translate_service = fermentalg_state.get_translate_service()
 
-    # Get the load scenario (main scenario) which should already exist when analyse is created
-    load_scenario = analyse.get_load_scenario()
+    # Get the load scenario (main scenario) which should already exist when recipe is created
+    load_scenario = recipe.get_load_scenario()
 
     if not load_scenario:
         st.error(translate_service.translate('no_resourceset_found'))
@@ -123,27 +249,11 @@ def render_overview_step(analyse: Analyse, fermentalg_state: State) -> None:
             st.warning(translate_service.translate('no_data_found'))
             return
 
-        st.subheader(translate_service.translate('analysis_overview'))
-
-        # Display input files information
-        st.subheader(translate_service.translate('input_files'))
+        st.subheader(translate_service.translate('recipe_overview'))
 
         resources = resource_set.get_resources()
-        file_info = []
-        for resource_name, resource in resources.items():
-            if isinstance(resource, Table):
-                file_info.append({
-                    "Nom du fichier": resource_name,
-                    "Type": "Table",
-                    "Nombre de lignes": len(resource.get_data()) if hasattr(resource, 'get_data') else "N/A"
-                })
 
-        if file_info:
-            st.dataframe(pd.DataFrame(file_info), use_container_width=True, hide_index=True)
-        else:
-            st.info(translate_service.translate('no_input_files'))
-
-        # Section 2: Basic statistics
+        # Basic statistics
         st.subheader(translate_service.translate('basic_statistics'))
 
         # Prepare data for analysis
@@ -208,25 +318,103 @@ def render_overview_step(analyse: Analyse, fermentalg_state: State) -> None:
         # Section 3: Missing data information
         st.subheader(translate_service.translate('missing_data_couples'))
 
+        # Try to get the Venn diagram from the load scenario output
+        venn_diagram = fermentalg_state.get_venn_diagram_output()
+
+        if venn_diagram is not None:
+            # Display the pre-computed Venn diagram from the load task
+            try:
+                fig = venn_diagram.get_figure()
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception:
+                # Fallback: compute on the fly if there's an issue
+                if missing_data or valid_data:
+                    # Build sets of (batch, sample) tuples for each data type
+                    sample_sets = {
+                        'info': set(),
+                        'raw_data': set(),
+                        'follow_up': set()
+                    }
+
+                    # Process all data (valid and missing)
+                    for item in valid_data + missing_data:
+                        batch = item.get('Batch', '')
+                        sample = item.get('Sample', '')
+                        missing_value = item.get('Missing Value', '')
+
+                        if batch and sample:
+                            sample_tuple = (batch, sample)
+
+                            # Parse missing types (empty string means no missing data for basic types)
+                            missing_types = [t.strip() for t in missing_value.split(',')
+                                             if t.strip()] if missing_value else []
+
+                            # Add to sets for data types that are NOT missing
+                            if 'info' not in missing_types:
+                                sample_sets['info'].add(sample_tuple)
+                            if 'raw_data' not in missing_types:
+                                sample_sets['raw_data'].add(sample_tuple)
+                            if 'follow_up' not in missing_types and 'follow_up_empty' not in missing_types:
+                                sample_sets['follow_up'].add(sample_tuple)
+
+                    # Create Venn diagram
+                    fig_venn = create_venn_diagram_3_sets_fallback(sample_sets, translate_service)
+                    st.plotly_chart(fig_venn, use_container_width=True)
+        elif missing_data or valid_data:
+            # Fallback: compute on the fly if venn diagram output not found
+            # Build sets of (batch, sample) tuples for each data type
+            sample_sets = {
+                'info': set(),
+                'raw_data': set(),
+                'follow_up': set()
+            }
+
+            # Process all data (valid and missing)
+            for item in valid_data + missing_data:
+                batch = item.get('Batch', '')
+                sample = item.get('Sample', '')
+                missing_value = item.get('Missing Value', '')
+
+                if batch and sample:
+                    sample_tuple = (batch, sample)
+
+                    # Parse missing types (empty string means no missing data for basic types)
+                    missing_types = [t.strip() for t in missing_value.split(',') if t.strip()] if missing_value else []
+
+                    # Add to sets for data types that are NOT missing
+                    if 'info' not in missing_types:
+                        sample_sets['info'].add(sample_tuple)
+                    if 'raw_data' not in missing_types:
+                        sample_sets['raw_data'].add(sample_tuple)
+                    if 'follow_up' not in missing_types and 'follow_up_empty' not in missing_types:
+                        sample_sets['follow_up'].add(sample_tuple)
+
+            # Create Venn diagram
+            fig_venn = create_venn_diagram_3_sets_fallback(sample_sets, translate_service)
+            st.plotly_chart(fig_venn, use_container_width=True)
+
         if missing_data:
             df_missing = pd.DataFrame(missing_data)
-            # Only show Batch, Sample, and Missing Value columns
-            display_cols = ['Batch', 'Sample', 'Missing Value']
-            df_display = df_missing[display_cols]
 
-            st.dataframe(
-                df_display,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    'Batch': st.column_config.TextColumn('Batch'),
-                    'Sample': st.column_config.TextColumn('Sample'),
-                    'Missing Value': st.column_config.TextColumn(
-                        'Donnée manquante',
-                        help='Types de données manquantes'
-                    )
-                }
-            )
+            # Make the detailed table collapsible
+            with st.expander(translate_service.translate('view_missing_data_details'), expanded=False):
+                # Only show Batch, Sample, and Missing Value columns
+                display_cols = ['Batch', 'Sample', 'Missing Value']
+                df_display = df_missing[display_cols]
+
+                st.dataframe(
+                    df_display,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        'Batch': st.column_config.TextColumn('Batch'),
+                        'Sample': st.column_config.TextColumn('Sample'),
+                        'Missing Value': st.column_config.TextColumn(
+                            'Donnée manquante',
+                            help='Types de données manquantes'
+                        )
+                    }
+                )
         else:
             st.success(translate_service.translate('no_missing_data'))
 

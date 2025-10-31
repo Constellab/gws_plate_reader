@@ -1,0 +1,223 @@
+"""
+Base State class for Cell Culture Dashboards
+Manages common state and session management - Abstract base class
+"""
+import streamlit as st
+from abc import ABC
+from typing import Dict, Any, List, Optional
+from gws_core import ScenarioProxy, Scenario, ResourceSet
+from gws_core.streamlit import StreamlitTranslateService
+
+from .cell_culture_recipe import CellCultureRecipe
+
+
+class CellCultureState(ABC):
+    """
+    Abstract base class for managing state in cell culture dashboard apps.
+    Provides common session state management and recipe handling.
+    Subclasses should define their own constants for tags and keys.
+    """
+
+    # Common session state keys (subclasses can override or extend)
+    LANG_KEY = "lang_select"
+    TRANSLATE_SERVICE = "translate_service"
+    SELECTED_RECIPE_INSTANCE_KEY = "selected_recipe_instance"
+    PROCESSING_RESULTS_KEY = "processing_results"
+    PROCESSING_COMPLETED_KEY = "processing_completed"
+    SELECTION_DATA_KEY = "selection_data"
+    SELECTED_RESOURCES_KEY = "selected_resources"
+    SELECTED_RESOURCE_SET_KEY = "selected_resource_set"
+
+    def __init__(self, lang_translation_folder_path: str):
+        """
+        Initialize the state manager with translation service.
+
+        :param lang_translation_folder_path: Path to translation files folder
+        """
+        # Initialize translation service
+        translate_service = StreamlitTranslateService(lang_translation_folder_path)
+        st.session_state[self.TRANSLATE_SERVICE] = translate_service
+
+        # Initialize session state variables
+        self._initialize_session_state()
+
+    def _initialize_session_state(self) -> None:
+        """Initialize common session state variables if they don't exist."""
+        if self.PROCESSING_RESULTS_KEY not in st.session_state:
+            st.session_state[self.PROCESSING_RESULTS_KEY] = None
+
+        if self.PROCESSING_COMPLETED_KEY not in st.session_state:
+            st.session_state[self.PROCESSING_COMPLETED_KEY] = False
+
+        if self.SELECTION_DATA_KEY not in st.session_state:
+            st.session_state[self.SELECTION_DATA_KEY] = []
+
+        if self.SELECTED_RESOURCES_KEY not in st.session_state:
+            st.session_state[self.SELECTED_RESOURCES_KEY] = []
+
+        if self.SELECTED_RESOURCE_SET_KEY not in st.session_state:
+            st.session_state[self.SELECTED_RESOURCE_SET_KEY] = None
+
+    # Translation service methods
+    def get_translate_service(self) -> StreamlitTranslateService:
+        """Get the translation service from session state."""
+        return st.session_state.get(self.TRANSLATE_SERVICE)
+
+    # Recipe instance management
+    def get_selected_recipe_instance(self) -> Optional[CellCultureRecipe]:
+        """Get the selected Recipe instance from session state."""
+        return st.session_state.get(self.SELECTED_RECIPE_INSTANCE_KEY)
+
+    def set_selected_recipe_instance(self, recipe_instance: CellCultureRecipe) -> None:
+        """Set the selected Recipe instance in session state."""
+        st.session_state[self.SELECTED_RECIPE_INSTANCE_KEY] = recipe_instance
+
+    # Processing results methods
+    def get_processing_results(self) -> Dict[str, Any]:
+        """Get the processing results from session state."""
+        return st.session_state.get(self.PROCESSING_RESULTS_KEY, {})
+
+    def set_processing_results(self, results: Dict[str, Any]) -> None:
+        """Set the processing results in session state."""
+        st.session_state[self.PROCESSING_RESULTS_KEY] = results
+
+    def get_processing_completed(self) -> bool:
+        """Check if processing is completed."""
+        return st.session_state.get(self.PROCESSING_COMPLETED_KEY, False)
+
+    def set_processing_completed(self, completed: bool) -> None:
+        """Set the processing completed flag in session state."""
+        st.session_state[self.PROCESSING_COMPLETED_KEY] = completed
+
+    # Selection data methods
+    def get_selection_data(self) -> List[bool]:
+        """Get the selection data from session state."""
+        return st.session_state.get(self.SELECTION_DATA_KEY, [])
+
+    def set_selection_data(self, selection: List[bool]) -> None:
+        """Set the selection data (list of boolean values) in session state."""
+        st.session_state[self.SELECTION_DATA_KEY] = selection
+
+    def get_selected_resources(self) -> List[Dict[str, str]]:
+        """Get the selected resources from session state."""
+        return st.session_state.get(self.SELECTED_RESOURCES_KEY, [])
+
+    def set_selected_resources(self, resources: List[Dict[str, str]]) -> None:
+        """Set the selected resources in session state."""
+        st.session_state[self.SELECTED_RESOURCES_KEY] = resources
+
+    def get_selected_resource_set(self) -> Optional[Any]:
+        """Get the selected resource set from session state."""
+        return st.session_state.get(self.SELECTED_RESOURCE_SET_KEY)
+
+    def set_selected_resource_set(self, resource_set: Any) -> None:
+        """Set the selected resource set in session state."""
+        st.session_state[self.SELECTED_RESOURCE_SET_KEY] = resource_set
+
+    # Recipe instance delegation methods
+    def get_recipe_name(self) -> Optional[str]:
+        """Get the current recipe name from the Recipe instance."""
+        recipe = self.get_selected_recipe_instance()
+        return recipe.name if recipe else None
+
+    def get_pipeline_id(self) -> Optional[str]:
+        """Get the current pipeline ID from the Recipe instance."""
+        recipe = self.get_selected_recipe_instance()
+        return recipe.pipeline_id if recipe else None
+
+    def get_selection_scenarios(self) -> List[Scenario]:
+        """Get the list of selection scenarios from the Recipe instance."""
+        recipe = self.get_selected_recipe_instance()
+        return recipe.get_selection_scenarios() if recipe else []
+
+    def get_visualization_scenarios(self) -> List[Scenario]:
+        """Get the list of visualization scenarios from the Recipe instance."""
+        recipe = self.get_selected_recipe_instance()
+        return recipe.get_visualization_scenarios() if recipe else []
+
+    def get_main_scenario(self) -> Optional[Scenario]:
+        """Get the main scenario from the Recipe instance."""
+        recipe = self.get_selected_recipe_instance()
+        return recipe.get_load_scenario() if recipe else None
+
+    def add_scenarios_to_recipe(self, step: str, scenarios: List[Scenario]) -> None:
+        """Add scenarios to the current Recipe instance for a specific step."""
+        recipe = self.get_selected_recipe_instance()
+        if recipe:
+            recipe.add_scenarios_by_step(step, scenarios)
+
+    def update_recipe_with_selection_scenarios(self, selection_scenarios: List[Scenario]) -> None:
+        """Update the current Recipe instance with selection scenarios."""
+        recipe = self.get_selected_recipe_instance()
+        if recipe:
+            recipe.add_selection_scenarios(selection_scenarios)
+
+    # Utility methods
+    def has_selected_resources(self) -> bool:
+        """Check if there are any selected resources."""
+        selected = self.get_selected_resources()
+        return len(selected) > 0
+
+    def get_selected_count(self) -> int:
+        """Get the count of selected resources."""
+        return len(self.get_selected_resources())
+
+    def reset_all_data(self) -> None:
+        """Reset all data in the session state."""
+        st.session_state[self.PROCESSING_RESULTS_KEY] = None
+        st.session_state[self.PROCESSING_COMPLETED_KEY] = False
+        st.session_state[self.SELECTION_DATA_KEY] = []
+        st.session_state[self.SELECTED_RESOURCES_KEY] = []
+        st.session_state[self.SELECTED_RESOURCE_SET_KEY] = None
+        st.session_state[self.SELECTED_RECIPE_INSTANCE_KEY] = None
+
+    def reset_selection(self) -> None:
+        """Reset only the selection data."""
+        st.session_state[self.SELECTION_DATA_KEY] = []
+        st.session_state[self.SELECTED_RESOURCES_KEY] = []
+        st.session_state[self.SELECTED_RESOURCE_SET_KEY] = None
+
+    # Scenario utility methods
+    def add_selection_scenario(self, scenario: Scenario) -> None:
+        """Add a new selection scenario to the current recipe."""
+        recipe = self.get_selected_recipe_instance()
+        if recipe:
+            current_scenarios = recipe.get_selection_scenarios()
+            current_scenarios.append(scenario)
+            recipe.add_scenarios_by_step('selection', current_scenarios)
+
+    def get_latest_selection_scenario(self) -> Optional[Scenario]:
+        """Get the most recent selection scenario."""
+        selection_scenarios = self.get_selection_scenarios()
+        if not selection_scenarios:
+            return None
+        return selection_scenarios[0]  # Assume sorted by creation date
+
+    def has_load_scenario(self) -> bool:
+        """Check if a load scenario is available."""
+        return self.get_main_scenario() is not None
+
+    def has_selection_scenarios(self) -> bool:
+        """Check if any selection scenarios are available."""
+        return len(self.get_selection_scenarios()) > 0
+
+    def get_selection_scenarios_count(self) -> int:
+        """Get the count of selection scenarios."""
+        return len(self.get_selection_scenarios())
+
+    # Navigation methods (can be overridden by subclasses)
+    def get_selected_step(self) -> str:
+        """Get the currently selected analysis step."""
+        return st.session_state.get("selected_step", "data_overview")
+
+    def set_selected_step(self, step: str) -> None:
+        """Set the currently selected analysis step."""
+        st.session_state["selected_step"] = step
+
+    def set_selected_folder_id(self, folder_id: str) -> None:
+        """Set the selected folder ID."""
+        st.session_state["selected_folder_id"] = folder_id
+
+    def get_selected_folder_id(self) -> Optional[str]:
+        """Get the selected folder ID."""
+        return st.session_state.get("selected_folder_id")

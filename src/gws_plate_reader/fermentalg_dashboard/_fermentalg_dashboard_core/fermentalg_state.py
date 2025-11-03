@@ -3,10 +3,12 @@ import pandas as pd
 
 from gws_core import ScenarioProxy, Scenario, ResourceSet, Table
 from gws_core.streamlit import StreamlitTranslateLang
-from gws_cell_culture import CellCultureState
+
 
 import os
 from typing import Dict, List, Optional
+
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 
 
 class FermentalgState(CellCultureState):

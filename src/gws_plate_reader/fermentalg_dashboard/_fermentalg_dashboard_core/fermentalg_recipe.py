@@ -7,8 +7,7 @@ from dataclasses import dataclass
 from gws_core import Scenario
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
-
-from gws_cell_culture import CellCultureRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
 
 @dataclass

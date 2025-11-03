@@ -379,8 +379,6 @@ def render_quality_check_step(
     """
     translate_service = fermentalg_state.get_translate_service()
 
-    st.subheader("🔍 Quality Check / Filtration")
-
     # If a specific selection scenario is provided, only show that one
     if selection_scenario:
         st.info(f"📋 Quality Checks pour : **{selection_scenario.title}**")
@@ -408,7 +406,7 @@ def render_quality_check_step(
             return
 
         # Show list of selection scenarios with quality check counts
-        st.subheader(translate_service.translate('available_selections_title'))
+        st.markdown(f"### {translate_service.translate('available_selections_title')}")
 
         for idx, selection in enumerate(selection_scenarios):
             _render_selection_quality_checks(selection, recipe, fermentalg_state, show_in_expander=True, idx=idx)
@@ -468,7 +466,7 @@ def _render_selection_quality_checks(
 
         # Always show quality check creation form
         st.markdown("---")
-        st.markdown("#### ➕ Créer un nouveau Quality Check")
+        st.markdown("### ➕ Créer un nouveau Quality Check")
 
         # Initialize session state for quality check config
         config_key = f"quality_check_config_{selection.id}"

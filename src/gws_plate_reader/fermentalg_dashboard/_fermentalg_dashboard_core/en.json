@@ -241,5 +241,10 @@
     "no_load_scenario_found": "❌ No load scenario found for recipe '{recipe_name}'",
     "configuration_success": "✅ Configuration successful for recipe '{recipe_name}': {details}",
     "error_configuring_scenarios": "❌ Error configuring scenarios: {error}",
-    "file_not_found": "Not found"
+    "file_not_found": "Not found",
+    "medium_composition": "Medium Composition",
+    "no_medium_data": "No medium composition data found",
+    "medium_composition_table": "Medium Composition Table",
+    "composition_components": "Components",
+    "download_medium_data": "Download medium data"
 }

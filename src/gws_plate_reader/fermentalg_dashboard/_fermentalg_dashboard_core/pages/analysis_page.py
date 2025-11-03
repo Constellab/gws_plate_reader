@@ -13,7 +13,8 @@ from .analysis_steps import (
     render_selection_step,
     render_quality_check_step,
     render_table_view_step,
-    render_graph_view_step
+    render_graph_view_step,
+    render_medium_view_step
 )
 
 
@@ -91,6 +92,14 @@ def build_analysis_tree_menu(fermentalg_state: FermentalgState) -> Tuple[Streaml
             )
             selection_folder.add_child(graph_sub_item)
 
+            # Add medium view sub-item
+            medium_sub_item = StreamlitTreeMenuItem(
+                label=translate_service.translate('medium'),
+                key=f'medium_{scenario.id}',
+                material_icon='science'
+            )
+            selection_folder.add_child(medium_sub_item)
+
             # Add Quality Check folder - clicking on it opens the QC creation form
             quality_check_folder = StreamlitTreeMenuItem(
                 label="🔍 Quality Check",
@@ -128,6 +137,14 @@ def build_analysis_tree_menu(fermentalg_state: FermentalgState) -> Tuple[Streaml
                         material_icon='analytics'
                     )
                     qc_folder.add_child(qc_graph_item)
+
+                    # Add Medium view for QC results
+                    qc_medium_item = StreamlitTreeMenuItem(
+                        label=translate_service.translate('medium'),
+                        key=f'qc_medium_{qc_scenario.id}',
+                        material_icon='science'
+                    )
+                    qc_folder.add_child(qc_medium_item)
 
                     quality_check_folder.add_child(qc_folder)
 
@@ -179,13 +196,12 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
             selected_key = selected_item.key if selected_item else key_default_item
 
         with right_col:
-            # Title section with recipe info
-            st.markdown(f"### 🧪 {recipe.name}")
-
             # Render the selected step
             if selected_key == 'apercu':
+                st.title(f"{recipe.name} - Overview")
                 render_overview_step(recipe, fermentalg_state)
             elif selected_key == 'selection':
+                st.title(f"{recipe.name} - Sélection")
                 render_selection_step(recipe, fermentalg_state)
             elif selected_key.startswith('quality_check_'):
                 # Extract selection scenario ID from key (quality_check_{selection_id})
@@ -194,6 +210,7 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                 selection_scenarios = recipe.get_selection_scenarios()
                 target_selection_scenario = next((s for s in selection_scenarios if s.id == selection_id), None)
                 if target_selection_scenario:
+                    st.title(f"{recipe.name} - Quality Check")
                     render_quality_check_step(recipe, fermentalg_state, selection_scenario=target_selection_scenario)
                 else:
                     st.error(translate_service.translate('selection_scenario_not_found'))
@@ -204,6 +221,7 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                 selection_scenarios = recipe.get_selection_scenarios()
                 target_scenario = next((s for s in selection_scenarios if s.id == scenario_id), None)
                 if target_scenario:
+                    st.title(f"{recipe.name} - Tableau")
                     render_table_view_step(
                         recipe,
                         fermentalg_state,
@@ -219,6 +237,7 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                 all_qc_scenarios = recipe.get_quality_check_scenarios()
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
+                    st.title(f"{recipe.name} - Tableau (QC)")
                     # Display quality check results in table view
                     render_table_view_step(
                         recipe,
@@ -235,6 +254,7 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                 all_qc_scenarios = recipe.get_quality_check_scenarios()
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
+                    st.title(f"{recipe.name} - Graphiques (QC)")
                     # Display quality check results in graph view
                     render_graph_view_step(
                         recipe,
@@ -251,6 +271,7 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                 selection_scenarios = recipe.get_selection_scenarios()
                 target_scenario = next((s for s in selection_scenarios if s.id == scenario_id), None)
                 if target_scenario:
+                    st.title(f"{recipe.name} - Graphiques")
                     render_graph_view_step(
                         recipe,
                         fermentalg_state,
@@ -259,5 +280,38 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                     )
                 else:
                     st.error(translate_service.translate('selection_scenario_not_found'))
+            elif selected_key.startswith('medium_'):
+                # Extract scenario ID from key
+                scenario_id = selected_key.replace('medium_', '')
+                # Find the corresponding scenario
+                selection_scenarios = recipe.get_selection_scenarios()
+                target_scenario = next((s for s in selection_scenarios if s.id == scenario_id), None)
+                if target_scenario:
+                    st.title(f"{recipe.name} - Medium")
+                    render_medium_view_step(
+                        recipe,
+                        fermentalg_state,
+                        scenario=target_scenario,
+                        output_name=fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+                    )
+                else:
+                    st.error(translate_service.translate('selection_scenario_not_found'))
+            elif selected_key.startswith('qc_medium_'):
+                # Extract quality check scenario ID from key
+                qc_scenario_id = selected_key.replace('qc_medium_', '')
+                # Find the corresponding quality check scenario
+                all_qc_scenarios = recipe.get_quality_check_scenarios()
+                target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+                if target_qc_scenario:
+                    st.title(f"{recipe.name} - Medium (QC)")
+                    # Display quality check results in medium view
+                    render_medium_view_step(
+                        recipe,
+                        fermentalg_state,
+                        scenario=target_qc_scenario,
+                        output_name=fermentalg_state.QUALITY_CHECK_SCENARIO_OUTPUT_NAME
+                    )
+                else:
+                    st.error("Quality Check scenario not found")
             else:
                 st.info(translate_service.translate('select_step_in_menu'))

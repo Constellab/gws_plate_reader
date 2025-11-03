@@ -163,8 +163,6 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                 st.error(translate_service.translate('cannot_retrieve_filtered_data'))
                 return
 
-        st.subheader(translate_service.translate('table_visualization'))
-
         # Extract data for visualization
         visualization_data = fermentalg_state.prepare_data_for_visualization(filtered_resource_set)
 
@@ -181,7 +179,7 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
         data_columns = fermentalg_state.get_data_columns_from_resource_set(filtered_resource_set)
 
         st.markdown("---")
-        st.subheader(translate_service.translate('filters_selection_title'))
+        st.markdown(f"### {translate_service.translate('filters_selection_title')}")
 
         # Create 2x2 grid with batches and samples first
         col1, col2 = st.columns(2)
@@ -191,12 +189,14 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
             with col1_header:
                 st.write(translate_service.translate('batch_selection_label'))
             with col1_button:
-                if st.button(translate_service.translate('select_all_batches'), key="select_all_batches_table", use_container_width=True):
+                if st.button(translate_service.translate('select_all_batches'),
+                             key="select_all_batches_table", use_container_width=True):
                     st.session_state.table_view_batches = unique_batches
                     st.rerun()
 
             # Reset selection if batches changed
-            if 'table_view_batches' not in st.session_state or len([batch for batch in st.session_state.table_view_batches if batch not in unique_batches]) > 0:
+            if 'table_view_batches' not in st.session_state or len(
+                    [batch for batch in st.session_state.table_view_batches if batch not in unique_batches]) > 0:
                 st.session_state.table_view_batches = []
 
             selected_batches = st.multiselect(
@@ -210,12 +210,14 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
             with col2_header:
                 st.write(translate_service.translate('sample_selection'))
             with col2_button:
-                if st.button(translate_service.translate('select_all_samples'), key="select_all_samples_table", use_container_width=True):
+                if st.button(translate_service.translate('select_all_samples'),
+                             key="select_all_samples_table", use_container_width=True):
                     st.session_state.table_view_samples = unique_samples
                     st.rerun()
 
             # Reset selection if samples changed
-            if 'table_view_samples' not in st.session_state or len([sample for sample in st.session_state.table_view_samples if sample not in unique_samples]) > 0:
+            if 'table_view_samples' not in st.session_state or len(
+                    [sample for sample in st.session_state.table_view_samples if sample not in unique_samples]) > 0:
                 st.session_state.table_view_samples = []
 
             selected_samples = st.multiselect(
@@ -298,11 +300,11 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
 
         # Display data organized by selected columns
         if selected_columns:
-            st.subheader(f"📊 Données organisées par {selected_index}")
+            st.markdown(f"### 📊 Données organisées par {selected_index}")
 
             # Create a section for each selected column using the optimized function
             for i, column_name in enumerate(selected_columns):
-                st.markdown(f"### 📈 {column_name}")
+                st.markdown(f"##### 📈 {column_name}")
 
                 # Use the optimized function to build the DataFrame for this column
                 column_df = fermentalg_state.build_selected_column_df_from_resource_set(

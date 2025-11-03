@@ -381,8 +381,9 @@ class FermentalgLoadData(Task):
             full_info_dict[essai][fermentor]['raw_data'] = raw_data_filtered
 
             # Récupérer les medium_data si le medium existe
-            if full_info_dict[essai][fermentor]['medium'] is not None:
+            if full_info_dict[essai][fermentor]['medium'] is not None and 'MILIEU' in medium_df.columns:
                 medium_data_filtered = medium_df[medium_df['MILIEU'] == full_info_dict[essai][fermentor]['medium']]
+                medium_data_filtered = medium_data_filtered.drop(columns=['MILIEU'])
                 full_info_dict[essai][fermentor]['medium_data'] = medium_data_filtered
             else:
                 full_info_dict[essai][fermentor]['medium_data'] = pd.DataFrame()
@@ -627,7 +628,7 @@ class FermentalgLoadData(Task):
                         tags.append(Tag('missing_value', ', '.join(missing_values)))
 
                     if data['medium'] is not None:
-                        medium_data: Dict = data['medium_data'].to_dict() if not data['medium_data'].empty else {}
+                        medium_data: Dict = data['medium_data'].iloc[0].to_dict() if not data['medium_data'].empty else {}
                         tags.append(Tag('medium', data['medium'], additional_info={'composed': medium_data}))
 
                     # Ajouter les tags à la table

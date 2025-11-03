@@ -241,5 +241,10 @@
     "no_load_scenario_found": "❌ Aucun scénario de load trouvé pour la recette '{recipe_name}'",
     "configuration_success": "✅ Configuration réussie pour la recette '{recipe_name}': {details}",
     "error_configuring_scenarios": "❌ Erreur lors de la configuration des scénarios: {error}",
-    "file_not_found": "Non trouvé"
+    "file_not_found": "Non trouvé",
+    "medium_composition": "Composition des milieux",
+    "no_medium_data": "Aucune donnée de composition des milieux trouvée",
+    "medium_composition_table": "Tableau de composition des milieux",
+    "composition_components": "Composants",
+    "download_medium_data": "Télécharger les données des milieux"
 }

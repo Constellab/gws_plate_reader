@@ -249,12 +249,10 @@ def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgS
             st.warning(translate_service.translate('no_data_found'))
             return
 
-        st.subheader(translate_service.translate('recipe_overview'))
-
         resources = resource_set.get_resources()
 
         # Basic statistics
-        st.subheader(translate_service.translate('basic_statistics'))
+        st.markdown(f"### {translate_service.translate('basic_statistics')}")
 
         # Prepare data for analysis
         valid_data = []
@@ -316,7 +314,7 @@ def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgS
             st.metric(translate_service.translate('data_tables'), len(resources))
 
         # Section 3: Missing data information
-        st.subheader(translate_service.translate('missing_data_couples'))
+        st.markdown(f"### {translate_service.translate('missing_data_couples')}")
 
         # Try to get the Venn diagram from the load scenario output
         venn_diagram = fermentalg_state.get_venn_diagram_output()
@@ -419,7 +417,7 @@ def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgS
             st.success(translate_service.translate('no_missing_data'))
 
         # Section 4: Data Visualizations for complete data
-        st.subheader(translate_service.translate('complete_data_viz'))
+        st.markdown(f"### {translate_service.translate('complete_data_viz')}")
 
         # Prepare visualization data for complete (non-missing) data
         complete_visualization_data = prepare_complete_data_for_visualization(resource_set, fermentalg_state)

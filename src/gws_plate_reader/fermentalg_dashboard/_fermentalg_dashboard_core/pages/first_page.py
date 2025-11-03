@@ -146,10 +146,10 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
                 st.rerun()
 
         # Show info message and getting started if no recipes
-        if not list_scenario_user:
-            st.info(f"📊 {translate_service.translate('no_fermentalg_recipe_found')}")
-            st.markdown(f"### 🚀 {translate_service.translate('getting_started')}")
-            st.markdown(translate_service.translate('click_create_recipe'))
+        if not recipes_dict:
+            # No recipes found - show getting started guide
+            st.subheader(f"🚀 {translate_service.translate('getting_started')}")
+            st.info(translate_service.translate('no_fermentalg_recipe_found'))
 
             # Show example of what the recipe includes
             with st.expander(f"ℹ️ {translate_service.translate('what_is_recipe')}"):

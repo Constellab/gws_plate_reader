@@ -181,8 +181,6 @@ def render_selection_step(recipe: FermentalgRecipe, fermentalg_state: Fermentalg
             st.warning(translate_service.translate('no_data_found'))
             return
 
-        st.subheader(translate_service.translate('data_selection'))
-
         # Show existing selections info if any
         existing_selections = recipe.get_selection_scenarios()
         if existing_selections:
@@ -303,7 +301,7 @@ def render_selection_step(recipe: FermentalgRecipe, fermentalg_state: Fermentalg
                     except Exception as e:
                         st.error(f"❌ Erreur lors du lancement du scénario : {str(e)}")
 
-                    st.subheader(translate_service.translate('selected_data'))
+                    st.markdown(f"### {translate_service.translate('selected_data')}")
                     st.write(f"**{len(selected_df)} échantillons sélectionnés :**")
 
                     # Display the selected data

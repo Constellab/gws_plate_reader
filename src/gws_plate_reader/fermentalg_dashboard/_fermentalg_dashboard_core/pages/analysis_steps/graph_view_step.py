@@ -70,8 +70,6 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                 st.error(translate_service.translate('cannot_retrieve_filtered_data'))
                 return
 
-        st.subheader(translate_service.translate('graph_visualizations'))
-
         # Extract data for visualization using State method
         visualization_data = fermentalg_state.prepare_data_for_visualization(filtered_resource_set)
 
@@ -122,7 +120,7 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
 
         # === Section 1: Filters ===
         st.markdown("---")
-        st.subheader(translate_service.translate('filters_and_selection'))
+        st.markdown(f"### {translate_service.translate('filters_and_selection')}")
 
         # Create 2x2 grid for filters
         col1, col2 = st.columns(2)
@@ -132,12 +130,14 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
             with col1_header:
                 st.write(translate_service.translate('batch_selection'))
             with col1_button:
-                if st.button(translate_service.translate('select_all_batches'), key="select_all_batches_graph", use_container_width=True):
+                if st.button(translate_service.translate('select_all_batches'),
+                             key="select_all_batches_graph", use_container_width=True):
                     st.session_state.graph_view_batches = unique_batches
                     st.rerun()
 
             # Reset selection if batches changed
-            if 'graph_view_batches' not in st.session_state or len([batch for batch in st.session_state.graph_view_batches if batch not in unique_batches]) > 0:
+            if 'graph_view_batches' not in st.session_state or len(
+                    [batch for batch in st.session_state.graph_view_batches if batch not in unique_batches]) > 0:
                 st.session_state.graph_view_batches = []
 
             selected_batches = st.multiselect(
@@ -151,12 +151,14 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
             with col2_header:
                 st.write(translate_service.translate('sample_selection'))
             with col2_button:
-                if st.button(translate_service.translate('select_all_samples'), key="select_all_samples_graph", use_container_width=True):
+                if st.button(translate_service.translate('select_all_samples'),
+                             key="select_all_samples_graph", use_container_width=True):
                     st.session_state.graph_view_samples = unique_samples
                     st.rerun()
 
             # Reset selection if samples changed
-            if 'graph_view_samples' not in st.session_state or len([sample for sample in st.session_state.graph_view_samples if sample not in unique_samples]) > 0:
+            if 'graph_view_samples' not in st.session_state or len(
+                    [sample for sample in st.session_state.graph_view_samples if sample not in unique_samples]) > 0:
                 st.session_state.graph_view_samples = []
 
             selected_samples = st.multiselect(
@@ -232,11 +234,11 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
 
         # Display graphs organized by selected columns
         if selected_columns:
-            st.subheader(f"📊 Graphiques organisés par {selected_index}")
+            st.markdown(f"### 📊 Graphiques organisés par {selected_index}")
 
             # Create a section for each selected column with line plots
             for i, column_name in enumerate(selected_columns):
-                st.markdown(f"### 📈 {column_name}")
+                st.markdown(f"##### 📈 {column_name}")
 
                 # Use the optimized function to build the DataFrame for this column
                 column_df = fermentalg_state.build_selected_column_df_from_resource_set(

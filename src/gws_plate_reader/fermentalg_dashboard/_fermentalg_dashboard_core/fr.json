@@ -253,7 +253,18 @@
     "combine_columns_in_same_graph": "Afficher toutes les colonnes dans le même graphique",
     "combine_columns_help": "Cochez pour afficher toutes les colonnes sélectionnées dans une seule figure au lieu de graphiques séparés",
     "all_columns_combined": "Toutes les colonnes sélectionnées",
-    "combined_graph_title": "Comparaison de toutes les colonnes en fonction de {index}",
+        "combined_graph_title": "Comparaison de toutes les colonnes en fonction de {index}",
     "combined_graph_info": "Toutes les colonnes sont affichées dans le même graphique. Décochez l'option ci-dessus pour voir les graphiques séparés.",
-    "combined_y_axis": "Valeurs"
+    "combined_y_axis": "Valeurs",
+    "file_input_mode_label": "Mode d'import des fichiers",
+    "file_input_mode_upload": "📤 Télécharger de nouveaux fichiers",
+    "file_input_mode_select_existing": "📁 Sélectionner des ressources existantes",
+    "file_input_mode_help": "Choisissez si vous voulez télécharger de nouveaux fichiers ou sélectionner des ressources File déjà existantes dans le laboratoire",
+    "select_info_csv_resource": "Rechercher une ressource File pour Info CSV",
+    "select_raw_data_csv_resource": "Rechercher une ressource File pour Raw Data CSV",
+    "select_medium_csv_resource": "Rechercher une ressource File pour Medium CSV",
+    "select_followup_zip_resource": "Rechercher une ressource File pour Follow-up ZIP",
+    "invalid_resource_type": "Type de ressource invalide",
+    "must_select_file_resources": "Vous devez sélectionner uniquement des ressources de type File"
 }
+

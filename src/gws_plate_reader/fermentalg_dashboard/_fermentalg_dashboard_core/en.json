@@ -255,5 +255,15 @@
     "all_columns_combined": "All selected columns",
     "combined_graph_title": "Comparison of all columns versus {index}",
     "combined_graph_info": "All columns are displayed in the same graph. Uncheck the option above to see separate graphs.",
-    "combined_y_axis": "Values"
+    "combined_y_axis": "Values",
+    "file_input_mode_label": "File import mode",
+    "file_input_mode_upload": "📤 Upload new files",
+    "file_input_mode_select_existing": "📁 Select existing resources",
+    "file_input_mode_help": "Choose whether you want to upload new files or select existing File resources from the laboratory",
+    "select_info_csv_resource": "Search for a File resource for Info CSV",
+    "select_raw_data_csv_resource": "Search for a File resource for Raw Data CSV",
+    "select_medium_csv_resource": "Search for a File resource for Medium CSV",
+    "select_followup_zip_resource": "Search for a File resource for Follow-up ZIP",
+    "invalid_resource_type": "Invalid resource type",
+    "must_select_file_resources": "You must only select File type resources"
 }

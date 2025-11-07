@@ -10,7 +10,6 @@ from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, T
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
-from gws_core.resource.resource_set.resource_set import ResourceSet
 from gws_core.impl.table.table import Table
 from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
 from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
@@ -20,11 +19,8 @@ from gws_plate_reader.fermentalg_filter import FermentalgQualityCheck
 def get_available_columns_from_selection(selection_scenario: Scenario, fermentalg_state: FermentalgState) -> List[str]:
     """Get list of available numeric columns from a selection scenario's interpolated output"""
     try:
-        # Get interpolated ResourceSet from selection scenario
-        scenario_proxy = ScenarioProxy.from_existing_scenario(selection_scenario.id)
-        protocol_proxy = scenario_proxy.get_protocol()
-
-        resource_set = protocol_proxy.get_output(fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME)
+        # Get interpolated ResourceSet from selection scenario using state method
+        resource_set = fermentalg_state.get_interpolation_scenario_output(selection_scenario)
 
         if not resource_set:
             return []
@@ -33,7 +29,7 @@ def get_available_columns_from_selection(selection_scenario: Scenario, fermental
         columns = set()
         resources = resource_set.get_resources()
 
-        for resource_name, resource in resources.items():
+        for _, resource in resources.items():
             if isinstance(resource, Table):
                 df = resource.get_data()
                 # Get only numeric columns
@@ -228,7 +224,62 @@ def render_quality_check_config_form(
             )
             config['required_columns'] = ", ".join(required_cols) if required_cols else ""
 
-    # Section 4: Options
+    # Section 4: Minimum Data Points
+    with st.expander("📏 Nombre Minimum de Points de Données", expanded=False):
+        st.markdown(
+            "Définissez le nombre minimum de mesures (valeurs non-NaN) requises pour chaque colonne. "
+            "Utile pour s'assurer qu'il y a suffisamment de points pour les analyses (ex: fitting de courbes de croissance).")
+
+        # Nombre de vérifications
+        num_min_points_checks = st.number_input(
+            "Nombre de vérifications",
+            min_value=0,
+            max_value=10,
+            value=0,
+            step=1,
+            key=f"{config_key}_num_min_points_checks"
+        )
+
+        min_data_points = []
+        for i in range(int(num_min_points_checks)):
+            st.markdown(f"**Vérification #{i+1}**")
+            col1, col2, col3 = st.columns([4, 2, 3])
+
+            with col1:
+                col_name = st.selectbox(
+                    "Colonne",
+                    options=available_columns,
+                    key=f"{config_key}_minpts_col_{i}"
+                )
+
+            with col2:
+                min_count = st.number_input(
+                    "Min points",
+                    min_value=1,
+                    max_value=100,
+                    value=3,
+                    step=1,
+                    help="Nombre minimum de valeurs non-NaN requises",
+                    key=f"{config_key}_minpts_count_{i}"
+                )
+
+            with col3:
+                action = st.selectbox(
+                    "Action",
+                    options=["remove_sample", "mark_only"],
+                    help="remove_sample: exclut l'échantillon | mark_only: ajoute un warning",
+                    key=f"{config_key}_minpts_action_{i}"
+                )
+
+            min_data_points.append({
+                'column': col_name,
+                'min_count': float(min_count),
+                'action': action
+            })
+
+        config['min_data_points'] = min_data_points
+
+    # Section 5: Options
     with st.expander("⚙️ Options", expanded=False):
         config['add_quality_tags'] = st.checkbox(
             "Ajouter des tags de qualité",
@@ -248,29 +299,26 @@ def launch_quality_check_scenario(
     try:
         # Authenticate user for database operations
         with StreamlitAuthenticateUser():
-            # 1. Get the interpolated ResourceSet from the selection scenario
-            selection_protocol_proxy = ScenarioProxy.from_existing_scenario(selection_scenario.id).get_protocol()
+            # 1. Get the data ResourceSet from the load scenario output
+            data_resource = fermentalg_state.get_load_scenario_output()
 
-            # Get the interpolated resource output (to use as input)
-            try:
-                interpolated_resource = selection_protocol_proxy.get_output(
-                    fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
-                )
-
-                if not interpolated_resource:
-                    st.error(
-                        "Impossible de récupérer les données interpolées. Le scénario parent est peut-être encore en cours d'exécution.")
-                    return None
-
-                # Get the resource model ID
-                interpolated_resource_id = interpolated_resource.get_model_id()
-            except Exception as e:
-                st.error(f"Erreur lors de la récupération des données interpolées: {str(e)}")
-                import traceback
-                st.code(traceback.format_exc())
+            if not data_resource:
+                st.error("Impossible de récupérer les données brutes (data) depuis le scénario de load.")
                 return None
 
-            # 2. Create a new scenario for quality check with timestamp
+            data_resource_id = data_resource.get_model_id()
+
+            # 2. Get the interpolated ResourceSet from the selection scenario (using state method)
+            interpolated_resource = fermentalg_state.get_interpolation_scenario_output(selection_scenario)
+
+            if not interpolated_resource:
+                st.error(
+                    "Impossible de récupérer les données interpolées. Le scénario parent est peut-être encore en cours d'exécution.")
+                return None
+
+            interpolated_resource_id = interpolated_resource.get_model_id()
+
+            # 3. Create a new scenario for quality check with timestamp
             timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             scenario_proxy = ScenarioProxy(
                 None,
@@ -282,9 +330,15 @@ def launch_quality_check_scenario(
             # Get the protocol for the new scenario
             protocol_proxy = scenario_proxy.get_protocol()
 
-            # Add input task for the ResourceSet (using InputTask pattern)
-            input_task = protocol_proxy.add_process(
-                InputTask, 'resource_set_input',
+            # Add input task for the data ResourceSet (raw data)
+            data_input_task = protocol_proxy.add_process(
+                InputTask, 'data_input',
+                {InputTask.config_name: data_resource_id}
+            )
+
+            # Add input task for the interpolated ResourceSet
+            interpolated_input_task = protocol_proxy.add_process(
+                InputTask, 'interpolated_input',
                 {InputTask.config_name: interpolated_resource_id}
             )
 
@@ -294,10 +348,16 @@ def launch_quality_check_scenario(
                 'quality_check_task'
             )
 
-            # Connect the ResourceSet to the quality check task
+            # Connect the data ResourceSet to the quality check task
             protocol_proxy.add_connector(
-                out_port=input_task >> 'resource',
-                in_port=quality_check_task << 'resource_set'
+                out_port=data_input_task >> 'resource',
+                in_port=quality_check_task << 'data'
+            )
+
+            # Connect the interpolated ResourceSet to the quality check task
+            protocol_proxy.add_connector(
+                out_port=interpolated_input_task >> 'resource',
+                in_port=quality_check_task << 'interpolated_data'
             )
 
             # Set quality check parameters from configuration (or use defaults)
@@ -309,10 +369,16 @@ def launch_quality_check_scenario(
             for param_name, param_value in quality_check_config.items():
                 quality_check_task.set_param(param_name, param_value)
 
-            # Add output to make the quality-checked result visible
+            # Add outputs to make the quality-checked results visible
             protocol_proxy.add_output(
                 fermentalg_state.QUALITY_CHECK_SCENARIO_OUTPUT_NAME,
-                quality_check_task >> 'filtered_resource_set',
+                quality_check_task >> 'filtered_data',
+                flag_resource=True
+            )
+
+            protocol_proxy.add_output(
+                fermentalg_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME,
+                quality_check_task >> 'filtered_interpolated_data',
                 flag_resource=True
             )
 
@@ -427,11 +493,16 @@ def render_quality_check_step(
         **Validation de plages:**
         Définissez des valeurs min/max acceptables pour chaque colonne (ex: pH entre 4 et 9)
 
+        **Nombre minimum de points de données:**
+        Assurez-vous qu'il y a suffisamment de mesures pour les analyses (ex: fitting de courbes de croissance nécessite ≥3 points).
+        Idéal pour garantir la qualité des résultats d'analyses ultérieures.
+
         **Recommandations:**
         1. Commencez avec `action=mark_only` pour voir la distribution
         2. Utilisez IQR pour les données biologiques (plus robuste)
         3. Vérifiez les logs pour voir les échantillons exclus
         4. Gardez les données originales pour comparaison
+        5. Pour le fitting de courbes: définissez min 3 points pour Biomasse, Glucose, etc.
         """)
 
 

@@ -8,13 +8,17 @@ from typing import Dict, List, Optional, Tuple
 from gws_core import Scenario, ScenarioStatus
 from gws_core.streamlit import StreamlitContainers, StreamlitTreeMenu, StreamlitTreeMenuItem, StreamlitRouter
 from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from .analysis_steps import (
+from .recipe_steps import (
     render_overview_step,
     render_selection_step,
     render_quality_check_step,
     render_table_view_step,
     render_graph_view_step,
-    render_medium_view_step
+    render_medium_view_step,
+    render_medium_pca_step,
+    render_medium_pca_results,
+    render_feature_extraction_step,
+    render_feature_extraction_results
 )
 
 
@@ -102,7 +106,7 @@ def build_analysis_tree_menu(fermentalg_state: FermentalgState) -> Tuple[Streaml
 
             # Add Quality Check folder - clicking on it opens the QC creation form
             quality_check_folder = StreamlitTreeMenuItem(
-                label="🔍 Quality Check",
+                label="Quality Check",
                 key=f'quality_check_{scenario.id}',
                 material_icon='folder'
             )
@@ -146,15 +150,67 @@ def build_analysis_tree_menu(fermentalg_state: FermentalgState) -> Tuple[Streaml
                     )
                     qc_folder.add_child(qc_medium_item)
 
+                    # Analysis sub-folder
+                    analysis_folder = StreamlitTreeMenuItem(
+                        label=translate_service.translate('analysis'),
+                        key=f'analysis_qc_{qc_scenario.id}',
+                        material_icon='folder'
+                    )
+                    qc_folder.add_child(analysis_folder)
+
+                    for analysis_type, analysis_info in fermentalg_state.ANALYSIS_TREE.items():
+                        analysis_item = StreamlitTreeMenuItem(
+                            label=translate_service.translate(analysis_info['title']),
+                            key=f'analysis_{analysis_type}_qc_{qc_scenario.id}',
+                            material_icon=analysis_info['icon']
+                        )
+
+                        # For Medium PCA, add existing scenarios as sub-folders
+                        if analysis_type == 'medium_pca':
+                            pca_scenarios = recipe.get_medium_pca_scenarios_for_quality_check(qc_scenario.id)
+                            if pca_scenarios:
+                                for pca_scenario in pca_scenarios:
+                                    pca_timestamp = pca_scenario.title
+                                    if "Medium PCA - " in pca_scenario.title:
+                                        pca_timestamp = pca_scenario.title.replace("Medium PCA - ", "")
+
+                                    # Create sub-item for this PCA scenario
+                                    pca_result_item = StreamlitTreeMenuItem(
+                                        label=pca_timestamp,
+                                        key=f'pca_result_{pca_scenario.id}',
+                                        material_icon='assessment'
+                                    )
+                                    analysis_item.add_child(pca_result_item)
+
+                        # For Feature Extraction, add existing scenarios as sub-folders
+                        if analysis_type == 'feature_extraction':
+                            fe_scenarios = recipe.get_feature_extraction_scenarios_for_quality_check(qc_scenario.id)
+                            if fe_scenarios:
+                                for fe_scenario in fe_scenarios:
+                                    fe_timestamp = fe_scenario.title
+                                    if "Feature Extraction - " in fe_scenario.title:
+                                        fe_timestamp = fe_scenario.title.replace("Feature Extraction - ", "")
+
+                                    # Create sub-item for this FE scenario
+                                    fe_result_item = StreamlitTreeMenuItem(
+                                        label=fe_timestamp,
+                                        key=f'fe_result_{fe_scenario.id}',
+                                        material_icon='auto_graph'
+                                    )
+                                    analysis_item.add_child(fe_result_item)
+
+                        analysis_folder.add_child(analysis_item)
+
                     quality_check_folder.add_child(qc_folder)
 
             selection_folder.add_child(quality_check_folder)
+
             button_menu.add_item(selection_folder)
 
     return button_menu, 'apercu'
 
 
-def render_analysis_page(fermentalg_state: FermentalgState) -> None:
+def render_recipe_page(fermentalg_state: FermentalgState) -> None:
     """Render the analysis page with tree navigation structure"""
 
     translate_service = fermentalg_state.get_translate_service()
@@ -238,12 +294,12 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
                     st.title(f"{recipe.name} - Tableau (QC)")
-                    # Display quality check results in table view
+                    # Display quality check results in table view (use interpolated output)
                     render_table_view_step(
                         recipe,
                         fermentalg_state,
                         scenario=target_qc_scenario,
-                        output_name=fermentalg_state.QUALITY_CHECK_SCENARIO_OUTPUT_NAME
+                        output_name=fermentalg_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
                     )
                 else:
                     st.error("Quality Check scenario not found")
@@ -255,12 +311,12 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
                     st.title(f"{recipe.name} - Graphiques (QC)")
-                    # Display quality check results in graph view
+                    # Display quality check results in graph view (use interpolated output)
                     render_graph_view_step(
                         recipe,
                         fermentalg_state,
                         scenario=target_qc_scenario,
-                        output_name=fermentalg_state.QUALITY_CHECK_SCENARIO_OUTPUT_NAME
+                        output_name=fermentalg_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
                     )
                 else:
                     st.error("Quality Check scenario not found")
@@ -313,5 +369,49 @@ def render_analysis_page(fermentalg_state: FermentalgState) -> None:
                     )
                 else:
                     st.error("Quality Check scenario not found")
+            elif selected_key.startswith('analysis_medium_pca_qc_'):
+                # Extract quality check scenario ID from key (analysis_medium_pca_qc_{qc_id})
+                qc_scenario_id = selected_key.replace('analysis_medium_pca_qc_', '')
+                # Find the corresponding quality check scenario
+                all_qc_scenarios = recipe.get_quality_check_scenarios()
+                target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+                if target_qc_scenario:
+                    st.title(f"{recipe.name} - Medium PCA Analysis")
+                    render_medium_pca_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
+                else:
+                    st.error("Quality Check scenario not found")
+            elif selected_key.startswith('analysis_feature_extraction_qc_'):
+                # Extract quality check scenario ID from key (analysis_feature_extraction_qc_{qc_id})
+                qc_scenario_id = selected_key.replace('analysis_feature_extraction_qc_', '')
+                # Find the corresponding quality check scenario
+                all_qc_scenarios = recipe.get_quality_check_scenarios()
+                target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+                if target_qc_scenario:
+                    st.title(f"{recipe.name} - Feature Extraction Analysis")
+                    render_feature_extraction_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
+                else:
+                    st.error("Quality Check scenario not found")
+            elif selected_key.startswith('pca_result_'):
+                # Extract PCA scenario ID from key (pca_result_{pca_scenario_id})
+                pca_scenario_id = selected_key.replace('pca_result_', '')
+                # Find the corresponding PCA scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_pca_scenario = next((s for s in all_analyses_scenarios if s.id == pca_scenario_id), None)
+                if target_pca_scenario:
+                    # Use the render function from medium_pca_results.py
+                    render_medium_pca_results(recipe, fermentalg_state, target_pca_scenario)
+                else:
+                    st.error("PCA scenario not found")
+            elif selected_key.startswith('fe_result_'):
+                # Extract Feature Extraction scenario ID from key (fe_result_{fe_scenario_id})
+                fe_scenario_id = selected_key.replace('fe_result_', '')
+                # Find the corresponding FE scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_fe_scenario = next((s for s in all_analyses_scenarios if s.id == fe_scenario_id), None)
+                if target_fe_scenario:
+                    # Use the render function from feature_extraction_results.py
+                    render_feature_extraction_results(recipe, fermentalg_state, target_fe_scenario)
+                else:
+                    st.error("Feature Extraction scenario not found")
             else:
                 st.info(translate_service.translate('select_step_in_menu'))

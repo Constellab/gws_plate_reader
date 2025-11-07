@@ -138,7 +138,7 @@ class FermentalgRecipe(CellCultureRecipe):
         """
         Add a quality check scenario to this recipe
 
-        :param selection_id: ID of the parent selection scenario
+        :param selection_id: ID of the parent selection scenario (not used, for API compatibility)
         :param quality_check_scenario: Quality check scenario to add
         """
         # Get existing quality check scenarios
@@ -149,6 +149,50 @@ class FermentalgRecipe(CellCultureRecipe):
 
         # Update the scenarios dict
         self.add_scenarios_by_step('quality_check', updated_qc_scenarios)
+
+    def add_analyses_scenario(self, selection_id: str, analyses_scenario: Scenario) -> None:
+        """
+        Add an analyses scenario to this recipe
+
+        :param selection_id: ID of the parent selection scenario (not used, for API compatibility)
+        :param analyses_scenario: Analyses scenario to add
+        """
+        # Get existing analyses scenarios
+        existing_analyses_scenarios = self.get_analyses_scenarios()
+
+        # Add new scenario
+        updated_analyses_scenarios = [analyses_scenario] + existing_analyses_scenarios
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_analyses_scenarios(self) -> List[Scenario]:
+        """
+        Get all analyses scenarios for this recipe
+
+        :return: List of analyses scenarios
+        """
+        return self.get_scenarios_for_step('analyses')
+
+    def get_analyses_scenarios_for_selection(self, selection_id: str) -> List[Scenario]:
+        """
+        Get analyses scenarios linked to a specific selection scenario
+
+        :param selection_id: ID of the parent selection scenario
+        :return: List of analyses scenarios for this selection
+        """
+        all_analyses_scenarios = self.get_analyses_scenarios()
+
+        # Filter by parent selection ID tag
+        filtered_scenarios = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_selection_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_selection")
+
+            if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
+                filtered_scenarios.append(scenario)
+
+        return filtered_scenarios
 
     def get_selection_scenarios_organized(self) -> Dict[str, Scenario]:
         """
@@ -231,3 +275,87 @@ class FermentalgRecipe(CellCultureRecipe):
                 step: len(scenarios) for step, scenarios in self.scenarios.items()
             }
         }
+
+    def get_medium_pca_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+        """
+        Get Medium PCA scenarios for a specific quality check
+
+        :param qc_id: Quality check scenario ID
+        :return: List of Medium PCA scenarios for this quality check
+        """
+        # Get all analyses scenarios (medium_pca scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent quality check tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_qc_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_quality_check")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a medium_pca analysis for the specified quality check
+            is_medium_pca = analysis_type_tags and analysis_type_tags[0].tag_value == "medium_pca"
+            is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
+
+            if is_medium_pca and is_for_qc:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_medium_pca_scenario(self, qc_id: str, pca_scenario: Scenario) -> None:
+        """
+        Add a Medium PCA scenario to this recipe
+
+        :param qc_id: ID of the parent quality check scenario (not used, for API compatibility)
+        :param pca_scenario: Medium PCA scenario to add
+        """
+        # Get existing analyses scenarios (medium_pca scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [pca_scenario] + existing_analyses_scenarios
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_feature_extraction_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+        """
+        Get Feature Extraction scenarios for a specific quality check
+
+        :param qc_id: Quality check scenario ID
+        :return: List of Feature Extraction scenarios for this quality check
+        """
+        # Get all analyses scenarios (feature_extraction scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent quality check tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_qc_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_quality_check")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a feature_extraction analysis for the specified quality check
+            is_feature_extraction = analysis_type_tags and analysis_type_tags[0].tag_value == "feature_extraction"
+            is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
+
+            if is_feature_extraction and is_for_qc:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_feature_extraction_scenario(self, qc_id: str, fe_scenario: Scenario) -> None:
+        """
+        Add a Feature Extraction scenario to this recipe
+
+        :param qc_id: ID of the parent quality check scenario (not used, for API compatibility)
+        :param fe_scenario: Feature Extraction scenario to add
+        """
+        # Get existing analyses scenarios (feature_extraction scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [fe_scenario] + existing_analyses_scenarios
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)

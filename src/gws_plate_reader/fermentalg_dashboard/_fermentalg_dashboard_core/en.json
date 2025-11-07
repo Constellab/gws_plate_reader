@@ -246,5 +246,14 @@
     "no_medium_data": "No medium composition data found",
     "medium_composition_table": "Medium Composition Table",
     "composition_components": "Components",
-    "download_medium_data": "Download medium data"
+    "download_medium_data": "Download medium data",
+    "analysis": "Analysis",
+    "medium_pca_analysis": "Medium PCA Analysis",
+    "feature_extraction_analysis": "Feature Extraction Analysis",
+    "combine_columns_in_same_graph": "Display all columns in the same graph",
+    "combine_columns_help": "Check to display all selected columns in a single figure instead of separate graphs",
+    "all_columns_combined": "All selected columns",
+    "combined_graph_title": "Comparison of all columns versus {index}",
+    "combined_graph_info": "All columns are displayed in the same graph. Uncheck the option above to see separate graphs.",
+    "combined_y_axis": "Values"
 }

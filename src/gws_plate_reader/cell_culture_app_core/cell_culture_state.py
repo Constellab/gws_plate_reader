@@ -6,6 +6,8 @@ import streamlit as st
 from abc import ABC
 from typing import Dict, Any, List, Optional
 from gws_core import ScenarioProxy, Scenario, ResourceSet
+from gws_core.resource.resource import Resource
+from gws_core.resource.resource_model import ResourceModel
 from gws_core.streamlit import StreamlitTranslateService
 
 from .cell_culture_recipe import CellCultureRecipe
@@ -27,6 +29,12 @@ class CellCultureState(ABC):
     SELECTION_DATA_KEY = "selection_data"
     SELECTED_RESOURCES_KEY = "selected_resources"
     SELECTED_RESOURCE_SET_KEY = "selected_resource_set"
+    MEDIUM_CSV_INPUT_KEY = "medium_csv_input"
+
+    ANALYSIS_TREE: Dict[str, Any] = {
+        "medium_pca": {"title": "medium_pca_analysis", "icon": "scatter_plot", "children": []},
+        "feature_extraction": {"title": "feature_extraction_analysis", "icon": "functions", "children": []},
+    }
 
     def __init__(self, lang_translation_folder_path: str):
         """
@@ -139,6 +147,39 @@ class CellCultureState(ABC):
         """Get the main scenario from the Recipe instance."""
         recipe = self.get_selected_recipe_instance()
         return recipe.get_load_scenario() if recipe else None
+
+    def get_load_scenario_input_resource_model(self, name: str) -> ResourceModel:
+        """
+        Get the input resource from the load scenario of the current recipe.
+
+        :return: The input resource or None if not found
+        """
+        load_scenario = self.get_main_scenario()
+        if not load_scenario:
+            return None
+
+        try:
+            scenario_proxy = ScenarioProxy.from_existing_scenario(load_scenario.id)
+            protocol_proxy = scenario_proxy.get_protocol()
+
+            print('LOAD SCENARIO:', load_scenario)
+            if not protocol_proxy:
+                return FileNotFoundError
+
+            print('NAME:', name)
+            return protocol_proxy.get_input_resource_model(name)
+
+        except Exception as e:
+            # Return empty dict if there's an error accessing inputs
+            return None
+
+    def get_medium_csv_input_resource_model(self) -> Optional[ResourceModel]:
+        """
+        Get the medium CSV input resource model from the load scenario.
+
+        :return: The medium CSV input resource model or None if not found
+        """
+        return self.get_load_scenario_input_resource_model(self.MEDIUM_CSV_INPUT_KEY)
 
     def add_scenarios_to_recipe(self, step: str, scenarios: List[Scenario]) -> None:
         """Add scenarios to the current Recipe instance for a specific step."""

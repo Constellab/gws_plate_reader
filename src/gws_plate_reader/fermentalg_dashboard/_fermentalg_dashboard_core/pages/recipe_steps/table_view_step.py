@@ -238,14 +238,15 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                     options=index_columns,
                     index=0,
                     key="table_view_index",
-                    help=translate_service.translate('index_column_help_table')
+                    help="Choisissez n'importe quelle colonne pour l'utiliser comme index. Les colonnes de temps apparaissent en premier par défaut."
                 )
             else:
                 st.warning(translate_service.translate('no_index_column'))
                 selected_index = None
 
         # Filter data columns to exclude the selected index
-        if selected_index and selected_index in data_columns:
+        # Always exclude the selected index from selectable columns
+        if selected_index:
             filtered_data_columns = [col for col in data_columns if col != selected_index]
         else:
             filtered_data_columns = data_columns
@@ -259,11 +260,6 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                 key="table_view_columns",
                 help=f"Colonnes de données disponibles" +
                 (f" (excluant l'index '{selected_index}')" if selected_index else ""))
-
-        # Show info message if a data column is used as index
-        if selected_index and selected_index in data_columns and selected_index not in ['Batch', 'Sample']:
-            st.info(
-                f"💡 La colonne '{selected_index}' est utilisée comme index et a été retirée de la liste des colonnes sélectionnables.")
 
         # Prepare extended data with selected columns
         extended_data = prepare_extended_data_for_visualization(

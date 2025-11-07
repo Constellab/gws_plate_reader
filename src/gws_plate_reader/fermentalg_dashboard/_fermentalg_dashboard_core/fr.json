@@ -246,5 +246,14 @@
     "no_medium_data": "Aucune donnée de composition des milieux trouvée",
     "medium_composition_table": "Tableau de composition des milieux",
     "composition_components": "Composants",
-    "download_medium_data": "Télécharger les données des milieux"
+    "download_medium_data": "Télécharger les données des milieux",
+    "analysis": "Analyses",
+    "medium_pca_analysis": "Analyse PCA des milieux",
+    "feature_extraction_analysis": "Analyse d'extraction de caractéristiques",
+    "combine_columns_in_same_graph": "Afficher toutes les colonnes dans le même graphique",
+    "combine_columns_help": "Cochez pour afficher toutes les colonnes sélectionnées dans une seule figure au lieu de graphiques séparés",
+    "all_columns_combined": "Toutes les colonnes sélectionnées",
+    "combined_graph_title": "Comparaison de toutes les colonnes en fonction de {index}",
+    "combined_graph_info": "Toutes les colonnes sont affichées dans le même graphique. Décochez l'option ci-dessus pour voir les graphiques séparés.",
+    "combined_y_axis": "Valeurs"
 }

@@ -60,6 +60,12 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
             .add_is_archived_filter(False) \
             .search_all()
 
+        # Get analyses scenarios
+        analyses_scenarios = ScenarioSearchBuilder() \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_ANALYSES_PROCESSING)) \
+            .add_is_archived_filter(False) \
+            .search_all()
+
         # Create dictionary with recipe name as key and scenarios structure as value
         recipes_dict = {}
 
@@ -73,7 +79,8 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
                 recipes_dict[recipe_name] = {
                     'load_scenario': None,
                     'selection_scenarios': [],
-                    'quality_check_scenarios': []
+                    'quality_check_scenarios': [],
+                    'analyses_scenarios': []
                 }
             recipes_dict[recipe_name]['load_scenario'] = scenario
 
@@ -86,7 +93,7 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
             if recipe_name in recipes_dict:
                 recipes_dict[recipe_name]['selection_scenarios'].append(scenario)
 
-        # Finally, add quality check scenarios to their corresponding recipes
+        # Then, add quality check scenarios to their corresponding recipes
         for scenario in quality_check_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
             recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
@@ -94,6 +101,15 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
 
             if recipe_name in recipes_dict:
                 recipes_dict[recipe_name]['quality_check_scenarios'].append(scenario)
+
+        # Finally, add analyses scenarios to their corresponding recipes
+        for scenario in analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+            recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
+
+            if recipe_name in recipes_dict:
+                recipes_dict[recipe_name]['analyses_scenarios'].append(scenario)
 
         # Pass both load and selection scenarios - the table function will filter and group them correctly
         list_scenario_user: List[Scenario] = load_scenarios + selection_scenarios
@@ -136,6 +152,10 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
                 # Add quality check scenarios if they exist
                 if 'quality_check_scenarios' in recipe_data and recipe_data['quality_check_scenarios']:
                     recipe_instance.add_scenarios_by_step('quality_check', recipe_data['quality_check_scenarios'])
+
+                # Add analyses scenarios if they exist
+                if 'analyses_scenarios' in recipe_data and recipe_data['analyses_scenarios']:
+                    recipe_instance.add_scenarios_by_step('analyses', recipe_data['analyses_scenarios'])
 
                 # Store the complete instance in state
                 fermentalg_state.set_selected_recipe_instance(recipe_instance)

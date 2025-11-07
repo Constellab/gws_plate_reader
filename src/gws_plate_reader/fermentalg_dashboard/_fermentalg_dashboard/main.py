@@ -1,7 +1,7 @@
 import streamlit as st
 
 from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.pages import first_page, new_analysis_page, analysis_page, settings
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.pages import first_page, new_recipe_page, recipe_page, settings
 from gws_core.streamlit import StreamlitRouter
 
 sources: list
@@ -26,7 +26,7 @@ def add_first_page(router: StreamlitRouter, fermentalg_state: FermentalgState):
 
 
 def display_new_analysis_page(fermentalg_state: FermentalgState):
-    new_analysis_page.render_new_analysis_page(fermentalg_state)
+    new_recipe_page.render_new_recipe_page(fermentalg_state)
 
 
 def add_new_analysis_page(router: StreamlitRouter, fermentalg_state: FermentalgState):
@@ -40,7 +40,7 @@ def add_new_analysis_page(router: StreamlitRouter, fermentalg_state: FermentalgS
 
 
 def display_analysis_page(fermentalg_state: FermentalgState):
-    analysis_page.render_analysis_page(fermentalg_state)
+    recipe_page.render_recipe_page(fermentalg_state)
 
 
 def add_analysis_page(router: StreamlitRouter, fermentalg_state: FermentalgState):

@@ -16,7 +16,7 @@ from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg
 from gws_plate_reader.fermentalg_load_data.fermentalg_load_data import FermentalgLoadData
 
 
-def render_new_analysis_page(fermentalg_state: FermentalgState) -> None:
+def render_new_recipe_page(fermentalg_state: FermentalgState) -> None:
     """Render the new analysis creation page"""
 
     translate_service = fermentalg_state.get_translate_service()
@@ -196,7 +196,7 @@ def render_new_analysis_page(fermentalg_state: FermentalgState) -> None:
                         {InputTask.config_name: file_resource_models['raw_data_csv'].id})
 
                     medium_csv_input = protocol.add_process(
-                        InputTask, 'medium_csv_input',
+                        InputTask, fermentalg_state.MEDIUM_CSV_INPUT_KEY,
                         {InputTask.config_name: file_resource_models['medium_csv'].id})
 
                     follow_up_zip_input = protocol.add_process(

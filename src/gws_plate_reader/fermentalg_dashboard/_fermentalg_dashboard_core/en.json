@@ -265,5 +265,6 @@
     "select_medium_csv_resource": "Search for a File resource for Medium CSV",
     "select_followup_zip_resource": "Search for a File resource for Follow-up ZIP",
     "invalid_resource_type": "Invalid resource type",
-    "must_select_file_resources": "You must only select File type resources"
+    "must_select_file_resources": "You must only select File type resources",
+    "save_table": "Save table"
 }

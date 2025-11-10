@@ -105,11 +105,11 @@ def create_fermentalg_recipe_table_data(scenarios: List[Scenario], fermentalg_st
                 }
 
             # Check if this is a load scenario (data processing)
-            fermentalg_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_FERMENTALG)
+            fermentalg_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR)
             is_load_scenario = any(tag.tag_value == fermentalg_state.TAG_DATA_PROCESSING for tag in fermentalg_tags)
 
             # Check if this is a selection scenario
-            selection_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_FERMENTALG)
+            selection_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR)
             is_selection_scenario = any(tag.tag_value == fermentalg_state.TAG_SELECTION_PROCESSING
                                         for tag in selection_tags)
 
@@ -485,7 +485,7 @@ def setup_recipe_scenarios(recipe_name: str, fermentalg_state: FermentalgState,
 
         # 1. Find the load scenario for this recipe
         load_scenarios: List[Scenario] = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_DATA_PROCESSING)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_DATA_PROCESSING)) \
             .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_RECIPE_NAME, value=recipe_name)) \
             .add_is_archived_filter(False) \
             .search_all()
@@ -511,7 +511,7 @@ def setup_recipe_scenarios(recipe_name: str, fermentalg_state: FermentalgState,
 
         # 2. Find all selection scenarios for this recipe
         selection_scenarios: List[Scenario] = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_SELECTION_PROCESSING)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_SELECTION_PROCESSING)) \
             .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_RECIPE_NAME, value=recipe_name)) \
             .add_is_archived_filter(False) \
             .search_all()
@@ -522,7 +522,7 @@ def setup_recipe_scenarios(recipe_name: str, fermentalg_state: FermentalgState,
 
         # 3. Find all quality check scenarios for this recipe
         quality_check_scenarios: List[Scenario] = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_QUALITY_CHECK_PROCESSING)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_QUALITY_CHECK_PROCESSING)) \
             .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_RECIPE_NAME, value=recipe_name)) \
             .add_is_archived_filter(False) \
             .search_all()

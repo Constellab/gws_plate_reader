@@ -142,7 +142,7 @@ def launch_medium_pca_scenario(
             microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
 
             # Classification tag - indicate this is an analysis
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG,
+            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
                                    fermentalg_state.TAG_ANALYSES_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags

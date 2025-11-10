@@ -44,25 +44,25 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
         # Search for existing Fermentalg analyses (both load and selection scenarios)
         # Get load scenarios
         load_scenarios = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_DATA_PROCESSING)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_DATA_PROCESSING)) \
             .add_is_archived_filter(False) \
             .search_all()
 
         # Get selection scenarios
         selection_scenarios = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_SELECTION_PROCESSING)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_SELECTION_PROCESSING)) \
             .add_is_archived_filter(False) \
             .search_all()
 
         # Get quality check scenarios
         quality_check_scenarios = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_QUALITY_CHECK_PROCESSING)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_QUALITY_CHECK_PROCESSING)) \
             .add_is_archived_filter(False) \
             .search_all()
 
         # Get analyses scenarios
         analyses_scenarios = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_FERMENTALG, value=fermentalg_state.TAG_ANALYSES_PROCESSING)) \
+            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_ANALYSES_PROCESSING)) \
             .add_is_archived_filter(False) \
             .search_all()
 

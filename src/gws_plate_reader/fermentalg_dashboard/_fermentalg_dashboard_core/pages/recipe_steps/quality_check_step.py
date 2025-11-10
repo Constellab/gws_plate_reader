@@ -400,7 +400,7 @@ def launch_quality_check_scenario(
             microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
 
             # Classification tag - indicate this is a quality check step
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG,
+            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
                                    fermentalg_state.TAG_QUALITY_CHECK_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags

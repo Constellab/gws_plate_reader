@@ -9,6 +9,9 @@ from gws_core import ScenarioProxy, Scenario, ResourceSet
 from gws_core.resource.resource import Resource
 from gws_core.resource.resource_model import ResourceModel
 from gws_core.streamlit import StreamlitTranslateService
+import pandas as pd
+
+from gws_core import Table, EntityTagList, TagEntityType, Tag
 
 from .cell_culture_recipe import CellCultureRecipe
 
@@ -30,6 +33,9 @@ class CellCultureState(ABC):
     SELECTED_RESOURCES_KEY = "selected_resources"
     SELECTED_RESOURCE_SET_KEY = "selected_resource_set"
     MEDIUM_CSV_INPUT_KEY = "medium_csv_input"
+
+    TAG_FERMENTOR = "fermentor"
+    TAG_FERMENTOR_RECIPE_NAME = "fermentor_recipe_name"
 
     ANALYSIS_TREE: Dict[str, Any] = {
         "medium_pca": {"title": "medium_pca_analysis", "icon": "scatter_plot", "children": []},
@@ -262,3 +268,31 @@ class CellCultureState(ABC):
     def get_selected_folder_id(self) -> Optional[str]:
         """Get the selected folder ID."""
         return st.session_state.get("selected_folder_id")
+
+    def save_df_as_table(self,
+                         df: pd.DataFrame,
+                         table_name: str,
+                         scenario: Scenario):
+        """Save a DataFrame as a Table in the given scenario."""
+        table = Table(data=df)
+        table.name = table_name
+
+        # Tags
+        entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+
+        tags_dict = entity_tag_list.get_tags_as_dict()
+
+        tags: List[Tag] = []
+
+        if self.TAG_FERMENTOR in tags_dict:
+            tags.append(Tag(key=self.TAG_FERMENTOR, value=tags_dict[self.TAG_FERMENTOR]))
+
+        if self.TAG_FERMENTOR_RECIPE_NAME in tags_dict:
+            tags.append(Tag(key=self.TAG_FERMENTOR_RECIPE_NAME,
+                            value=tags_dict[self.TAG_FERMENTOR_RECIPE_NAME]))
+
+        table.tags.add_tags(tags)
+
+        table_resource_model = ResourceModel.from_resource(table, scenario=scenario)
+
+        table_resource_model.save()

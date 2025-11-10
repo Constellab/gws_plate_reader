@@ -402,290 +402,296 @@ class FermentalgLoadData(Task):
 
         for essai, fermentors in full_info_dict.items():
             for fermentor, data in fermentors.items():
+                try:
+                    row_data_df: pd.DataFrame = data['raw_data']
+                    # Utiliser les informations stockées dans full_info_dict
+                    follow_up_df: pd.DataFrame = data['follow_up_table'].get_data()
 
-                row_data_df: pd.DataFrame = data['raw_data']
-                # Utiliser les informations stockées dans full_info_dict
-                follow_up_df: pd.DataFrame = data['follow_up_table'].get_data()
+                    # Merger raw_data_df et follow_up_df sur la colonne 'Temps de culture (h)'
+                    if not row_data_df.empty and not follow_up_df.empty:
+                        # Renommer la colonne de temps dans follow_up_df pour correspondre à raw_data_df
+                        if 'Temps (h)' in follow_up_df.columns:
+                            follow_up_df = follow_up_df.rename(columns={'Temps (h)': 'Temps de culture (h)'})
 
-                # Merger raw_data_df et follow_up_df sur la colonne 'Temps de culture (h)'
-                if not row_data_df.empty and not follow_up_df.empty:
-                    # Renommer la colonne de temps dans follow_up_df pour correspondre à raw_data_df
-                    if 'Temps (h)' in follow_up_df.columns:
-                        follow_up_df = follow_up_df.rename(columns={'Temps (h)': 'Temps de culture (h)'})
+                        # Normaliser les formats numériques des colonnes de temps
+                        def normalize_decimal_format(df, column_name):
+                            """Convertit les virgules en points et assure le type float"""
+                            if column_name in df.columns:
+                                # Convertir en string puis remplacer virgules par points
+                                df[column_name] = df[column_name].astype(str).str.replace(',', '.', regex=False)
+                                # Convertir en float
+                                df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
+                            return df
 
-                    # Normaliser les formats numériques des colonnes de temps
-                    def normalize_decimal_format(df, column_name):
-                        """Convertit les virgules en points et assure le type float"""
-                        if column_name in df.columns:
-                            # Convertir en string puis remplacer virgules par points
-                            df[column_name] = df[column_name].astype(str).str.replace(',', '.', regex=False)
-                            # Convertir en float
-                            df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
-                        return df
+                        # Normaliser les deux DataFrames
+                        row_data_df = normalize_decimal_format(row_data_df.copy(), 'Temps de culture (h)')
+                        follow_up_df = normalize_decimal_format(follow_up_df.copy(), 'Temps de culture (h)')
 
-                    # Normaliser les deux DataFrames
-                    row_data_df = normalize_decimal_format(row_data_df.copy(), 'Temps de culture (h)')
-                    follow_up_df = normalize_decimal_format(follow_up_df.copy(), 'Temps de culture (h)')
+                        # Filtrer les lignes avec temps négatif dans follow_up_df
+                        if 'Temps de culture (h)' in follow_up_df.columns:
+                            follow_up_df = follow_up_df[follow_up_df['Temps de culture (h)'] >= 0]
 
-                    # Filtrer les lignes avec temps négatif dans follow_up_df
-                    if 'Temps de culture (h)' in follow_up_df.columns:
-                        follow_up_df = follow_up_df[follow_up_df['Temps de culture (h)'] >= 0]
+                        # Assurer que les colonnes de temps ont le même type (float) pour éviter le warning
+                        if 'Temps de culture (h)' in row_data_df.columns:
+                            row_data_df['Temps de culture (h)'] = row_data_df['Temps de culture (h)'].astype(float)
+                        if 'Temps de culture (h)' in follow_up_df.columns:
+                            follow_up_df['Temps de culture (h)'] = follow_up_df['Temps de culture (h)'].astype(float)
 
-                    # Assurer que les colonnes de temps ont le même type (float) pour éviter le warning
-                    if 'Temps de culture (h)' in row_data_df.columns:
-                        row_data_df['Temps de culture (h)'] = row_data_df['Temps de culture (h)'].astype(float)
-                    if 'Temps de culture (h)' in follow_up_df.columns:
-                        follow_up_df['Temps de culture (h)'] = follow_up_df['Temps de culture (h)'].astype(float)
+                        # Merge sur la colonne 'Temps de culture (h)'
+                        full_df = pd.merge(
+                            row_data_df,
+                            follow_up_df,
+                            on='Temps de culture (h)',
+                            how='outer'  # outer join pour garder toutes les données
+                        )
+                    elif not row_data_df.empty:
+                        full_df = row_data_df.copy()
+                    elif not follow_up_df.empty:
+                        # Renommer la colonne de temps si nécessaire
+                        if 'Temps (h)' in follow_up_df.columns:
+                            follow_up_df = follow_up_df.rename(columns={'Temps (h)': 'Temps de culture (h)'})
 
-                    # Merge sur la colonne 'Temps de culture (h)'
-                    full_df = pd.merge(
-                        row_data_df,
-                        follow_up_df,
-                        on='Temps de culture (h)',
-                        how='outer'  # outer join pour garder toutes les données
-                    )
-                elif not row_data_df.empty:
-                    full_df = row_data_df.copy()
-                elif not follow_up_df.empty:
-                    # Renommer la colonne de temps si nécessaire
-                    if 'Temps (h)' in follow_up_df.columns:
-                        follow_up_df = follow_up_df.rename(columns={'Temps (h)': 'Temps de culture (h)'})
+                        # Normaliser le format et filtrer les temps négatifs
+                        def normalize_decimal_format(df, column_name):
+                            """Convertit les virgules en points et assure le type float"""
+                            if column_name in df.columns:
+                                # Convertir en string puis remplacer virgules par points
+                                df[column_name] = df[column_name].astype(str).str.replace(',', '.', regex=False)
+                                # Convertir en float
+                                df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
+                            return df
 
-                    # Normaliser le format et filtrer les temps négatifs
-                    def normalize_decimal_format(df, column_name):
-                        """Convertit les virgules en points et assure le type float"""
-                        if column_name in df.columns:
-                            # Convertir en string puis remplacer virgules par points
-                            df[column_name] = df[column_name].astype(str).str.replace(',', '.', regex=False)
-                            # Convertir en float
-                            df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
-                        return df
+                        follow_up_df = normalize_decimal_format(follow_up_df.copy(), 'Temps de culture (h)')
 
-                    follow_up_df = normalize_decimal_format(follow_up_df.copy(), 'Temps de culture (h)')
+                        # Filtrer les lignes avec temps négatif
+                        if 'Temps de culture (h)' in follow_up_df.columns:
+                            follow_up_df = follow_up_df[follow_up_df['Temps de culture (h)'] >= 0]
 
-                    # Filtrer les lignes avec temps négatif
-                    if 'Temps de culture (h)' in follow_up_df.columns:
-                        follow_up_df = follow_up_df[follow_up_df['Temps de culture (h)'] >= 0]
-
-                    full_df = follow_up_df.copy()
-                else:
-                    # Aucune donnée temporelle (ni raw_data ni follow_up)
-                    # Créer un DataFrame avec juste les infos si elles existent
-                    if not data['info'].empty:
-                        full_df = data['info'].copy()
+                        full_df = follow_up_df.copy()
                     else:
-                        full_df = pd.DataFrame()
-
-                # Créer une Table pour chaque couple (essai, fermentor)
-                # même si full_df est vide, pour avoir les tags batch/sample dans le ResourceSet
-                if not full_df.empty or not data['info'].empty:
-                    # Supprimer les colonnes entièrement vides (toutes NaN/None/null/chaînes vides)
-                    # Conserver seulement les colonnes qui ont au moins une valeur non-null et non-vide
-                    columns_to_keep = []
-                    removed_columns = []
-
-                    for col in full_df.columns:
-                        # Vérifier si la colonne a au moins une valeur valide
-                        col_data = full_df[col]
-
-                        # Conditions pour considérer une colonne comme vide :
-                        # 1. Toutes les valeurs sont NaN/None
-                        # 2. Toutes les valeurs sont des chaînes vides ou ne contiennent que des espaces
-                        # 3. Combinaison des deux
-
-                        is_all_nan = col_data.isna().all()
-
-                        # Pour les colonnes de type object/string, vérifier aussi les chaînes vides
-                        if col_data.dtype == 'object':
-                            # Remplacer les chaînes vides/espaces par NaN puis vérifier
-                            col_cleaned = col_data.astype(str).str.strip().replace('', None)
-                            is_all_empty = col_cleaned.isna().all()
+                        # Aucune donnée temporelle (ni raw_data ni follow_up)
+                        # Créer un DataFrame avec juste les infos si elles existent
+                        if not data['info'].empty:
+                            full_df = data['info'].copy()
                         else:
-                            is_all_empty = False
+                            full_df = pd.DataFrame()
 
-                        # La colonne est vide si elle est soit toute NaN, soit toute vide (pour strings)
-                        if is_all_nan or is_all_empty:
-                            removed_columns.append(col)
-                        else:
-                            columns_to_keep.append(col)
+                    # Créer une Table pour chaque couple (essai, fermentor)
+                    # même si full_df est vide, pour avoir les tags batch/sample dans le ResourceSet
+                    if not full_df.empty or not data['info'].empty:
+                        # Supprimer les colonnes entièrement vides (toutes NaN/None/null/chaînes vides)
+                        # Conserver seulement les colonnes qui ont au moins une valeur non-null et non-vide
+                        columns_to_keep = []
+                        removed_columns = []
 
-                    # Si des colonnes ont été supprimées, les enlever du DataFrame
-                    if removed_columns:
-                        full_df = full_df[columns_to_keep]
-                        print(f"Colonnes vides supprimées pour {essai}_{fermentor}: {removed_columns}")
+                        for col in full_df.columns:
+                            # Vérifier si la colonne a au moins une valeur valide
+                            col_data = full_df[col]
 
-                    # Vérifier si le DataFrame n'est pas complètement vide après suppression des colonnes
-                    if full_df.empty or len(columns_to_keep) == 0:
-                        print(f"Aucune donnée valide pour {essai}_{fermentor}, passage au suivant")
-                        continue
+                            # Conditions pour considérer une colonne comme vide :
+                            # 1. Toutes les valeurs sont NaN/None
+                            # 2. Toutes les valeurs sont des chaînes vides ou ne contiennent que des espaces
+                            # 3. Combinaison des deux
 
-                    # Normaliser toutes les valeurs numériques (remplacer virgules par points)
-                    def normalize_all_numeric_columns(df):
-                        """Normalise toutes les colonnes qui pourraient contenir des valeurs numériques"""
-                        df_normalized = df.copy()
+                            is_all_nan = col_data.isna().all()
 
-                        for col in df_normalized.columns:
-                            # Ignorer les colonnes clairement non-numériques
-                            if col in ['ESSAI', 'FERMENTEUR', 'MILIEU']:
-                                continue
+                            # Pour les colonnes de type object/string, vérifier aussi les chaînes vides
+                            if col_data.dtype == 'object':
+                                # Remplacer les chaînes vides/espaces par NaN puis vérifier
+                                col_cleaned = col_data.astype(str).str.strip().replace('', None)
+                                is_all_empty = col_cleaned.isna().all()
+                            else:
+                                is_all_empty = False
 
-                            # Pour toutes les autres colonnes, essayer de normaliser
-                            try:
-                                # Convertir en string pour pouvoir remplacer les virgules
-                                col_str = df_normalized[col].astype(str)
+                            # La colonne est vide si elle est soit toute NaN, soit toute vide (pour strings)
+                            if is_all_nan or is_all_empty:
+                                removed_columns.append(col)
+                            else:
+                                columns_to_keep.append(col)
 
-                                # Remplacer les virgules par des points (format français -> anglais)
-                                col_str = col_str.str.replace(',', '.', regex=False)
+                        # Si des colonnes ont été supprimées, les enlever du DataFrame
+                        if removed_columns:
+                            full_df = full_df[columns_to_keep]
+                            print(f"Colonnes vides supprimées pour {essai}_{fermentor}: {removed_columns}")
 
-                                # Essayer de convertir en numérique
-                                # Si ça marche, c'est une colonne numérique
-                                numeric_values = pd.to_numeric(col_str, errors='coerce')
-
-                                # Vérifier si la colonne contient des valeurs numériques valides
-                                # (au moins une valeur non-NaN après conversion)
-                                if not numeric_values.isna().all():
-                                    # Si oui, remplacer la colonne par les valeurs normalisées
-                                    df_normalized[col] = numeric_values
-                                    print(f"Colonne '{col}' normalisée (virgules -> points) pour {essai}_{fermentor}")
-                                # Sinon, garder les valeurs originales (probablement du texte)
-
-                            except Exception as e:
-                                # En cas d'erreur, garder les valeurs originales
-                                print(f"Impossible de normaliser la colonne '{col}' pour {essai}_{fermentor}: {str(e)}")
-                                continue
-
-                        return df_normalized
-
-                    # Appliquer la normalisation
-                    full_df = normalize_all_numeric_columns(full_df)
-
-                    # Ajouter les colonnes ESSAI et FERMENTEUR au début du DataFrame seulement si elles n'existent pas déjà
-                    if 'ESSAI' not in full_df.columns:
-                        full_df.insert(0, 'ESSAI', essai)
-                    else:
-                        # Si la colonne existe déjà, s'assurer qu'elle contient la bonne valeur
-                        full_df['ESSAI'] = essai
-
-                    if 'FERMENTEUR' not in full_df.columns:
-                        # Trouver la bonne position d'insertion (après ESSAI si elle existe)
-                        if 'ESSAI' in full_df.columns:
-                            essai_index = full_df.columns.get_loc('ESSAI')
-                            insert_index = essai_index + 1
-                        else:
-                            insert_index = 0
-                        full_df.insert(insert_index, 'FERMENTEUR', fermentor)
-                    else:
-                        # Si la colonne existe déjà, s'assurer qu'elle contient la bonne valeur
-                        full_df['FERMENTEUR'] = fermentor
-
-                    merged_table: Table = Table(full_df)
-                    merged_table.name = f"{essai}_{fermentor}"
-
-                    tags = [
-                        Tag('batch', essai),
-                        Tag('sample', fermentor)
-                    ]
-
-                    # Vérifier les données manquantes et ajouter les tags correspondants
-                    missing_values = []
-
-                    # Vérifier si les informations (info) manquent
-                    if data['info'].empty:
-                        missing_values.append('info')
-
-                    # Vérifier si les données brutes (raw_data) manquent
-                    if data['raw_data'].empty:
-                        missing_values.append('raw_data')
-
-                    # Vérifier si les données de medium manquent
-                    if data['medium'] is None or data['medium_data'].empty:
-                        missing_values.append('medium')
-
-                    # Vérifier si les fichiers de suivi manquent
-                    follow_up_key = f"{essai} {fermentor}"
-                    has_follow_up_file = follow_up_key in follow_up_dict
-
-                    # Debug: log follow-up detection
-                    self.log_info_message(f"Checking follow-up for {follow_up_key}: has_file={has_follow_up_file}")
-
-                    # Vérifier l'état du fichier de suivi
-                    if not has_follow_up_file:
-                        # Pas de fichier de suivi du tout
-                        missing_values.append('follow_up')
-                        self.log_info_message(f"  → No follow-up file, added 'follow_up' to missing_values")
-                    else:
-                        # Le fichier existe, vérifier s'il est vide
-                        follow_up_data = follow_up_dict[follow_up_key].get_data()
-                        if follow_up_data.empty:
-                            missing_values.append('follow_up_empty')
-                            self.log_info_message(
-                                f"  → Follow-up file is empty, added 'follow_up_empty' to missing_values")
-                        else:
-                            self.log_info_message(f"  → Follow-up file exists and is not empty")
-
-                    # Ajouter le tag missing_value si des données manquent
-                    if missing_values:
-                        tags.append(Tag('missing_value', ', '.join(missing_values)))
-
-                    if data['medium'] is not None:
-                        medium_data: Dict = data['medium_data'].iloc[0].to_dict() if not data['medium_data'].empty else {}
-                        tags.append(Tag('medium', data['medium'], additional_info={'composed': medium_data}))
-
-                    # Ajouter les tags à la table
-                    for tag in tags:
-                        merged_table.tags.add_tag(tag)
-
-                    # Ajouter les tags spéciaux pour les colonnes ESSAI et FERMENTEUR
-                    merged_table.add_column_tag_by_name('ESSAI', 'column_name', 'Essai')
-                    merged_table.add_column_tag_by_name('FERMENTEUR', 'column_name', 'Fermenteur')
-
-                    for col in merged_table.column_names:
-                        # Ignorer les colonnes ESSAI et FERMENTEUR car elles sont déjà traitées
-                        if col in ['ESSAI', 'FERMENTEUR']:
+                        # Vérifier si le DataFrame n'est pas complètement vide après suppression des colonnes
+                        if full_df.empty or len(columns_to_keep) == 0:
+                            print(f"Aucune donnée valide pour {essai}_{fermentor}, passage au suivant")
                             continue
 
-                        # Pattern pour capturer le nom et l'unité entre parenthèses
-                        match = re.match(r'^(.+?)\s*\(([^)]+)\)\s*$', col)
+                        # Normaliser toutes les valeurs numériques (remplacer virgules par points)
+                        def normalize_all_numeric_columns(df):
+                            """Normalise toutes les colonnes qui pourraient contenir des valeurs numériques"""
+                            df_normalized = df.copy()
 
-                        if match:
-                            # Colonne avec unité
-                            column_name = match.group(1).strip()
-                            unit = match.group(2).strip()
+                            for col in df_normalized.columns:
+                                # Ignorer les colonnes clairement non-numériques
+                                if col in ['ESSAI', 'FERMENTEUR', 'MILIEU']:
+                                    continue
+
+                                # Pour toutes les autres colonnes, essayer de normaliser
+                                try:
+                                    # Convertir en string pour pouvoir remplacer les virgules
+                                    col_str = df_normalized[col].astype(str)
+
+                                    # Remplacer les virgules par des points (format français -> anglais)
+                                    col_str = col_str.str.replace(',', '.', regex=False)
+
+                                    # Essayer de convertir en numérique
+                                    # Si ça marche, c'est une colonne numérique
+                                    numeric_values = pd.to_numeric(col_str, errors='coerce')
+
+                                    # Vérifier si la colonne contient des valeurs numériques valides
+                                    # (au moins une valeur non-NaN après conversion)
+                                    if not numeric_values.isna().all():
+                                        # Si oui, remplacer la colonne par les valeurs normalisées
+                                        df_normalized[col] = numeric_values
+                                        print(
+                                            f"Colonne '{col}' normalisée (virgules -> points) pour {essai}_{fermentor}")
+                                    # Sinon, garder les valeurs originales (probablement du texte)
+
+                                except Exception as e:
+                                    # En cas d'erreur, garder les valeurs originales
+                                    print(
+                                        f"Impossible de normaliser la colonne '{col}' pour {essai}_{fermentor}: {str(e)}")
+                                    continue
+
+                            return df_normalized
+
+                        # Appliquer la normalisation
+                        full_df = normalize_all_numeric_columns(full_df)
+
+                        # Ajouter les colonnes ESSAI et FERMENTEUR au début du DataFrame seulement si elles n'existent pas déjà
+                        if 'ESSAI' not in full_df.columns:
+                            full_df.insert(0, 'ESSAI', essai)
                         else:
-                            # Colonne sans unité
-                            column_name = col.strip()
-                            unit = None
+                            # Si la colonne existe déjà, s'assurer qu'elle contient la bonne valeur
+                            full_df['ESSAI'] = essai
 
-                        # Créer les variables pour cette colonne
-                        merged_table.add_column_tag_by_name(col, 'column_name', column_name)
-                        if unit is not None:
-                            merged_table.add_column_tag_by_name(col, 'unit', unit)
+                        if 'FERMENTEUR' not in full_df.columns:
+                            # Trouver la bonne position d'insertion (après ESSAI si elle existe)
+                            if 'ESSAI' in full_df.columns:
+                                essai_index = full_df.columns.get_loc('ESSAI')
+                                insert_index = essai_index + 1
+                            else:
+                                insert_index = 0
+                            full_df.insert(insert_index, 'FERMENTEUR', fermentor)
+                        else:
+                            # Si la colonne existe déjà, s'assurer qu'elle contient la bonne valeur
+                            full_df['FERMENTEUR'] = fermentor
 
-                        # Ajouter les tags is_index_column et is_data_column
-                        # Identifier les colonnes métadonnées (batch, sample, medium)
-                        metadata_columns = ['ESSAI', 'FERMENTEUR']
-                        medium_related_columns = ['MILIEU', 'MEDIUM']  # Colonnes liées au milieu
+                        merged_table: Table = Table(full_df)
+                        merged_table.name = f"{essai}_{fermentor}"
 
-                        # Identifier les colonnes de temps (index)
-                        time_columns = ['Temps de culture (h)', 'Temps (h)', 'Temps']
-                        is_time_column = (col in time_columns or
-                                          column_name.lower() in ['temps', 'time'] or
-                                          'temps' in column_name.lower())
+                        tags = [
+                            Tag('batch', essai),
+                            Tag('sample', fermentor)
+                        ]
 
-                        # Identifier si c'est une colonne de milieu
-                        is_medium_column = (col in medium_related_columns or
-                                            column_name.upper() in medium_related_columns or
-                                            'milieu' in column_name.lower() or
-                                            'medium' in column_name.lower())
+                        # Vérifier les données manquantes et ajouter les tags correspondants
+                        missing_values = []
 
-                        if is_time_column:
-                            # Tag pour colonne d'index (Temps)
-                            merged_table.add_column_tag_by_name(col, 'is_index_column', 'true')
-                        elif col not in metadata_columns and not is_medium_column:
-                            # Tag pour colonne de données (ni metadata, ni temps, ni milieu)
-                            merged_table.add_column_tag_by_name(col, 'is_data_column', 'true')
+                        # Vérifier si les informations (info) manquent
+                        if data['info'].empty:
+                            missing_values.append('info')
 
-                    res.add_resource(merged_table)
+                        # Vérifier si les données brutes (raw_data) manquent
+                        if data['raw_data'].empty:
+                            missing_values.append('raw_data')
+
+                        # Vérifier si les données de medium manquent
+                        if data['medium'] is None or data['medium_data'].empty:
+                            missing_values.append('medium')
+
+                        # Vérifier si les fichiers de suivi manquent
+                        follow_up_key = f"{essai} {fermentor}"
+                        has_follow_up_file = follow_up_key in follow_up_dict
+
+                        # Debug: log follow-up detection
+                        self.log_info_message(f"Checking follow-up for {follow_up_key}: has_file={has_follow_up_file}")
+
+                        # Vérifier l'état du fichier de suivi
+                        if not has_follow_up_file:
+                            # Pas de fichier de suivi du tout
+                            missing_values.append('follow_up')
+                            self.log_info_message(f"  → No follow-up file, added 'follow_up' to missing_values")
+                        else:
+                            # Le fichier existe, vérifier s'il est vide
+                            follow_up_data = follow_up_dict[follow_up_key].get_data()
+                            if follow_up_data.empty:
+                                missing_values.append('follow_up_empty')
+                                self.log_info_message(
+                                    f"  → Follow-up file is empty, added 'follow_up_empty' to missing_values")
+                            else:
+                                self.log_info_message(f"  → Follow-up file exists and is not empty")
+
+                        # Ajouter le tag missing_value si des données manquent
+                        if missing_values:
+                            tags.append(Tag('missing_value', ', '.join(missing_values)))
+
+                        if data['medium'] is not None:
+                            medium_data: Dict = data['medium_data'].iloc[0].to_dict(
+                            ) if not data['medium_data'].empty else {}
+                            tags.append(Tag('medium', data['medium'], additional_info={'composed': medium_data}))
+
+                        # Ajouter les tags à la table
+                        for tag in tags:
+                            merged_table.tags.add_tag(tag)
+
+                        # Ajouter les tags spéciaux pour les colonnes ESSAI et FERMENTEUR
+                        merged_table.add_column_tag_by_name('ESSAI', 'column_name', 'Essai')
+                        merged_table.add_column_tag_by_name('FERMENTEUR', 'column_name', 'Fermenteur')
+
+                        for col in merged_table.column_names:
+                            # Ignorer les colonnes ESSAI et FERMENTEUR car elles sont déjà traitées
+                            if col in ['ESSAI', 'FERMENTEUR']:
+                                continue
+
+                            # Pattern pour capturer le nom et l'unité entre parenthèses
+                            match = re.match(r'^(.+?)\s*\(([^)]+)\)\s*$', col)
+
+                            if match:
+                                # Colonne avec unité
+                                column_name = match.group(1).strip()
+                                unit = match.group(2).strip()
+                            else:
+                                # Colonne sans unité
+                                column_name = col.strip()
+                                unit = None
+
+                            # Créer les variables pour cette colonne
+                            merged_table.add_column_tag_by_name(col, 'column_name', column_name)
+                            if unit is not None:
+                                merged_table.add_column_tag_by_name(col, 'unit', unit)
+
+                            # Ajouter les tags is_index_column et is_data_column
+                            # Identifier les colonnes métadonnées (batch, sample, medium)
+                            metadata_columns = ['ESSAI', 'FERMENTEUR']
+                            medium_related_columns = ['MILIEU', 'MEDIUM']  # Colonnes liées au milieu
+
+                            # Identifier les colonnes de temps (index)
+                            time_columns = ['Temps de culture (h)', 'Temps (h)', 'Temps']
+                            is_time_column = (col in time_columns or
+                                              column_name.lower() in ['temps', 'time'] or
+                                              'temps' in column_name.lower())
+
+                            # Identifier si c'est une colonne de milieu
+                            is_medium_column = (col in medium_related_columns or
+                                                column_name.upper() in medium_related_columns or
+                                                'milieu' in column_name.lower() or
+                                                'medium' in column_name.lower())
+
+                            if is_time_column:
+                                # Tag pour colonne d'index (Temps)
+                                merged_table.add_column_tag_by_name(col, 'is_index_column', 'true')
+                            elif col not in metadata_columns and not is_medium_column:
+                                # Tag pour colonne de données (ni metadata, ni temps, ni milieu)
+                                merged_table.add_column_tag_by_name(col, 'is_data_column', 'true')
+
+                        res.add_resource(merged_table)
+                except Exception as e:
+                    self.log_error_message(f"Error processing {essai}_{fermentor}: {str(e)}")
+                    continue
 
         # Calculate statistics for Venn diagram - Track (batch, sample) pairs for each data type
         sample_sets = {

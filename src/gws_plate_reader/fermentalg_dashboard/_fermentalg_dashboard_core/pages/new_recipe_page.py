@@ -377,7 +377,7 @@ def render_new_recipe_page(fermentalg_state: FermentalgState) -> None:
                 pipeline_id = StringHelper.generate_uuid()
 
                 # Core tags
-                scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG,
+                scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
                                      fermentalg_state.TAG_DATA_PROCESSING,
                                      is_propagable=False))
                 scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,

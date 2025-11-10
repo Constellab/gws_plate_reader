@@ -129,7 +129,7 @@ def launch_selection_scenario(
             microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
 
             # Classification tag - indicate this is a selection processing step
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG,
+            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
                                    fermentalg_state.TAG_SELECTION_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags from parent scenario

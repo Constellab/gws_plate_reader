@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Optional
 
 from gws_core import Table, Scenario, ScenarioStatus, ScenarioProxy
 from gws_core.resource.resource_set.resource_set import ResourceSet
+from gws_core.tag.tag_list import TagList
 from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
 from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
 
@@ -370,14 +371,19 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                         )
 
                         # Download button for this specific column
-                        csv_data = filtered_column_df.to_csv(index=False)
-                        st.download_button(
-                            label=translate_service.translate('download_column').format(column=column_name),
-                            data=csv_data,
-                            file_name=f"fermentalg_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv",
-                            key=f"download_{column_name}_{i}"
-                        )
+                        if st.button(translate_service.translate('save_table'), key=f"download_{column_name}_{i}"):
+                            fermentalg_state.save_df_as_table(
+                                filtered_column_df,
+                                f"fermentalg_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}",
+                                scenario=target_scenario)
+                        # csv_data = filtered_column_df.to_csv(index=False)
+                        # st.download_button(
+                        #     label=translate_service.translate('download_column').format(column=column_name),
+                        #     data=csv_data,
+                        #     file_name=f"fermentalg_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        #     mime="text/csv",
+                        #     key=f"download_{column_name}_{i}"
+                        # )
                     else:
                         st.warning(f"⚠️ Aucune donnée correspond aux filtres sélectionnés pour {column_name}")
                 else:

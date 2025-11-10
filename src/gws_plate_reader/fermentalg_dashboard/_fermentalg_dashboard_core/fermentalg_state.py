@@ -19,7 +19,7 @@ class FermentalgState(CellCultureState):
     """
 
     # Fermentalg-specific tags for data
-    TAG_FERMENTOR_FERMENTALG = "fermentor_fermentalg"
+    TAG_FERMENTOR = "fermentor_fermentalg"
     TAG_BATCH = "batch"
     TAG_SAMPLE = "sample"
     TAG_MEDIUM = "medium"
@@ -31,7 +31,6 @@ class FermentalgState(CellCultureState):
     TAG_SELECTION_PROCESSING = "selection_processing"
     TAG_QUALITY_CHECK_PROCESSING = "quality_check_processing"
     TAG_ANALYSES_PROCESSING = "analyses_processing"
-    TAG_FERMENTOR_RECIPE_NAME = "fermentor_recipe_name"
     TAG_FERMENTOR_FERMENTALG_PIPELINE_ID = "fermentor_fermentalg_pipeline_id"
     TAG_MICROPLATE_ANALYSIS = "microplate_analysis"
     TAG_FERMENTOR_SELECTION_STEP = "fermentor_selection_step"

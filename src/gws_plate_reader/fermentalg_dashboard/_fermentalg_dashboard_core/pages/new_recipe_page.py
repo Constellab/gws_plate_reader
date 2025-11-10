@@ -165,10 +165,21 @@ def render_new_recipe_page(fermentalg_state: FermentalgState) -> None:
                 )
 
             # Get selected resource IDs from session state
-            info_csv_resource = st.session_state.get("fermentalg_info_csv_selector", {}).get("resourceId")
-            raw_data_csv_resource = st.session_state.get("fermentalg_raw_data_csv_selector", {}).get("resourceId")
-            medium_csv_resource = st.session_state.get("fermentalg_medium_csv_selector", {}).get("resourceId")
-            followup_zip_resource = st.session_state.get("fermentalg_followup_zip_selector", {}).get("resourceId")
+            if "fermentalg_info_csv_selector" not in st.session_state:
+                st.session_state["fermentalg_info_csv_selector"] = {}
+            if "fermentalg_raw_data_csv_selector" not in st.session_state:
+                st.session_state["fermentalg_raw_data_csv_selector"] = {}
+            if "fermentalg_medium_csv_selector" not in st.session_state:
+                st.session_state["fermentalg_medium_csv_selector"] = {}
+
+            info_csv_resource = st.session_state.get("fermentalg_info_csv_selector").get(
+                "resourceId", None) if st.session_state.get("fermentalg_info_csv_selector") else None
+            raw_data_csv_resource = st.session_state.get("fermentalg_raw_data_csv_selector").get(
+                "resourceId", None) if st.session_state.get("fermentalg_raw_data_csv_selector") else None
+            medium_csv_resource = st.session_state.get("fermentalg_medium_csv_selector").get(
+                "resourceId", None) if st.session_state.get("fermentalg_medium_csv_selector") else None
+            followup_zip_resource = st.session_state.get("fermentalg_followup_zip_selector").get(
+                "resourceId", None) if st.session_state.get("fermentalg_followup_zip_selector") else None
 
             # Set file uploader values to None
             info_csv_file = None

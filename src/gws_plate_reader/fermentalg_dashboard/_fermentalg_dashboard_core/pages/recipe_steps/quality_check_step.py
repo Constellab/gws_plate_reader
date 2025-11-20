@@ -207,7 +207,7 @@ def render_quality_check_config_form(
                 "% max de données manquantes",
                 min_value=0.0,
                 max_value=100.0,
-                value=50.0,
+                value=100.0,
                 step=5.0,
                 help="Si un échantillon a plus de X% de NaN, il est exclu",
                 key=f"{config_key}_max_missing"

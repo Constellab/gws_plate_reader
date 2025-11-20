@@ -552,7 +552,7 @@ class FermentalgQualityCheck(Task):
         'max_missing_percentage': FloatParam(
             human_name="Maximum missing data percentage",
             short_description="Maximum % of NaN values allowed per sample (0-100)",
-            default_value=50.0,
+            default_value=100.0,
             min_value=0.0,
             max_value=100.0
         ),

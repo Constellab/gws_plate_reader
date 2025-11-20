@@ -184,19 +184,17 @@ def render_medium_pca_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
     :param fermentalg_state: The fermentalg state
     :param quality_check_scenario: The quality check scenario to analyze
     """
-    st.markdown("### 🧬 Analyse en Composantes Principales des Milieux")
+    translate_service = fermentalg_state.get_translate_service()
 
-    st.info(
-        "Cette analyse permet d'explorer les similarités et différences entre les compositions "
-        "des milieux de culture utilisés pour les couples batch/sample filtrés après Quality Check."
-    )
+    st.markdown(f"### 🧬 {translate_service.translate('pca_title')}")
+
+    st.info(translate_service.translate('pca_info_intro'))
 
     # Get the medium CSV resource model
     medium_csv_resource_model = fermentalg_state.get_medium_csv_input_resource_model()
 
     if not medium_csv_resource_model:
-        st.warning(
-            "⚠️ Aucun fichier CSV de milieu n'a été chargé. Retournez à l'étape de chargement pour uploader le fichier des milieux.")
+        st.warning(translate_service.translate('pca_error_media_info'))
         return
 
     st.success(f"✅ Fichier de milieu disponible : {medium_csv_resource_model.name}")
@@ -205,54 +203,54 @@ def render_medium_pca_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
     available_media = get_available_media_from_quality_check(quality_check_scenario, fermentalg_state)
 
     if not available_media:
-        st.warning(
-            "⚠️ Aucun milieu trouvé dans les données filtrées du Quality Check. Vérifiez que les échantillons ont des tags 'medium'.")
+        st.warning(translate_service.translate('pca_error_media_info'))
         return
 
-    st.markdown(f"**Milieux disponibles** : {', '.join(available_media)}")
+    st.markdown(f"**{translate_service.translate('pca_available_media')}** : {', '.join(available_media)}")
 
     # Check existing PCA scenarios
     existing_pca_scenarios = recipe.get_medium_pca_scenarios_for_quality_check(quality_check_scenario.id)
 
     if existing_pca_scenarios:
-        st.markdown(f"**Analyses PCA existantes** : {len(existing_pca_scenarios)}")
-        with st.expander("📊 Voir les analyses existantes"):
+        st.markdown(f"**{translate_service.translate('pca_existing_analyses')}** : {len(existing_pca_scenarios)}")
+        with st.expander(f"📊 {translate_service.translate('view_button')} {translate_service.translate('pca_existing_analyses').lower()}"):
             for idx, pca_scenario in enumerate(existing_pca_scenarios):
-                st.write(f"{idx + 1}. {pca_scenario.title} (ID: {pca_scenario.id}) - Status: {pca_scenario.status.name}")
+                st.write(
+                    f"{idx + 1}. {pca_scenario.title} (ID: {pca_scenario.id}) - {translate_service.translate('status')}: {pca_scenario.status.name}")
 
     # Configuration form for new PCA
     st.markdown("---")
-    st.markdown("### ➕ Lancer une nouvelle analyse PCA")
+    st.markdown(f"### ➕ {translate_service.translate('pca_launch_button')}")
 
     with st.form(key=f"medium_pca_form_{quality_check_scenario.id}"):
-        st.markdown("**Sélection des milieux à inclure dans l'analyse**")
+        st.markdown(f"**{translate_service.translate('pca_select_media')}**")
 
         # Multiselect for media selection
         selected_media = st.multiselect(
-            "Milieux à analyser",
+            translate_service.translate('pca_select_media'),
             options=available_media,
             default=available_media,
-            help="Sélectionnez les milieux à inclure dans l'analyse PCA (tous par défaut)"
+            help=translate_service.translate('pca_select_media')
         )
 
         # Decimal separator selection
         decimal_separator = st.selectbox(
-            "Séparateur décimal du CSV",
+            translate_service.translate('pca_decimal_separator'),
             options=[',', '.'],
             index=0,
-            help="Séparateur décimal utilisé dans le fichier CSV des milieux"
+            help=translate_service.translate('pca_decimal_info')
         )
 
         # Submit button
         submit_button = st.form_submit_button(
-            "🚀 Lancer l'analyse PCA",
+            f"🚀 {translate_service.translate('pca_launch_button')}",
             type="primary",
             use_container_width=True
         )
 
         if submit_button:
             if not selected_media:
-                st.error("❌ Veuillez sélectionner au moins un milieu pour l'analyse.")
+                st.error(translate_service.translate('pca_select_media_warning'))
             else:
                 # Launch PCA scenario
                 pca_scenario = launch_medium_pca_scenario(
@@ -264,55 +262,44 @@ def render_medium_pca_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                 )
 
                 if pca_scenario:
-                    st.success(f"✅ Analyse PCA lancée ! ID : {pca_scenario.id}")
-                    st.info("ℹ️ Le scénario est en cours d'exécution. Les résultats apparaîtront dans la navigation une fois terminé.")
+                    st.success(f"✅ {translate_service.translate('pca_launched_success')} ID : {pca_scenario.id}")
+                    st.info(translate_service.translate('analysis_running'))
 
                     # Add to recipe
                     recipe.add_medium_pca_scenario(quality_check_scenario.id, pca_scenario)
 
                     st.rerun()
                 else:
-                    st.error("❌ Erreur lors du lancement de l'analyse PCA.")
+                    st.error(translate_service.translate('pca_error_launching'))
 
     # Info box with PCA explanation
-    with st.expander("💡 À propos de l'analyse PCA des milieux"):
-        st.markdown("""
-        ### Interprétation de la PCA
-
-L'analyse en composantes principales (PCA) permet de réduire la dimension des données tout en conservant au maximum l'information. Elle aide à visualiser les relations entre échantillons et variables et à identifier des groupes ou tendances dans les données.
-
-### Tableau des Scores :
-
--   Chaque ligne correspond à un milieu de culture
--   Montre les **coordonnées** de chaque milieu dans l'espace réduit (PC1, PC2, etc.)
-
--   Les milieux proches dans cet espace ont des compositions similaires
-
-💡 Si deux milieux ont des coordonnées proches sur PC1 et PC2, ils réagissent de manière similaire vis-à-vis des variables mesurées (composants, nutriments, etc.).
-
-### Graphique de dispersion (PC1 vs PC2) :
-
--   Chaque **point représente un milieu de culture**.
--   Les axes PC1 et PC2 sont les deux directions qui expliquent le plus de variance dans les données (le pourcentage est indiqué sur les axes).
--   Si plusieurs milieux forment un **cluster**, cela signifie qu'ils ont une composition chimique similaire.
--   Si un milieu est **isolé**, il a une composition qui diffère des autres milieux.
-
--   Les milieux situés du même côté d'un axe partagent des caractéristiques communes.
--   Les milieux aux extrêmes opposés de PC1 ou PC2 sont contrastés sur les variables dominantes de cet axe.
-
-### Biplot :
-
--   Le biplot combine les échantillons (points) et les **variables** (flèches)
--   Lecture des flèches (variables)
-    -   La direction d'une flèche indique dans quelle direction la variable augmente.
-    -   La longueur de la flèche indique l'importance de la variable dans la construction de l'axe (plus elle est longue, plus elle contribue).
-    -   Les flèches proches les unes des autres indiquent des variables corrélées (elles varient de la même façon).
-    -   Des flèches opposées traduisent une corrélation négative (quand l'une augmente, l'autre diminue)
-
--   Lecture des points (échantillons)
-    -   Les points proches d'une flèche sont riches en cette variable (valeur élevée).
-    -   Les points à l'opposé de la flèche sont pauvres en cette variable.
-    -   Les points proches entre eux ont des profils similaires sur les variables principales.
-
-💡 Si un milieu est proche de la flèche "glucose", cela signifie qu'il contient une forte proportion de glucose ou qu'il est influencé par cette variable.
-        """)
+    with st.expander(f"💡 {translate_service.translate('pca_help_title')}"):
+        st.markdown(f"### {translate_service.translate('pca_help_intro_title')}")
+        st.markdown(translate_service.translate('pca_help_intro_text'))
+        
+        st.markdown(f"\n### {translate_service.translate('pca_help_scores_title')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scores_1')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scores_2')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scores_3')}")
+        st.markdown(f"\n{translate_service.translate('pca_help_scores_tip')}")
+        
+        st.markdown(f"\n### {translate_service.translate('pca_help_scatter_title')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_1')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_2')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_3')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_4')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_5')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_6')}")
+        
+        st.markdown(f"\n### {translate_service.translate('pca_help_biplot_title')}")
+        st.markdown(f"- {translate_service.translate('pca_help_biplot_1')}")
+        st.markdown(f"- {translate_service.translate('pca_help_biplot_2')}")
+        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2a')}")
+        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2b')}")
+        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2c')}")
+        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2d')}")
+        st.markdown(f"- {translate_service.translate('pca_help_biplot_3')}")
+        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3a')}")
+        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3b')}")
+        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3c')}")
+        st.markdown(f"\n{translate_service.translate('pca_help_biplot_tip')}")

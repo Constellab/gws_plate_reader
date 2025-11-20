@@ -174,25 +174,24 @@ def render_logistic_growth_step(recipe: FermentalgRecipe, fermentalg_state: Ferm
     :param fermentalg_state: The fermentalg state
     :param quality_check_scenario: The quality check scenario to analyze
     """
-    st.markdown("### 📈 Ajustement de Croissance Logistique")
+    translate_service = fermentalg_state.get_translate_service()
 
-    st.markdown("""
-    Ajuste des **courbes de croissance logistique** sur vos données temporelles avec validation croisée.
+    st.markdown(f"### 📈 {translate_service.translate('logistic_growth_title')}")
 
-    **Paramètres extraits** :
-    - Max Absorbance : Plateau maximal
-    - Growth Rate (μ) : Taux de croissance
-    - Lag Time : Temps de latence
-    - Initial Absorbance : Valeur initiale
-    - R² : Qualité de l'ajustement
-    """)
+    st.markdown(translate_service.translate('logistic_growth_description'))
+    st.markdown(f"\n**{translate_service.translate('logistic_growth_params_extracted')}** :")
+    st.markdown(f"- {translate_service.translate('logistic_growth_max_absorbance')}")
+    st.markdown(f"- {translate_service.translate('logistic_growth_growth_rate')}")
+    st.markdown(f"- {translate_service.translate('logistic_growth_lag_time')}")
+    st.markdown(f"- {translate_service.translate('logistic_growth_initial_absorbance')}")
+    st.markdown(f"- {translate_service.translate('logistic_growth_r_squared')}")
 
     # Get the quality check output for column selection
     qc_output = fermentalg_state.get_quality_check_scenario_interpolated_output_resource_model(quality_check_scenario)
     qc_output_resource_set = qc_output.get_resource() if qc_output else None
 
     if not qc_output_resource_set:
-        st.warning("⚠️ Impossible de récupérer les données du Quality Check.")
+        st.warning(f"⚠️ {translate_service.translate('cannot_retrieve_qc_data')}")
         return
 
     # Get available columns
@@ -200,60 +199,61 @@ def render_logistic_growth_step(recipe: FermentalgRecipe, fermentalg_state: Ferm
     data_columns = fermentalg_state.get_data_columns_from_resource_set(qc_output_resource_set)
 
     if not index_columns:
-        st.warning("⚠️ Aucune colonne d'index (temps/température) trouvée dans les données.")
+        st.warning(f"⚠️ {translate_service.translate('no_index_columns_found')}")
         return
 
     if not data_columns:
-        st.warning("⚠️ Aucune colonne de données trouvée dans les données.")
+        st.warning(f"⚠️ {translate_service.translate('no_data_columns_found')}")
         return
 
     # Column selection
-    st.markdown("#### 📊 Sélection des colonnes")
+    st.markdown(f"#### 📊 {translate_service.translate('column_selection')}")
     col1, col2 = st.columns(2)
 
     with col1:
         index_column = st.selectbox(
-            "Colonne d'index (temps/température)",
+            translate_service.translate('index_column_selection'),
             options=index_columns,
             index=0,
-            help="Colonne à utiliser comme axe X (généralement le temps ou la température)"
+            help=translate_service.translate('index_column_help')
         )
 
     with col2:
         data_column = st.selectbox(
-            "Colonne de données à analyser",
+            translate_service.translate('data_column_selection'),
             options=data_columns,
             index=0,
-            help="Colonne contenant les données à ajuster (OD, biomasse, etc.)"
+            help=translate_service.translate('data_column_help')
         )
 
     # Configuration section
     st.markdown("---")
-    with st.expander("⚙️ Configuration de l'analyse", expanded=True):
+    with st.expander(f"⚙️ {translate_service.translate('analysis_configuration')}", expanded=True):
         col1, col2 = st.columns(2)
 
         with col1:
             n_splits = st.number_input(
-                "Nombre de splits CV",
+                translate_service.translate('n_splits_cv'),
                 min_value=2,
                 max_value=10,
                 value=3,
-                help="Nombre de partitions pour la validation croisée K-Fold"
+                help=translate_service.translate('n_splits_help')
             )
 
         with col2:
             spline_smoothing = st.number_input(
-                "Lissage spline",
+                translate_service.translate('spline_smoothing'),
                 min_value=0.001,
                 max_value=1.0,
                 value=0.045,
                 format="%.3f",
-                help="Paramètre de lissage pour le pré-traitement (plus bas = moins de lissage)"
+                help=translate_service.translate('spline_smoothing_help')
             )
 
     # Launch button
-    if st.button("🚀 Lancer l'analyse de croissance logistique", type="primary", use_container_width=True):
-        with st.spinner("Lancement de l'analyse..."):
+    if st.button(f"🚀 {translate_service.translate('launch_logistic_analysis')}", type="primary",
+                 use_container_width=True):
+        with st.spinner(f"{translate_service.translate('launching_analysis')}"):
             new_scenario = launch_logistic_growth_scenario(
                 quality_check_scenario,
                 fermentalg_state,
@@ -264,15 +264,15 @@ def render_logistic_growth_step(recipe: FermentalgRecipe, fermentalg_state: Ferm
             )
 
             if new_scenario:
-                st.success(f"✅ Scénario créé avec succès : {new_scenario.title}")
-                st.info("L'analyse est en cours d'exécution. Rechargez la page pour voir les résultats.")
+                st.success(f"✅ {translate_service.translate('scenario_created_successfully')} : {new_scenario.title}")
+                st.info(translate_service.translate('analysis_running_reload'))
                 st.rerun()
             else:
-                st.error("❌ Échec de la création du scénario")
+                st.error(f"❌ {translate_service.translate('scenario_creation_failed')}")
 
     # Display existing scenarios
     st.markdown("---")
-    st.markdown("#### 📊 Analyses existantes")
+    st.markdown(f"#### 📊 {translate_service.translate('existing_analyses')}")
 
     # Get logistic growth scenarios for this quality check
     logistic_scenarios = recipe.get_logistic_growth_scenarios_for_quality_check(quality_check_scenario.id)
@@ -289,21 +289,22 @@ def render_logistic_growth_step(recipe: FermentalgRecipe, fermentalg_state: Ferm
 
                 with col1:
                     st.write(f"**{scenario.title}**")
-                    st.caption(f"Colonne: {data_col} | Statut: {scenario.status.value}")
+                    st.caption(
+                        f"{translate_service.translate('column_label')}: {data_col} | {translate_service.translate('status')}: {scenario.status.value}")
 
                 with col2:
                     if scenario.status.value == "SUCCESS":
-                        st.success("✅ Terminé")
+                        st.success(f"✅ {translate_service.translate('status_finished')}")
                     elif scenario.status.value == "RUNNING":
-                        st.info("⏳ En cours")
+                        st.info(f"⏳ {translate_service.translate('status_in_progress')}")
                     elif scenario.status.value == "ERROR":
-                        st.error("❌ Erreur")
+                        st.error(f"❌ {translate_service.translate('status_error')}")
 
                 with col3:
-                    if st.button("Voir", key=f"view_lg_{scenario.id}"):
+                    if st.button(translate_service.translate('view_button'), key=f"view_lg_{scenario.id}"):
                         st.session_state['selected_logistic_scenario'] = scenario.id
                         st.rerun()
 
                 st.markdown("---")
     else:
-        st.info("Aucune analyse de croissance logistique n'a encore été lancée.")
+        st.info(translate_service.translate('no_logistic_analysis'))

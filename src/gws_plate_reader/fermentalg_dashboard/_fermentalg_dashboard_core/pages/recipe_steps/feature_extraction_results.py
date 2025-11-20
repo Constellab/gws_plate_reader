@@ -19,12 +19,13 @@ def render_feature_extraction_results(recipe: FermentalgRecipe, fermentalg_state
     :param fermentalg_state: The fermentalg state
     :param fe_scenario: The Feature Extraction scenario to display results for
     """
+    translate_service = fermentalg_state.get_translate_service()
+
     st.title(f"{recipe.name} - {fe_scenario.title}")
 
     # Check scenario status
     if fe_scenario.status != ScenarioStatus.SUCCESS:
-        st.warning(
-            f"Le scénario Feature Extraction n'est pas encore terminé avec succès. Statut: {fe_scenario.status.name}")
+        st.warning(translate_service.translate('feature_extraction_analysis_not_finished'))
         return
 
     # Display Feature Extraction scenario outputs (results table and plots)
@@ -32,8 +33,8 @@ def render_feature_extraction_results(recipe: FermentalgRecipe, fermentalg_state
     protocol_proxy = scenario_proxy.get_protocol()
 
     # Display results table in expandable section (at the top)
-    with st.expander("📊 Voir la table de résultats détaillés", expanded=False):
-        st.markdown("**Paramètres des modèles, métriques statistiques et intervalles de croissance**")
+    with st.expander(f"📊 {translate_service.translate('view_button')} {translate_service.translate('feature_extraction_params_table').lower()}", expanded=False):
+        st.markdown(f"**{translate_service.translate('feature_extraction_params_table')}**")
         results_table = protocol_proxy.get_output('results_table')
         if results_table and isinstance(results_table, Table):
             df = results_table.get_data()
@@ -42,21 +43,21 @@ def render_feature_extraction_results(recipe: FermentalgRecipe, fermentalg_state
             # Option to download
             csv = df.to_csv(index=False)
             st.download_button(
-                label="📥 Télécharger les résultats (CSV)",
+                label=translate_service.translate('feature_extraction_download_csv'),
                 data=csv,
                 file_name=f"feature_extraction_results_{fe_scenario.id[:8]}.csv",
                 mime="text/csv"
             )
         else:
-            st.warning("Table de résultats non encore disponible")
+            st.warning(translate_service.translate('feature_extraction_params_not_found'))
 
     # Display plots ResourceSet (main content)
-    st.markdown("### 📈 Graphiques d'ajustement des courbes de croissance")
+    st.markdown(f"### 📈 {translate_service.translate('feature_extraction_fitted_curves')}")
     plots_resource_set = protocol_proxy.get_output('plots')
 
     if plots_resource_set and isinstance(plots_resource_set, ResourceSet):
         plots_resources = plots_resource_set.get_resources()
-        st.info(f"📊 {len(plots_resources)} graphique(s) disponible(s)")
+        st.info(f"📊 {len(plots_resources)} {translate_service.translate('resources')}")
 
         # Organize plots by type
         comparison_plots = []
@@ -92,10 +93,10 @@ def render_feature_extraction_results(recipe: FermentalgRecipe, fermentalg_state
                                                           sorted(model_plots.keys())]
 
         selected_option = st.selectbox(
-            "Sélectionner les graphiques à afficher",
+            translate_service.translate('select_plots'),
             options=plot_options,
             index=0,
-            help="Choisissez 'Comparaison' pour voir tous les modèles ensemble, ou sélectionnez un modèle spécifique"
+            help=translate_service.translate('select_plots_help')
         )
 
         # Display plots based on selection
@@ -107,7 +108,7 @@ def render_feature_extraction_results(recipe: FermentalgRecipe, fermentalg_state
                     fig = plot_resource.figure
                     st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info("ℹ️ Aucun graphique de comparaison trouvé. Affichage de tous les graphiques...")
+                st.info(translate_service.translate('no_comparison_plots'))
                 # Fallback: display all plots
                 for plot_name, plot_resource in plots_resources.items():
                     if isinstance(plot_resource, PlotlyResource):
@@ -118,15 +119,15 @@ def render_feature_extraction_results(recipe: FermentalgRecipe, fermentalg_state
             # Extract model name from selection
             model_name = selected_option.replace("📈 ", "")
             if model_name in model_plots:
-                st.markdown(f"#### Modèle : {model_name}")
+                st.markdown(f"#### {translate_service.translate('model')}: {model_name}")
                 for plot_name, plot_resource in model_plots[model_name]:
                     st.markdown(f"**{plot_name}**")
                     fig = plot_resource.figure
                     st.plotly_chart(fig, use_container_width=True)
             else:
-                st.warning(f"Aucun graphique trouvé pour le modèle {model_name}")
+                st.warning(translate_service.translate('feature_extraction_curves_not_found'))
     else:
-        st.warning("Graphiques non encore disponibles")
+        st.warning(translate_service.translate('feature_extraction_curves_not_found'))
 
     # Info box with interpretation help
     with st.expander("💡 Aide à l'interprétation des résultats"):

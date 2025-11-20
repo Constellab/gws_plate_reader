@@ -196,55 +196,54 @@ def render_feature_extraction_step(recipe: FermentalgRecipe, fermentalg_state: F
     :param fermentalg_state: The fermentalg state
     :param quality_check_scenario: The quality check scenario to analyze
     """
-    st.markdown("### 📈 Extraction de Caractéristiques (Growth Curve Fitting)")
+    translate_service = fermentalg_state.get_translate_service()
 
-    st.info(
-        "Cette analyse ajuste plusieurs modèles de croissance sigmoidaux aux données de culture cellulaire "
-        "et extrait des paramètres biologiques clés (taux de croissance, temps de latence, etc.)."
-    )
+    st.markdown(f"### 📈 {translate_service.translate('feature_extraction_title')}")
+
+    st.info(translate_service.translate('feature_extraction_info_intro'))
 
     # Get the quality check output
     qc_output = fermentalg_state.get_quality_check_scenario_output_resource_model(quality_check_scenario)
     qc_output_resource_set = qc_output.get_resource() if qc_output else None
 
     if not qc_output_resource_set:
-        st.warning("⚠️ Impossible de récupérer les données du Quality Check.")
+        st.warning(translate_service.translate('cannot_retrieve_qc_data'))
         return
 
-    st.success(f"✅ Données Quality Check disponibles : {len(qc_output_resource_set.get_resources())} ressources")
+    st.success(f"✅ {len(qc_output_resource_set.get_resources())} {translate_service.translate('resources')}")
 
     # Get available columns
     index_columns = get_available_columns_from_quality_check(quality_check_scenario, fermentalg_state, index_only=True)
     data_columns = get_available_columns_from_quality_check(quality_check_scenario, fermentalg_state, index_only=False)
 
     if not index_columns:
-        st.warning("⚠️ Aucune colonne d'index (temps/température) trouvée dans les données.")
+        st.warning(translate_service.translate('no_index_columns_found'))
         return
 
     if not data_columns:
-        st.warning("⚠️ Aucune colonne de données trouvée dans les données.")
+        st.warning(translate_service.translate('no_data_columns_found'))
         return
 
-    st.markdown(f"**Colonnes d'index disponibles** : {', '.join(index_columns)}")
-    st.markdown(f"**Colonnes de données disponibles** : {', '.join(data_columns)}")
+    st.markdown(f"**{translate_service.translate('column_selection')}** : {', '.join(index_columns)}")
+    st.markdown(f"**{translate_service.translate('data_column_selection')}** : {', '.join(data_columns)}")
 
     # Check existing feature extraction scenarios
     existing_fe_scenarios = recipe.get_feature_extraction_scenarios_for_quality_check(quality_check_scenario.id)
 
     if existing_fe_scenarios:
-        st.markdown(f"**Analyses Feature Extraction existantes** : {len(existing_fe_scenarios)}")
-        with st.expander("📊 Voir les analyses existantes"):
+        st.markdown(f"**{translate_service.translate('feature_extraction_existing_analyses')}** : {len(existing_fe_scenarios)}")
+        with st.expander(f"📊 {translate_service.translate('view_button')} {translate_service.translate('feature_extraction_existing_analyses').lower()}"):
             for idx, fe_scenario in enumerate(existing_fe_scenarios):
                 # Extract data column from tags
                 entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, fe_scenario.id)
                 data_col_tags = entity_tag_list.get_tags_by_key("data_column")
                 data_col = data_col_tags[0].tag_value if data_col_tags else "N/A"
 
-                st.write(f"{idx + 1}. {fe_scenario.title} - Colonne: **{data_col}** (Status: {fe_scenario.status.name})")
+                st.write(f"{idx + 1}. {fe_scenario.title} - {translate_service.translate('column_label')}: **{data_col}** ({translate_service.translate('status')}: {fe_scenario.status.name})")
 
     # Configuration form for new Feature Extraction
     st.markdown("---")
-    st.markdown("### ➕ Lancer une nouvelle analyse Feature Extraction")
+    st.markdown(f"### ➕ {translate_service.translate('feature_extraction_launch_button')}")
 
     # Available models
     all_models = [
@@ -257,57 +256,57 @@ def render_feature_extraction_step(recipe: FermentalgRecipe, fermentalg_state: F
     ]
 
     with st.form(key=f"feature_extraction_form_{quality_check_scenario.id}"):
-        st.markdown("**Configuration de l'analyse**")
+        st.markdown(f"**{translate_service.translate('feature_extraction_analysis_config')}**")
 
         # Index column selection
         index_column = st.selectbox(
-            "Colonne d'index (temps/température)",
+            translate_service.translate('feature_extraction_time_column'),
             options=index_columns,
             index=0,
-            help="Colonne à utiliser comme axe X (généralement le temps ou la température)"
+            help=translate_service.translate('feature_extraction_time_column_help')
         )
 
         # Data columns multiselect
         selected_data_columns = st.multiselect(
-            "Colonne(s) de données à analyser",
+            translate_service.translate('feature_extraction_data_column'),
             options=data_columns,
             default=[],
-            help="Sélectionnez une ou plusieurs colonnes à analyser. Un scénario sera créé pour chaque colonne."
+            help=translate_service.translate('feature_extraction_data_column_help')
         )
 
         # Models multiselect
         selected_models = st.multiselect(
-            "Modèles de croissance à tester",
+            translate_service.translate('feature_extraction_model_selection'),
             options=all_models,
             default=all_models,
-            help="Sélectionnez les modèles sigmoidaux à ajuster aux données"
+            help=translate_service.translate('feature_extraction_model_help')
         )
 
         # Info about multiple columns
         if len(selected_data_columns) > 1:
-            st.info(f"ℹ️ {len(selected_data_columns)} scénarios seront créés (un par colonne de données)")
+            st.info(translate_service.translate('feature_extraction_multi_scenario_info'))
 
         # Submit button
         submit_button = st.form_submit_button(
-            "🚀 Lancer l'analyse Feature Extraction",
+            f"🚀 {translate_service.translate('feature_extraction_launch_button')}",
             type="primary",
             use_container_width=True
         )
 
         if submit_button:
             if not selected_data_columns:
-                st.error("❌ Veuillez sélectionner au moins une colonne de données à analyser.")
+                st.error(translate_service.translate('feature_extraction_column_warning'))
             elif not selected_models:
-                st.error("❌ Veuillez sélectionner au moins un modèle de croissance.")
+                st.error(translate_service.translate('feature_extraction_column_warning'))
             else:
                 # Launch scenarios
                 created_scenarios = []
 
-                progress_bar = st.progress(0, text="Création des scénarios...")
+                progress_bar = st.progress(0, text=translate_service.translate('launching'))
 
                 for idx, data_column in enumerate(selected_data_columns):
                     progress = (idx + 1) / len(selected_data_columns)
-                    progress_bar.progress(progress, text=f"Création du scénario pour {data_column}...")
+                    progress_bar.progress(progress, text=f"{translate_service.translate('launching')} {data_column}...")
 
                     fe_scenario = launch_feature_extraction_scenario(
                         quality_check_scenario,
@@ -325,12 +324,11 @@ def render_feature_extraction_step(recipe: FermentalgRecipe, fermentalg_state: F
                 progress_bar.empty()
 
                 if created_scenarios:
-                    st.success(f"✅ {len(created_scenarios)} scénario(s) Feature Extraction lancé(s) !")
-                    st.info(
-                        "ℹ️ Les scénarios sont en cours d'exécution. Les résultats apparaîtront dans la navigation une fois terminés.")
+                    st.success(translate_service.translate('feature_extraction_launched_success'))
+                    st.info(translate_service.translate('analysis_running'))
                     st.rerun()
                 else:
-                    st.error("❌ Erreur lors de la création des scénarios.")
+                    st.error(translate_service.translate('feature_extraction_error_launching'))
 
     # Info box with Feature Extraction explanation
     with st.expander("💡 À propos de l'analyse Feature Extraction"):

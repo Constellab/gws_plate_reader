@@ -178,25 +178,23 @@ def render_spline_growth_step(recipe: FermentalgRecipe, fermentalg_state: Fermen
     :param fermentalg_state: The fermentalg state
     :param quality_check_scenario: The quality check scenario to analyze
     """
-    st.markdown("### 📊 Inférence de Taux de Croissance par Spline")
+    translate_service = fermentalg_state.get_translate_service()
 
-    st.markdown("""
-    Infère le **taux de croissance maximum** par lissage spline avec validation croisée.
+    st.markdown(f"### 📊 {translate_service.translate('spline_growth_title')}")
 
-    **Approche non-paramétrique** :
-    - Pas d'hypothèse sur la forme de la courbe
-    - Optimisation automatique du lissage
-    - Calcul du taux via dérivée de la spline
-
-    **Idéal pour** : croissances non-standard, multi-phases, ou focus sur taux de croissance uniquement
-    """)
+    st.markdown(translate_service.translate('spline_growth_description'))
+    st.markdown(f"\n**{translate_service.translate('spline_growth_non_parametric')}** :")
+    st.markdown(f"- {translate_service.translate('spline_growth_no_assumption')}")
+    st.markdown(f"- {translate_service.translate('spline_growth_auto_optimization')}")
+    st.markdown(f"- {translate_service.translate('spline_growth_derivative')}")
+    st.markdown(f"\n**{translate_service.translate('spline_growth_ideal_for')}**")
 
     # Get the quality check output for column selection
     qc_output = fermentalg_state.get_quality_check_scenario_interpolated_output_resource_model(quality_check_scenario)
     qc_output_resource_set = qc_output.get_resource() if qc_output else None
 
     if not qc_output_resource_set:
-        st.warning("⚠️ Impossible de récupérer les données du Quality Check.")
+        st.warning(f"⚠️ {translate_service.translate('cannot_retrieve_qc_data')}")
         return
 
     # Get available columns
@@ -204,76 +202,76 @@ def render_spline_growth_step(recipe: FermentalgRecipe, fermentalg_state: Fermen
     data_columns = fermentalg_state.get_data_columns_from_resource_set(qc_output_resource_set)
 
     if not index_columns:
-        st.warning("⚠️ Aucune colonne d'index (temps/température) trouvée dans les données.")
+        st.warning(f"⚠️ {translate_service.translate('no_index_columns_found')}")
         return
 
     if not data_columns:
-        st.warning("⚠️ Aucune colonne de données trouvée dans les données.")
+        st.warning(f"⚠️ {translate_service.translate('no_data_columns_found')}")
         return
 
     # Column selection
-    st.markdown("#### 📊 Sélection des colonnes")
+    st.markdown(f"#### 📊 {translate_service.translate('column_selection')}")
     col1, col2 = st.columns(2)
 
     with col1:
         index_column = st.selectbox(
-            "Colonne d'index (temps/température)",
+            translate_service.translate('index_column_selection'),
             options=index_columns,
             index=0,
-            help="Colonne à utiliser comme axe X (généralement le temps ou la température)"
+            help=translate_service.translate('index_column_help')
         )
 
     with col2:
         data_column = st.selectbox(
-            "Colonne de données à analyser",
+            translate_service.translate('data_column_selection'),
             options=data_columns,
             index=0,
-            help="Colonne contenant les données à ajuster (OD, biomasse, etc.)"
+            help=translate_service.translate('data_column_help')
         )
 
     # Configuration section
     st.markdown("---")
-    with st.expander("⚙️ Configuration de l'analyse", expanded=True):
+    with st.expander(f"⚙️ {translate_service.translate('analysis_configuration')}", expanded=True):
         col1, col2 = st.columns(2)
 
         with col1:
             n_splits = st.number_input(
-                "Nombre de splits CV",
+                translate_service.translate('n_splits_cv'),
                 min_value=2,
                 max_value=10,
                 value=5,
-                help="Nombre de partitions pour la validation croisée K-Fold"
+                help=translate_service.translate('n_splits_help')
             )
 
             s_min = st.number_input(
-                "Lissage minimum",
+                translate_service.translate('smoothing_min'),
                 min_value=0.001,
                 max_value=10.0,
                 value=0.01,
                 format="%.3f",
-                help="Paramètre de lissage minimum à tester (plus bas = moins de lissage)"
+                help=translate_service.translate('smoothing_min_help')
             )
 
         with col2:
             s_max = st.number_input(
-                "Lissage maximum",
+                translate_service.translate('smoothing_max'),
                 min_value=1.0,
                 max_value=1000.0,
                 value=100.0,
-                help="Paramètre de lissage maximum à tester (plus haut = plus de lissage)"
+                help=translate_service.translate('smoothing_max_help')
             )
 
             n_s_values = st.number_input(
-                "Nombre de valeurs testées",
+                translate_service.translate('n_s_values'),
                 min_value=10,
                 max_value=1000,
                 value=500,
-                help="Nombre de valeurs de lissage à tester"
+                help=translate_service.translate('n_s_values_help')
             )
 
     # Launch button
-    if st.button("🚀 Lancer l'analyse par spline", type="primary", use_container_width=True):
-        with st.spinner("Lancement de l'analyse..."):
+    if st.button(f"🚀 {translate_service.translate('launch_spline_analysis')}", type="primary", use_container_width=True):
+        with st.spinner(f"{translate_service.translate('launching_analysis')}"):
             new_scenario = launch_spline_growth_scenario(
                 quality_check_scenario,
                 fermentalg_state,
@@ -286,15 +284,15 @@ def render_spline_growth_step(recipe: FermentalgRecipe, fermentalg_state: Fermen
             )
 
             if new_scenario:
-                st.success(f"✅ Scénario créé avec succès : {new_scenario.title}")
-                st.info("L'analyse est en cours d'exécution. Rechargez la page pour voir les résultats.")
+                st.success(f"✅ {translate_service.translate('scenario_created_successfully')} : {new_scenario.title}")
+                st.info(translate_service.translate('analysis_running_reload'))
                 st.rerun()
             else:
-                st.error("❌ Échec de la création du scénario")
+                st.error(f"❌ {translate_service.translate('scenario_creation_failed')}")
 
     # Display existing scenarios
     st.markdown("---")
-    st.markdown("#### 📊 Analyses existantes")
+    st.markdown(f"#### 📊 {translate_service.translate('existing_analyses')}")
 
     # Get spline growth scenarios for this quality check
     spline_scenarios = recipe.get_spline_growth_scenarios_for_quality_check(quality_check_scenario.id)
@@ -311,21 +309,22 @@ def render_spline_growth_step(recipe: FermentalgRecipe, fermentalg_state: Fermen
 
                 with col1:
                     st.write(f"**{scenario.title}**")
-                    st.caption(f"Colonne: {data_col} | Statut: {scenario.status.value}")
+                    st.caption(
+                        f"{translate_service.translate('column_label')}: {data_col} | {translate_service.translate('status')}: {scenario.status.value}")
 
                 with col2:
                     if scenario.status.value == "SUCCESS":
-                        st.success("✅ Terminé")
+                        st.success(f"✅ {translate_service.translate('status_finished')}")
                     elif scenario.status.value == "RUNNING":
-                        st.info("⏳ En cours")
+                        st.info(f"⏳ {translate_service.translate('status_in_progress')}")
                     elif scenario.status.value == "ERROR":
-                        st.error("❌ Erreur")
+                        st.error(f"❌ {translate_service.translate('status_error')}")
 
                 with col3:
-                    if st.button("Voir", key=f"view_sg_{scenario.id}"):
+                    if st.button(translate_service.translate('view_button'), key=f"view_sg_{scenario.id}"):
                         st.session_state['selected_spline_scenario'] = scenario.id
                         st.rerun()
 
                 st.markdown("---")
     else:
-        st.info("Aucune analyse par spline n'a encore été lancée.")
+        st.info(translate_service.translate('no_spline_analysis'))

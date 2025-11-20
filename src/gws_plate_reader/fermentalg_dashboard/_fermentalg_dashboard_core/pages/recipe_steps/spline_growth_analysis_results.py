@@ -18,12 +18,14 @@ def render_spline_growth_results(recipe: FermentalgRecipe, fermentalg_state: Fer
     :param fermentalg_state: The fermentalg state
     :param scenario: The spline growth scenario to display
     """
-    st.markdown(f"### 📊 Résultats : {scenario.title}")
-    st.markdown(f"**Statut** : {scenario.status.value}")
+    translate_service = fermentalg_state.get_translate_service()
+
+    st.markdown(f"### 📊 {translate_service.translate('results_title')} : {scenario.title}")
+    st.markdown(f"**{translate_service.translate('status')}** : {scenario.status.value}")
 
     if scenario.status.value != "SUCCESS":
-        st.warning("⏳ L'analyse n'est pas encore terminée ou a rencontré une erreur.")
-        if st.button("🔄 Rafraîchir"):
+        st.warning(f"⏳ {translate_service.translate('analysis_not_finished')}")
+        if st.button(f"🔄 {translate_service.translate('refresh_button')}"):
             st.rerun()
         return
 
@@ -38,10 +40,14 @@ def render_spline_growth_results(recipe: FermentalgRecipe, fermentalg_state: Fer
         growth_rate_comparison = protocol_proxy.get_output('growth_rate_comparison')
 
         # Display results in tabs
-        tab1, tab2, tab3 = st.tabs(["📊 Paramètres", "📈 Courbes & Dérivées", "📊 Comparaison"])
+        tab1, tab2, tab3 = st.tabs([
+            f"📊 {translate_service.translate('parameters_tab')}",
+            f"📈 {translate_service.translate('curves_derivatives_tab')}",
+            f"📊 {translate_service.translate('comparison_tab')}"
+        ])
 
         with tab1:
-            st.markdown("#### Tableau des paramètres d'inférence")
+            st.markdown(f"#### {translate_service.translate('inference_parameters_table')}")
             if parameters_table and isinstance(parameters_table, Table):
                 df = parameters_table.get_data()
                 st.dataframe(df, use_container_width=True)
@@ -49,30 +55,30 @@ def render_spline_growth_results(recipe: FermentalgRecipe, fermentalg_state: Fer
                 # Download button
                 csv = df.to_csv(index=True).encode('utf-8')
                 st.download_button(
-                    label="💾 Télécharger les paramètres (CSV)",
+                    label=f"💾 {translate_service.translate('download_parameters_csv')}",
                     data=csv,
                     file_name=f"spline_growth_parameters_{scenario.id}.csv",
                     mime="text/csv"
                 )
             else:
-                st.warning("Tableau des paramètres non trouvé")
+                st.warning(translate_service.translate('parameters_table_not_found'))
 
         with tab2:
-            st.markdown("#### Courbes lissées et taux de croissance")
-            st.markdown("*Gauche : courbes lissées | Droite : taux de croissance (dérivée)*")
+            st.markdown(f"#### {translate_service.translate('smoothed_curves_growth_rate')}")
+            st.markdown(f"*{translate_service.translate('smoothed_curves_info')}*")
             if growth_curves_plot and isinstance(growth_curves_plot, PlotlyResource):
                 st.plotly_chart(growth_curves_plot.figure, use_container_width=True)
             else:
-                st.warning("Graphique des courbes non trouvé")
+                st.warning(translate_service.translate('curves_plot_not_found'))
 
         with tab3:
-            st.markdown("#### Comparaison des taux de croissance maximum")
+            st.markdown(f"#### {translate_service.translate('max_growth_rate_comparison')}")
             if growth_rate_comparison and isinstance(growth_rate_comparison, PlotlyResource):
                 st.plotly_chart(growth_rate_comparison.figure, use_container_width=True)
             else:
-                st.warning("Graphique de comparaison non trouvé")
+                st.warning(translate_service.translate('comparison_plot_not_found'))
 
     except Exception as e:
-        st.error(f"Erreur lors de l'affichage des résultats : {str(e)}")
+        st.error(f"{translate_service.translate('error_displaying_results')} : {str(e)}")
         import traceback
         st.code(traceback.format_exc())

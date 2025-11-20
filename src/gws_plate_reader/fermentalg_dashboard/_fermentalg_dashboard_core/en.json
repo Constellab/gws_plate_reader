@@ -264,5 +264,7 @@
     "select_followup_zip_resource": "Search for a File resource for Follow-up ZIP",
     "invalid_resource_type": "Invalid resource type",
     "must_select_file_resources": "You must only select File type resources",
-    "save_table": "Save table"
+    "save_table": "Save table",
+    "logistic_growth_analysis": "Logistic Growth",
+    "spline_growth_analysis": "Spline Growth"
 }

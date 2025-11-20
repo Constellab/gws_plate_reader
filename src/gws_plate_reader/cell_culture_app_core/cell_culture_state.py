@@ -40,6 +40,8 @@ class CellCultureState(ABC):
     ANALYSIS_TREE: Dict[str, Any] = {
         "medium_pca": {"title": "medium_pca_analysis", "icon": "scatter_plot", "children": []},
         "feature_extraction": {"title": "feature_extraction_analysis", "icon": "functions", "children": []},
+        "logistic_growth": {"title": "logistic_growth_analysis", "icon": "show_chart", "children": []},
+        "spline_growth": {"title": "spline_growth_analysis", "icon": "insights", "children": []},
     }
 
     def __init__(self, lang_translation_folder_path: str):

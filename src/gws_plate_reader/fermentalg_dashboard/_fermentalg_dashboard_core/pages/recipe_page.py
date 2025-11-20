@@ -18,7 +18,11 @@ from .recipe_steps import (
     render_medium_pca_step,
     render_medium_pca_results,
     render_feature_extraction_step,
-    render_feature_extraction_results
+    render_feature_extraction_results,
+    render_logistic_growth_step,
+    render_logistic_growth_results,
+    render_spline_growth_step,
+    render_spline_growth_results
 )
 
 
@@ -198,6 +202,40 @@ def build_analysis_tree_menu(fermentalg_state: FermentalgState) -> Tuple[Streaml
                                         material_icon='auto_graph'
                                     )
                                     analysis_item.add_child(fe_result_item)
+
+                        # For Logistic Growth, add existing scenarios as sub-folders
+                        if analysis_type == 'logistic_growth':
+                            lg_scenarios = recipe.get_logistic_growth_scenarios_for_quality_check(qc_scenario.id)
+                            if lg_scenarios:
+                                for lg_scenario in lg_scenarios:
+                                    lg_timestamp = lg_scenario.title
+                                    if "Logistic Growth Fitting - " in lg_scenario.title:
+                                        lg_timestamp = lg_scenario.title.replace("Logistic Growth Fitting - ", "")
+
+                                    # Create sub-item for this LG scenario
+                                    lg_result_item = StreamlitTreeMenuItem(
+                                        label=lg_timestamp,
+                                        key=f'lg_result_{lg_scenario.id}',
+                                        material_icon='show_chart'
+                                    )
+                                    analysis_item.add_child(lg_result_item)
+
+                        # For Spline Growth, add existing scenarios as sub-folders
+                        if analysis_type == 'spline_growth':
+                            sg_scenarios = recipe.get_spline_growth_scenarios_for_quality_check(qc_scenario.id)
+                            if sg_scenarios:
+                                for sg_scenario in sg_scenarios:
+                                    sg_timestamp = sg_scenario.title
+                                    if "Spline Growth Rate - " in sg_scenario.title:
+                                        sg_timestamp = sg_scenario.title.replace("Spline Growth Rate - ", "")
+
+                                    # Create sub-item for this SG scenario
+                                    sg_result_item = StreamlitTreeMenuItem(
+                                        label=sg_timestamp,
+                                        key=f'sg_result_{sg_scenario.id}',
+                                        material_icon='insights'
+                                    )
+                                    analysis_item.add_child(sg_result_item)
 
                         analysis_folder.add_child(analysis_item)
 
@@ -391,6 +429,28 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                     render_feature_extraction_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
                 else:
                     st.error("Quality Check scenario not found")
+            elif selected_key.startswith('analysis_logistic_growth_qc_'):
+                # Extract quality check scenario ID from key (analysis_logistic_growth_qc_{qc_id})
+                qc_scenario_id = selected_key.replace('analysis_logistic_growth_qc_', '')
+                # Find the corresponding quality check scenario
+                all_qc_scenarios = recipe.get_quality_check_scenarios()
+                target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+                if target_qc_scenario:
+                    st.title(f"{recipe.name} - Logistic Growth Analysis")
+                    render_logistic_growth_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
+                else:
+                    st.error("Quality Check scenario not found")
+            elif selected_key.startswith('analysis_spline_growth_qc_'):
+                # Extract quality check scenario ID from key (analysis_spline_growth_qc_{qc_id})
+                qc_scenario_id = selected_key.replace('analysis_spline_growth_qc_', '')
+                # Find the corresponding quality check scenario
+                all_qc_scenarios = recipe.get_quality_check_scenarios()
+                target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+                if target_qc_scenario:
+                    st.title(f"{recipe.name} - Spline Growth Analysis")
+                    render_spline_growth_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
+                else:
+                    st.error("Quality Check scenario not found")
             elif selected_key.startswith('pca_result_'):
                 # Extract PCA scenario ID from key (pca_result_{pca_scenario_id})
                 pca_scenario_id = selected_key.replace('pca_result_', '')
@@ -412,6 +472,29 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                     # Use the render function from feature_extraction_results.py
                     render_feature_extraction_results(recipe, fermentalg_state, target_fe_scenario)
                 else:
+                    st.error("Feature Extraction scenario not found")
+            elif selected_key.startswith('lg_result_'):
+                # Extract Logistic Growth scenario ID from key (lg_result_{lg_scenario_id})
+                lg_scenario_id = selected_key.replace('lg_result_', '')
+                # Find the corresponding LG scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_lg_scenario = next((s for s in all_analyses_scenarios if s.id == lg_scenario_id), None)
+                if target_lg_scenario:
+                    # Use the render function from logistic_growth_analysis_results.py
+                    render_logistic_growth_results(recipe, fermentalg_state, target_lg_scenario)
+                else:
+                    st.error("Logistic Growth scenario not found")
+            elif selected_key.startswith('sg_result_'):
+                # Extract Spline Growth scenario ID from key (sg_result_{sg_scenario_id})
+                sg_scenario_id = selected_key.replace('sg_result_', '')
+                # Find the corresponding SG scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_sg_scenario = next((s for s in all_analyses_scenarios if s.id == sg_scenario_id), None)
+                if target_sg_scenario:
+                    # Use the render function from spline_growth_analysis_results.py
+                    render_spline_growth_results(recipe, fermentalg_state, target_sg_scenario)
+                else:
+                    st.error("Spline Growth scenario not found")
                     st.error("Feature Extraction scenario not found")
             else:
                 st.info(translate_service.translate('select_step_in_menu'))

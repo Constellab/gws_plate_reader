@@ -13,6 +13,10 @@ from .medium_pca_step import render_medium_pca_step
 from .medium_pca_results import render_medium_pca_results
 from .feature_extraction_step import render_feature_extraction_step
 from .feature_extraction_results import render_feature_extraction_results
+from .logistic_growth_analysis_step import render_logistic_growth_step
+from .logistic_growth_analysis_results import render_logistic_growth_results
+from .spline_growth_analysis_step import render_spline_growth_step
+from .spline_growth_analysis_results import render_spline_growth_results
 
 __all__ = [
     "render_overview_step",
@@ -24,5 +28,9 @@ __all__ = [
     "render_medium_pca_step",
     "render_medium_pca_results",
     "render_feature_extraction_step",
-    "render_feature_extraction_results"
+    "render_feature_extraction_results",
+    "render_logistic_growth_step",
+    "render_logistic_growth_results",
+    "render_spline_growth_step",
+    "render_spline_growth_results"
 ]

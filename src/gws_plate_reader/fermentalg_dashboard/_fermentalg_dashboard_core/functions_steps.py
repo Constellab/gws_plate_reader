@@ -47,27 +47,6 @@ def get_microplate_emoji(is_microplate: bool) -> str:
     return "🧪" if is_microplate else "🔬"
 
 
-def get_selection_step_status(scenario_id: str, fermentalg_state: FermentalgState) -> str:
-    """Get the status of the selection step for a given analysis scenario."""
-    try:
-        # Search for resources tagged with the selection step for this analysis
-        # We'll search for resources that have the selection tag and are linked to this scenario
-        search_builder = ResourceSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR_SELECTION_STEP, value=scenario_id))
-
-        selection_resources = search_builder.search_all()
-
-        if selection_resources:
-            # Get the most recent selection resource
-            latest_resource = max(selection_resources, key=lambda r: r.created_at or r.last_modified_at)
-            return f"✅ {latest_resource.id[:8]}..."
-        else:
-            return "⏳ Non effectuée"
-
-    except Exception as e:
-        return "❌ Erreur"
-
-
 def create_fermentalg_recipe_table_data(scenarios: List[Scenario], fermentalg_state: FermentalgState,
                                         translate_service: StreamlitTranslateService) -> List[Dict]:
     """Create table data from Fermentalg recipe scenarios, grouped by recipe."""
@@ -153,25 +132,12 @@ def create_fermentalg_recipe_table_data(scenarios: List[Scenario], fermentalg_st
             if not load_scenario:
                 continue
 
-            # Get Load Step status
-            load_step_status = f"{get_status_emoji(load_scenario.status)} {get_status_prettify(load_scenario.status, translate_service)}"
             recipe_id = load_scenario.id
-
-            # Get Selection Step status
-            selection_scenarios = recipe_data['selection_scenarios']
-            if selection_scenarios:
-                # Get the most recent selection scenario
-                latest_selection = max(selection_scenarios, key=lambda s: s.created_at or s.last_modified_at)
-                selection_step_status = f"{get_status_emoji(latest_selection.status)} {get_status_prettify(latest_selection.status, translate_service)}"
-            else:
-                selection_step_status = f"⏳ {translate_service.translate('selection_not_done')}"
 
             row_data = {
                 "id": recipe_id,  # Use load scenario ID
                 "Recipe Name": recipe_data['recipe_name'],
                 "Type": f"{get_microplate_emoji(recipe_data['is_microplate'])} {translate_service.translate('type_microplate') if recipe_data['is_microplate'] else translate_service.translate('type_standard')}",
-                "Load Step": load_step_status,
-                "Selection Step": selection_step_status,
                 "Folder": recipe_data['folder_name'],
                 "Created": recipe_data['created_at'].strftime("%d/%m/%Y %H:%M") if recipe_data['created_at'] else "",
                 "Created By": recipe_data['created_by'],
@@ -204,33 +170,6 @@ def create_fermentalg_slickgrid_columns(translate_service: StreamlitTranslateSer
             "id": "Type",
             "name": translate_service.translate('column_type'),
             "field": "Type",
-            "sortable": True,
-            "type": "string",
-            "filterable": True,
-            "width": 150,
-        },
-        {
-            "id": "Load Step",
-            "name": translate_service.translate('column_load_step'),
-            "field": "Load Step",
-            "sortable": True,
-            "type": "string",
-            "filterable": True,
-            "width": 150,
-        },
-        {
-            "id": "Selection Step",
-            "name": translate_service.translate('column_selection_step'),
-            "field": "Selection Step",
-            "sortable": True,
-            "type": "string",
-            "filterable": True,
-            "width": 180,
-        },
-        {
-            "id": "Folder",
-            "name": translate_service.translate('column_folder'),
-            "field": "Folder",
             "sortable": True,
             "type": "string",
             "filterable": True,

@@ -106,7 +106,7 @@ class CellCultureMediumPCA(Task):
 
         # Get parameters
         medium_col = params.get_value('medium_column')
-        selected_medium = params.get_value('selected_medium ', [])
+        selected_medium = params.get_value('selected_medium', [])
         decimal_sep = params.get_value('decimal_separator')
 
         # Get input file
@@ -237,34 +237,52 @@ class CellCultureMediumPCA(Task):
                 hovertemplate=f"{medium_col}: %{{hovertext}}<br>PC1: %{{x:.3f}}<br>PC2: %{{y:.3f}}<extra></extra>"
             ))
 
-        # Add variable loading arrows
+        # Add variable loading arrows as traces (so they appear in legend)
         for i, var in enumerate(X_num.columns):
             x, y = loadings_scaled[i, 0], loadings_scaled[i, 1]
 
-            # Add line from origin to loading point
+            # Add arrow as a scatter trace with annotations
+            # This makes it controllable via legend
             fig_biplot.add_trace(go.Scatter(
-                x=[0, x], y=[0, y],
-                mode="lines",
-                line=dict(color="gray", width=1),
-                showlegend=False,
-                hoverinfo="skip"
+                x=[0, x],
+                y=[0, y],
+                mode="lines+text",
+                line=dict(color="gray", width=2),
+                text=["", var],  # Empty text at origin, variable name at tip
+                textposition="top center",
+                textfont=dict(size=10, color="black"),
+                name=var,
+                hovertemplate=f"{var}<br>PC1: {x:.3f}<br>PC2: {y:.3f}<extra></extra>",
+                showlegend=True
             ))
 
-            # Add arrow annotation with variable name
+            # Add arrowhead using annotation (these won't show in legend but will follow trace visibility)
             fig_biplot.add_annotation(
-                x=x, y=y, ax=0, ay=0,
-                xanchor="center", yanchor="middle",
-                text=var,
+                x=x, y=y,
+                ax=0, ay=0,
+                xref="x", yref="y",
+                axref="x", ayref="y",
                 showarrow=True,
-                arrowhead=3,
+                arrowhead=2,
                 arrowsize=1,
-                arrowwidth=1,
-                arrowcolor="gray"
+                arrowwidth=2,
+                arrowcolor="gray",
+                visible=True
             )
 
         # Make plot square and add margins
         fig_biplot.update_yaxes(scaleanchor="x", scaleratio=1)
-        fig_biplot.update_layout(margin=dict(l=40, r=40, t=60, b=40))
+        fig_biplot.update_layout(
+            margin=dict(l=40, r=40, t=60, b=40),
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.02,
+                tracegroupgap=10
+            )
+        )
 
         self.update_progress_value(95, "Preparing outputs...")
 

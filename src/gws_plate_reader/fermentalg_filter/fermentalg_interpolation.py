@@ -448,7 +448,7 @@ class FermentalgInterpolation(Task):
         'edge_strategy': StrParam(
             human_name="Edge handling strategy",
             short_description="How to handle data beyond original time range",
-            default_value="nearest",
+            default_value="nan",
             allowed_values=["nearest", "linear", "nan"]
         ),
         'reference_index': IntParam(

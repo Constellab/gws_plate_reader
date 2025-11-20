@@ -214,8 +214,6 @@
     "status_unknown": "Unknown",
     "column_recipe_name": "Recipe Name",
     "column_type": "Type",
-    "column_load_step": "Load Step",
-    "column_selection_step": "Selection Step",
     "column_folder": "Folder",
     "column_created": "Created",
     "column_created_by": "Created By",

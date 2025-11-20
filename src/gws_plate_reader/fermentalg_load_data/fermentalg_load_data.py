@@ -287,11 +287,12 @@ class FermentalgLoadData(Task):
     )
 
     output_specs: OutputSpecs = OutputSpecs(
-        {
-            'resource_set': OutputSpec(ResourceSet, human_name="Resource set containing all the tables"),
-            'venn_diagram': OutputSpec(PlotlyResource, human_name="Venn diagram of data availability", optional=True)
-        }
-    )
+        {'resource_set': OutputSpec(ResourceSet, human_name="Resource set containing all the tables"),
+         'venn_diagram': OutputSpec(
+             PlotlyResource, human_name="Venn diagram of data availability", optional=True),
+         'metadata_table':
+         OutputSpec(
+             Table, human_name="Metadata table with batch, sample, medium and parameters", optional=True)})
 
     def run(self, params, inputs):
 
@@ -750,7 +751,249 @@ class FermentalgLoadData(Task):
             fig = create_venn_diagram_3_sets(sample_sets)
             venn_diagram = PlotlyResource(fig)
 
+        # Create metadata table
+        metadata_table = self._create_metadata_table(full_info_dict, medium_df)
+
         return {
             'resource_set': res,
-            'venn_diagram': venn_diagram
+            'venn_diagram': venn_diagram,
+            'metadata_table': metadata_table
         }
+
+    def _create_metadata_table(self, full_info_dict: Dict[str, Any], medium_df: pd.DataFrame) -> Table:
+        """
+        Create a metadata table with batch, sample, medium composition and parameters.
+
+        Args:
+            full_info_dict: Dictionary with structure {essai: {fermentor: {...}}}
+            medium_df: DataFrame containing medium composition
+
+        Returns:
+            Table with metadata for each sample
+        """
+        metadata_rows = []
+
+        # Get all unique medium components (columns from medium_df except MILIEU)
+        medium_columns = [col for col in medium_df.columns if col != 'MILIEU'] if not medium_df.empty else []
+
+        # Parse medium column names to extract units and create proper column names
+        medium_column_mapping = {}  # original_col -> new_col_name
+        for col in medium_columns:
+            parsed_name, unit = self._parse_column_name_and_unit(col)
+            if unit:
+                new_col_name = f'medium_{parsed_name} ({unit})'
+            else:
+                new_col_name = f'medium_{parsed_name}'
+            medium_column_mapping[col] = new_col_name
+
+        # Get all unique parameter names by parsing all PARAMETRES values
+        all_param_names = set()
+
+        for essai, fermentors in full_info_dict.items():
+            for fermentor, data in fermentors.items():
+                if not data['info'].empty and 'PARAMETRES' in data['info'].columns:
+                    parametres_str = data['info']['PARAMETRES'].values[0]
+                    params = self._parse_parametres(parametres_str)
+                    all_param_names.update(params.keys())
+
+        # Sort parameter names for consistent column order
+        param_names = sorted(list(all_param_names))
+
+        # Build rows
+        for essai, fermentors in full_info_dict.items():
+            for fermentor, data in fermentors.items():
+                row = {
+                    'batch': essai,
+                    'sample': fermentor,
+                    'medium': data.get('medium', '')
+                }
+
+                # Add medium composition columns with proper numeric conversion
+                if data.get('medium') and not data['medium_data'].empty:
+                    medium_composition = data['medium_data'].iloc[0].to_dict()
+                    for original_col, new_col_name in medium_column_mapping.items():
+                        value = medium_composition.get(original_col, '')
+                        # Always try to convert to numeric first
+                        numeric_value = self._to_numeric(value)
+                        # If conversion fails (returns NaN) and value was not empty, keep as string
+                        if pd.isna(numeric_value) and value != '' and not pd.isna(value):
+                            # Check if it's really 'x' or actually non-numeric text
+                            if str(value).strip().lower() != 'x':
+                                row[new_col_name] = value  # Keep as text
+                            else:
+                                row[new_col_name] = np.nan
+                        else:
+                            row[new_col_name] = numeric_value
+                else:
+                    for original_col, new_col_name in medium_column_mapping.items():
+                        row[new_col_name] = np.nan
+
+                # Parse and add PARAMETRES columns
+                if not data['info'].empty and 'PARAMETRES' in data['info'].columns:
+                    parametres_str = data['info']['PARAMETRES'].values[0]
+                    params = self._parse_parametres(parametres_str)
+                    for param_name in param_names:
+                        row[param_name] = params.get(param_name, np.nan)
+                else:
+                    for param_name in param_names:
+                        row[param_name] = np.nan
+
+                metadata_rows.append(row)
+
+        # Create DataFrame and Table
+        if metadata_rows:
+            metadata_df = pd.DataFrame(metadata_rows)
+
+            # Filter out rows that have no data other than batch/sample/medium
+            # A row is kept if it has at least one non-null value in medium_* or info_* columns
+            def has_data(row):
+                # Check all columns except batch, sample, medium
+                for col_name in metadata_df.columns:
+                    if col_name in ['batch', 'sample', 'medium']:
+                        continue
+                    value = row[col_name]
+                    # Check if value is not NaN and not empty string
+                    if pd.notna(value) and value != '':
+                        return True
+                return False
+
+            # Apply filter
+            mask = metadata_df.apply(has_data, axis=1)
+            metadata_df = metadata_df[mask].reset_index(drop=True)
+
+            # Only create table if we have rows left after filtering
+            if len(metadata_df) > 0:
+                metadata_table = Table(metadata_df)
+                metadata_table.name = "Fermentalg Metadata"
+                return metadata_table
+            else:
+                return None
+        else:
+            return None
+
+    def _parse_parametres(self, parametres_str: str) -> Dict[str, Any]:
+        """
+        Parse the PARAMETRES string to extract specific parameters with proper types and units.
+
+        Example input: 'Inoc 2% / 22°C / Agitation 200 - 1200 rpm / Aeration 0,1 - 1 L_min / O2 0 - 1 L_min / pH ini 7 / pH reg 7,2 avec NaOH / Culture mode Batch'
+
+        Returns:
+            Dictionary with structured parameter names and numeric values (NaN for 'x' or 'X')
+        """
+        params = {}
+
+        if not parametres_str or pd.isna(parametres_str):
+            return params
+
+        # Helper function to convert value to float (handles 'x' and comma decimals)
+        def to_numeric(value_str):
+            if not value_str:
+                return np.nan
+            value_str = str(value_str).strip().lower()
+            if value_str == 'x' or value_str == '':
+                return np.nan
+            # Replace comma with dot for decimal separator
+            value_str = value_str.replace(',', '.')
+            try:
+                return float(value_str)
+            except ValueError:
+                return np.nan
+
+        # Split by / to get individual parameters
+        parts = [p.strip() for p in str(parametres_str).split('/')]
+
+        for part in parts:
+            if not part:
+                continue
+
+            part_lower = part.lower()
+
+            # 1. Inoc: 'Inoc 2%' -> info_Inoc (%)
+            match = re.match(r'inoc\s+([0-9x,\.]+)\s*%?', part_lower, re.IGNORECASE)
+            if match:
+                params['info_Inoc (%)'] = to_numeric(match.group(1))
+                continue
+
+            # 2. Temperature: '22°C' or '22C' -> info_Temp (°C)
+            match = re.match(r'([0-9x,\.]+)\s*[°]?c', part_lower, re.IGNORECASE)
+            if match:
+                params['info_Temp (°C)'] = to_numeric(match.group(1))
+                continue
+
+            # 3. Agitation: 'Agitation 200 - 1200 rpm' -> info_Agitation_min (rpm), info_Agitation_max (rpm)
+            match = re.match(r'agitation\s+([0-9x,\.]+)\s*-\s*([0-9x,\.]+)\s*rpm', part_lower, re.IGNORECASE)
+            if match:
+                params['info_Agitation_min (rpm)'] = to_numeric(match.group(1))
+                params['info_Agitation_max (rpm)'] = to_numeric(match.group(2))
+                continue
+
+            # 4. Aeration: 'Aeration 0,1 - 1 L_min' -> info_Aeration_min (L/min), info_Aeration_max (L/min)
+            match = re.match(r'aeration\s+([0-9x,\.]+)\s*-\s*([0-9x,\.]+)\s*l[_/]?min', part_lower, re.IGNORECASE)
+            if match:
+                params['info_Aeration_min (L/min)'] = to_numeric(match.group(1))
+                params['info_Aeration_max (L/min)'] = to_numeric(match.group(2))
+                continue
+
+            # 5. O2: 'O2 0 - 1 L_min' -> info_O2_min (L/min), info_O2_max (L/min)
+            match = re.match(r'o2\s+([0-9x,\.]+)\s*-\s*([0-9x,\.]+)\s*l[_/]?min', part_lower, re.IGNORECASE)
+            if match:
+                params['info_O2_min (L/min)'] = to_numeric(match.group(1))
+                params['info_O2_max (L/min)'] = to_numeric(match.group(2))
+                continue
+
+            # 6. pH ini: 'pH ini 7' -> info_pH_ini (stop at first value, ignore the rest)
+            match = re.match(r'ph\s+ini\s+([0-9x,\.]+)', part_lower, re.IGNORECASE)
+            if match:
+                params['info_pH_ini'] = to_numeric(match.group(1))
+                continue
+
+        return params
+
+    def _parse_column_name_and_unit(self, column_name: str) -> tuple:
+        """
+        Parse a column name to extract the base name and unit.
+
+        Example: 'Glucose (g/L)' -> ('Glucose', 'g/L')
+                 'Temperature' -> ('Temperature', None)
+
+        Returns:
+            Tuple of (base_name, unit) where unit is None if no unit found
+        """
+        # Pattern to match unit in parentheses at the end
+        match = re.match(r'^(.+?)\s*\(([^)]+)\)\s*$', column_name)
+        if match:
+            base_name = match.group(1).strip()
+            unit = match.group(2).strip()
+            return (base_name, unit)
+        else:
+            return (column_name.strip(), None)
+
+    def _to_numeric(self, value) -> float:
+        """
+        Convert a value to numeric (float), handling special cases.
+
+        - Handles 'x' or 'X' as NaN
+        - Converts comma to dot for decimal separator
+        - Returns NaN for invalid values
+
+        Args:
+            value: Value to convert (can be string, number, etc.)
+
+        Returns:
+            Float value or NaN
+        """
+        if pd.isna(value) or value == '':
+            return np.nan
+
+        value_str = str(value).strip().lower()
+
+        if value_str == 'x' or value_str == '':
+            return np.nan
+
+        # Replace comma with dot for decimal separator
+        value_str = value_str.replace(',', '.')
+
+        try:
+            return float(value_str)
+        except ValueError:
+            return np.nan

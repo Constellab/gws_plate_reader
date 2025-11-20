@@ -69,21 +69,42 @@ def render_medium_pca_results(recipe: FermentalgRecipe, fermentalg_state: Fermen
     # Info box with interpretation help
     with st.expander("💡 Aide à l'interprétation"):
         st.markdown("""
-        **Interprétation de l'analyse PCA**
+        ### Interprétation de la PCA
 
-        **Tableau des Scores :**
-        - Montre les coordonnées de chaque milieu dans l'espace réduit (PC1, PC2, etc.)
-        - Les milieux proches dans cet espace ont des compositions similaires
+L'analyse en composantes principales (PCA) permet de réduire la dimension des données tout en conservant au maximum l'information. Elle aide à visualiser les relations entre échantillons et variables et à identifier des groupes ou tendances dans les données.
 
-        **Graphique de dispersion (PC1 vs PC2) :**
-        - Chaque point représente un milieu de culture
-        - Les milieux regroupés ont des compositions chimiques similaires
-        - Plus les points sont éloignés, plus les compositions diffèrent
-        - PC1 et PC2 expliquent le maximum de variance possible (% indiqué sur les axes)
+### Tableau des Scores :
 
-        **Biplot :**
-        - Combine les échantillons (points) et les variables (flèches)
-        - Les flèches indiquent quels composants contribuent le plus à chaque axe
-        - Les milieux proches des flèches sont riches en ces composants
-        - Les flèches dans la même direction indiquent des composants corrélés
+-   Chaque ligne correspond à un milieu de culture
+-   Montre les **coordonnées** de chaque milieu dans l'espace réduit (PC1, PC2, etc.)
+
+-   Les milieux proches dans cet espace ont des compositions similaires
+
+💡 Si deux milieux ont des coordonnées proches sur PC1 et PC2, ils réagissent de manière similaire vis-à-vis des variables mesurées (composants, nutriments, etc.).
+
+### Graphique de dispersion (PC1 vs PC2) :
+
+-   Chaque **point représente un milieu de culture**.
+-   Les axes PC1 et PC2 sont les deux directions qui expliquent le plus de variance dans les données (le pourcentage est indiqué sur les axes).
+-   Si plusieurs milieux forment un **cluster**, cela signifie qu'ils ont une composition chimique similaire.
+-   Si un milieu est **isolé**, il a une composition qui diffère des autres milieux.
+
+-   Les milieux situés du même côté d'un axe partagent des caractéristiques communes.
+-   Les milieux aux extrêmes opposés de PC1 ou PC2 sont contrastés sur les variables dominantes de cet axe.
+
+### Biplot :
+
+-   Le biplot combine les échantillons (points) et les **variables** (flèches)
+-   Lecture des flèches (variables)
+    -   La direction d'une flèche indique dans quelle direction la variable augmente.
+    -   La longueur de la flèche indique l'importance de la variable dans la construction de l'axe (plus elle est longue, plus elle contribue).
+    -   Les flèches proches les unes des autres indiquent des variables corrélées (elles varient de la même façon).
+    -   Des flèches opposées traduisent une corrélation négative (quand l'une augmente, l'autre diminue)
+
+-   Lecture des points (échantillons)
+    -   Les points proches d'une flèche sont riches en cette variable (valeur élevée).
+    -   Les points à l'opposé de la flèche sont pauvres en cette variable.
+    -   Les points proches entre eux ont des profils similaires sur les variables principales.
+
+💡 Si un milieu est proche de la flèche "glucose", cela signifie qu'il contient une forte proportion de glucose ou qu'il est influencé par cette variable.
         """)

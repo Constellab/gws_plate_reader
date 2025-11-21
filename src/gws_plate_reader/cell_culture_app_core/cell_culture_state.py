@@ -3,7 +3,7 @@ Base State class for Cell Culture Dashboards
 Manages common state and session management - Abstract base class
 """
 import streamlit as st
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 from gws_core import ScenarioProxy, Scenario, ResourceSet
 from gws_core.resource.resource import Resource
@@ -36,6 +36,15 @@ class CellCultureState(ABC):
 
     TAG_FERMENTOR = "fermentor"
     TAG_FERMENTOR_RECIPE_NAME = "fermentor_recipe_name"
+    TAG_FERMENTOR_PIPELINE_ID = "fermentor_pipeline_id"
+    TAG_DATA_PROCESSING = "data_processing"
+    TAG_SELECTION_PROCESSING = "selection_processing"
+    TAG_QUALITY_CHECK_PROCESSING = "quality_check_processing"
+    TAG_ANALYSES_PROCESSING = "analyses_processing"
+    TAG_MICROPLATE_ANALYSIS = "microplate_analysis"
+
+    # Process names (subclasses must override)
+    PROCESS_NAME_DATA_PROCESSING = None  # Must be set by subclasses
 
     ANALYSIS_TREE: Dict[str, Any] = {
         "medium_pca": {"title": "medium_pca_analysis", "icon": "scatter_plot", "children": []},
@@ -78,6 +87,18 @@ class CellCultureState(ABC):
     def get_translate_service(self) -> StreamlitTranslateService:
         """Get the translation service from session state."""
         return st.session_state.get(self.TRANSLATE_SERVICE)
+
+    # Abstract method for creating recipe instances (to be implemented by subclasses)
+    @abstractmethod
+    def create_recipe_from_scenario(self, scenario: Scenario) -> CellCultureRecipe:
+        """
+        Create a recipe instance from a scenario.
+        Must be implemented by subclasses to return the appropriate Recipe class.
+
+        :param scenario: The scenario to create the recipe from
+        :return: A CellCultureRecipe instance (or subclass)
+        """
+        pass
 
     # Recipe instance management
     def get_selected_recipe_instance(self) -> Optional[CellCultureRecipe]:

@@ -1,11 +1,11 @@
 import streamlit as st
 from gws_core.streamlit import StreamlitContainers, StreamlitTranslateLang
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 
 
-def render_settings_page(fermentalg_state: FermentalgState):
+def render_settings_page(cell_culture_state: CellCultureState):
     """
-    Render the settings page for Fermentalg dashboard.
+    Render the settings page for cell culture dashboards.
     Includes language settings and information about interpolation methods.
     """
     style = """
@@ -17,7 +17,7 @@ def render_settings_page(fermentalg_state: FermentalgState):
     with StreamlitContainers.container_full_min_height('container-center_settings_page',
                                                        additional_style=style):
 
-        translate_service = fermentalg_state.get_translate_service()
+        translate_service = cell_culture_state.get_translate_service()
 
         st.title(f"⚙️ {translate_service.translate('settings_title')}")
 
@@ -48,7 +48,7 @@ def render_settings_page(fermentalg_state: FermentalgState):
             translate_service.translate("select_language"),
             options=lang_options,
             index=current_index,
-            key=fermentalg_state.LANG_KEY
+            key=cell_culture_state.LANG_KEY
         )
 
         # Convert selected string back to enum
@@ -59,7 +59,7 @@ def render_settings_page(fermentalg_state: FermentalgState):
             # Change the language in the translate service
             translate_service.change_lang(selected_lang_enum)
             # Update the state
-            fermentalg_state.set_translate_service(translate_service)
+            cell_culture_state.set_translate_service(translate_service)
             st.rerun()
 
         st.markdown("---")

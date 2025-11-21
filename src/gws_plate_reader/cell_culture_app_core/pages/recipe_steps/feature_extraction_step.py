@@ -1,5 +1,5 @@
 """
-Feature Extraction Step for Fermentalg Dashboard
+Feature Extraction Step for Cell Culture Dashboard
 Allows users to run growth curve feature extraction analysis on quality check data
 """
 import streamlit as st
@@ -10,25 +10,25 @@ from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, T
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.fermentalg_analysis import ResourceSetToDataTable, CellCultureFeatureExtraction
 
 
 def get_available_columns_from_quality_check(quality_check_scenario: Scenario,
-                                             fermentalg_state: FermentalgState,
+                                             cell_culture_state: CellCultureState,
                                              index_only: bool = False) -> List[str]:
     """
     Get list of available columns from the quality check scenario's output
 
     :param quality_check_scenario: The quality check scenario
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param index_only: If True, return only columns with is_index_column=true tag (strict filtering)
     :return: List of column names
     """
     try:
         # Get the ResourceSet from quality check (non-interpolated data)
-        resource_set_resource_model = fermentalg_state.get_quality_check_scenario_output_resource_model(
+        resource_set_resource_model = cell_culture_state.get_quality_check_scenario_output_resource_model(
             quality_check_scenario)
         resource_set = resource_set_resource_model.get_resource() if resource_set_resource_model else None
 
@@ -38,9 +38,9 @@ def get_available_columns_from_quality_check(quality_check_scenario: Scenario,
         # Get columns based on filter
         if index_only:
             # Use strict filtering for index columns (only is_index_column=true)
-            return fermentalg_state.get_strict_index_columns_from_resource_set(resource_set)
+            return cell_culture_state.get_strict_index_columns_from_resource_set(resource_set)
         else:
-            return fermentalg_state.get_data_columns_from_resource_set(resource_set)
+            return cell_culture_state.get_data_columns_from_resource_set(resource_set)
 
     except Exception as e:
         st.error(f"Erreur lors de l'extraction des colonnes : {str(e)}")
@@ -49,7 +49,7 @@ def get_available_columns_from_quality_check(quality_check_scenario: Scenario,
 
 def launch_feature_extraction_scenario(
         quality_check_scenario: Scenario,
-        fermentalg_state: FermentalgState,
+        cell_culture_state: CellCultureState,
         index_column: str,
         data_column: str,
         models_to_fit: List[str]) -> Optional[Scenario]:
@@ -57,7 +57,7 @@ def launch_feature_extraction_scenario(
     Launch a Feature Extraction analysis scenario
 
     :param quality_check_scenario: The parent quality check scenario
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param index_column: Column to use as index (time/temp)
     :param data_column: Data column to analyze
     :param models_to_fit: List of models to fit
@@ -80,7 +80,7 @@ def launch_feature_extraction_scenario(
             protocol_proxy = scenario_proxy.get_protocol()
 
             # Get the quality check output ResourceSet
-            qc_output = fermentalg_state.get_quality_check_scenario_output_resource_model(quality_check_scenario)
+            qc_output = cell_culture_state.get_quality_check_scenario_output_resource_model(quality_check_scenario)
             if not qc_output:
                 st.error("Impossible de récupérer le ResourceSet de sortie du Quality Check")
                 return None
@@ -139,32 +139,32 @@ def launch_feature_extraction_scenario(
 
             # Get recipe name from parent
             parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             original_recipe_name = parent_recipe_name_tags[0].tag_value if parent_recipe_name_tags else quality_check_scenario.title
 
             # Get pipeline ID from parent
             parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID)
             pipeline_id = parent_pipeline_id_tags[0].tag_value if parent_pipeline_id_tags else quality_check_scenario.id
 
             # Get microplate analysis flag from parent
-            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(fermentalg_state.TAG_MICROPLATE_ANALYSIS)
+            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(cell_culture_state.TAG_MICROPLATE_ANALYSIS)
             microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
 
             # Classification tag - indicate this is an analysis
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
-                                   fermentalg_state.TAG_ANALYSES_PROCESSING, is_propagable=False))
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR,
+                                   cell_culture_state.TAG_ANALYSES_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
                                    original_recipe_name, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID,
                                    pipeline_id, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_MICROPLATE_ANALYSIS,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_MICROPLATE_ANALYSIS,
                                    microplate_analysis, is_propagable=False))
 
             # Link to parent quality check scenario
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK,
                                    quality_check_scenario.id, is_propagable=False))
 
             # Add analysis type and column tags
@@ -187,23 +187,23 @@ def launch_feature_extraction_scenario(
         return None
 
 
-def render_feature_extraction_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
                                    quality_check_scenario: Scenario) -> None:
     """
     Render the Feature Extraction analysis step
 
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param quality_check_scenario: The quality check scenario to analyze
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     st.markdown(f"### 📈 {translate_service.translate('feature_extraction_title')}")
 
     st.info(translate_service.translate('feature_extraction_info_intro'))
 
     # Get the quality check output
-    qc_output = fermentalg_state.get_quality_check_scenario_output_resource_model(quality_check_scenario)
+    qc_output = cell_culture_state.get_quality_check_scenario_output_resource_model(quality_check_scenario)
     qc_output_resource_set = qc_output.get_resource() if qc_output else None
 
     if not qc_output_resource_set:
@@ -213,8 +213,8 @@ def render_feature_extraction_step(recipe: FermentalgRecipe, fermentalg_state: F
     st.success(f"✅ {len(qc_output_resource_set.get_resources())} {translate_service.translate('resources')}")
 
     # Get available columns
-    index_columns = get_available_columns_from_quality_check(quality_check_scenario, fermentalg_state, index_only=True)
-    data_columns = get_available_columns_from_quality_check(quality_check_scenario, fermentalg_state, index_only=False)
+    index_columns = get_available_columns_from_quality_check(quality_check_scenario, cell_culture_state, index_only=True)
+    data_columns = get_available_columns_from_quality_check(quality_check_scenario, cell_culture_state, index_only=False)
 
     if not index_columns:
         st.warning(translate_service.translate('no_index_columns_found'))
@@ -310,7 +310,7 @@ def render_feature_extraction_step(recipe: FermentalgRecipe, fermentalg_state: F
 
                     fe_scenario = launch_feature_extraction_scenario(
                         quality_check_scenario,
-                        fermentalg_state,
+                        cell_culture_state,
                         index_column,
                         data_column,
                         selected_models

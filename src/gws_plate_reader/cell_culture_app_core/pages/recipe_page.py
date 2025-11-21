@@ -1,5 +1,5 @@
 """
-Main Analysis Page for Fermentalg Dashboard
+Main Analysis Page for Cell Culture Dashboards
 Coordinates the different analysis steps and sub-pages
 """
 import streamlit as st
@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 from gws_core import Scenario, ScenarioStatus
 from gws_core.streamlit import StreamlitContainers, StreamlitTreeMenu, StreamlitTreeMenuItem, StreamlitRouter
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from .recipe_steps import (
     render_overview_step,
     render_selection_step,
@@ -45,16 +45,16 @@ def get_step_icon(
     return 'check_circle'
 
 
-def build_analysis_tree_menu(fermentalg_state: FermentalgState) -> Tuple[StreamlitTreeMenu, str]:
+def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[StreamlitTreeMenu, str]:
     """Build tree menu for analysis navigation"""
 
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     # Create tree menu
     button_menu = StreamlitTreeMenu()
 
     # Get Recipe instance to check if selection has been done
-    recipe = fermentalg_state.get_selected_recipe_instance()
+    recipe = cell_culture_state.get_selected_recipe_instance()
 
     # Overview section (always visible if there's a load scenario)
     overview_item = StreamlitTreeMenuItem(
@@ -162,7 +162,7 @@ def build_analysis_tree_menu(fermentalg_state: FermentalgState) -> Tuple[Streaml
                     )
                     qc_folder.add_child(analysis_folder)
 
-                    for analysis_type, analysis_info in fermentalg_state.ANALYSIS_TREE.items():
+                    for analysis_type, analysis_info in cell_culture_state.ANALYSIS_TREE.items():
                         analysis_item = StreamlitTreeMenuItem(
                             label=translate_service.translate(analysis_info['title']),
                             key=f'analysis_{analysis_type}_qc_{qc_scenario.id}',
@@ -248,10 +248,10 @@ def build_analysis_tree_menu(fermentalg_state: FermentalgState) -> Tuple[Streaml
     return button_menu, 'apercu'
 
 
-def render_recipe_page(fermentalg_state: FermentalgState) -> None:
+def render_recipe_page(cell_culture_state: CellCultureState) -> None:
     """Render the analysis page with tree navigation structure"""
 
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     style = """
     [CLASS_NAME] {
@@ -266,7 +266,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
         left_col, right_col = st.columns([1, 4])
 
         # Get Recipe instance from state (created in first_page)
-        recipe = fermentalg_state.get_selected_recipe_instance()
+        recipe = cell_culture_state.get_selected_recipe_instance()
         if not recipe:
             st.error(translate_service.translate('no_recipe_selected'))
             return
@@ -283,7 +283,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
             st.markdown("---")  # Separator line
 
             # Build and display navigation menu
-            button_menu, key_default_item = build_analysis_tree_menu(fermentalg_state)
+            button_menu, key_default_item = build_analysis_tree_menu(cell_culture_state)
 
             # Display menu and get selected item
             selected_item = button_menu.render()
@@ -293,10 +293,10 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
             # Render the selected step
             if selected_key == 'apercu':
                 st.title(f"{recipe.name} - Overview")
-                render_overview_step(recipe, fermentalg_state)
+                render_overview_step(recipe, cell_culture_state)
             elif selected_key == 'selection':
                 st.title(f"{recipe.name} - Sélection")
-                render_selection_step(recipe, fermentalg_state)
+                render_selection_step(recipe, cell_culture_state)
             elif selected_key.startswith('quality_check_'):
                 # Extract selection scenario ID from key (quality_check_{selection_id})
                 selection_id = selected_key.replace('quality_check_', '')
@@ -305,7 +305,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_selection_scenario = next((s for s in selection_scenarios if s.id == selection_id), None)
                 if target_selection_scenario:
                     st.title(f"{recipe.name} - Quality Check")
-                    render_quality_check_step(recipe, fermentalg_state, selection_scenario=target_selection_scenario)
+                    render_quality_check_step(recipe, cell_culture_state, selection_scenario=target_selection_scenario)
                 else:
                     st.error(translate_service.translate('selection_scenario_not_found'))
             elif selected_key.startswith('tableau_'):
@@ -318,9 +318,9 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                     st.title(f"{recipe.name} - Tableau")
                     render_table_view_step(
                         recipe,
-                        fermentalg_state,
+                        cell_culture_state,
                         scenario=target_scenario,
-                        output_name=fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+                        output_name=cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
                     )
                 else:
                     st.error(translate_service.translate('selection_scenario_not_found'))
@@ -335,9 +335,9 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                     # Display quality check results in table view (use interpolated output)
                     render_table_view_step(
                         recipe,
-                        fermentalg_state,
+                        cell_culture_state,
                         scenario=target_qc_scenario,
-                        output_name=fermentalg_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
+                        output_name=cell_culture_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
                     )
                 else:
                     st.error("Quality Check scenario not found")
@@ -352,9 +352,9 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                     # Display quality check results in graph view (use interpolated output)
                     render_graph_view_step(
                         recipe,
-                        fermentalg_state,
+                        cell_culture_state,
                         scenario=target_qc_scenario,
-                        output_name=fermentalg_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
+                        output_name=cell_culture_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
                     )
                 else:
                     st.error("Quality Check scenario not found")
@@ -368,9 +368,9 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                     st.title(f"{recipe.name} - Graphiques")
                     render_graph_view_step(
                         recipe,
-                        fermentalg_state,
+                        cell_culture_state,
                         scenario=target_scenario,
-                        output_name=fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+                        output_name=cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
                     )
                 else:
                     st.error(translate_service.translate('selection_scenario_not_found'))
@@ -384,9 +384,9 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                     st.title(f"{recipe.name} - Medium")
                     render_medium_view_step(
                         recipe,
-                        fermentalg_state,
+                        cell_culture_state,
                         scenario=target_scenario,
-                        output_name=fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+                        output_name=cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
                     )
                 else:
                     st.error(translate_service.translate('selection_scenario_not_found'))
@@ -401,9 +401,9 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                     # Display quality check results in medium view
                     render_medium_view_step(
                         recipe,
-                        fermentalg_state,
+                        cell_culture_state,
                         scenario=target_qc_scenario,
-                        output_name=fermentalg_state.QUALITY_CHECK_SCENARIO_OUTPUT_NAME
+                        output_name=cell_culture_state.QUALITY_CHECK_SCENARIO_OUTPUT_NAME
                     )
                 else:
                     st.error("Quality Check scenario not found")
@@ -415,7 +415,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
                     st.title(f"{recipe.name} - Medium PCA Analysis")
-                    render_medium_pca_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
+                    render_medium_pca_step(recipe, cell_culture_state, quality_check_scenario=target_qc_scenario)
                 else:
                     st.error("Quality Check scenario not found")
             elif selected_key.startswith('analysis_feature_extraction_qc_'):
@@ -426,7 +426,8 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
                     st.title(f"{recipe.name} - Feature Extraction Analysis")
-                    render_feature_extraction_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
+                    render_feature_extraction_step(recipe, cell_culture_state,
+                                                   quality_check_scenario=target_qc_scenario)
                 else:
                     st.error("Quality Check scenario not found")
             elif selected_key.startswith('analysis_logistic_growth_qc_'):
@@ -437,7 +438,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
                     st.title(f"{recipe.name} - Logistic Growth Analysis")
-                    render_logistic_growth_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
+                    render_logistic_growth_step(recipe, cell_culture_state, quality_check_scenario=target_qc_scenario)
                 else:
                     st.error("Quality Check scenario not found")
             elif selected_key.startswith('analysis_spline_growth_qc_'):
@@ -448,7 +449,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
                     st.title(f"{recipe.name} - Spline Growth Analysis")
-                    render_spline_growth_step(recipe, fermentalg_state, quality_check_scenario=target_qc_scenario)
+                    render_spline_growth_step(recipe, cell_culture_state, quality_check_scenario=target_qc_scenario)
                 else:
                     st.error("Quality Check scenario not found")
             elif selected_key.startswith('pca_result_'):
@@ -459,7 +460,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_pca_scenario = next((s for s in all_analyses_scenarios if s.id == pca_scenario_id), None)
                 if target_pca_scenario:
                     # Use the render function from medium_pca_results.py
-                    render_medium_pca_results(recipe, fermentalg_state, target_pca_scenario)
+                    render_medium_pca_results(recipe, cell_culture_state, target_pca_scenario)
                 else:
                     st.error("PCA scenario not found")
             elif selected_key.startswith('fe_result_'):
@@ -470,7 +471,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_fe_scenario = next((s for s in all_analyses_scenarios if s.id == fe_scenario_id), None)
                 if target_fe_scenario:
                     # Use the render function from feature_extraction_results.py
-                    render_feature_extraction_results(recipe, fermentalg_state, target_fe_scenario)
+                    render_feature_extraction_results(recipe, cell_culture_state, target_fe_scenario)
                 else:
                     st.error("Feature Extraction scenario not found")
             elif selected_key.startswith('lg_result_'):
@@ -481,7 +482,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_lg_scenario = next((s for s in all_analyses_scenarios if s.id == lg_scenario_id), None)
                 if target_lg_scenario:
                     # Use the render function from logistic_growth_analysis_results.py
-                    render_logistic_growth_results(recipe, fermentalg_state, target_lg_scenario)
+                    render_logistic_growth_results(recipe, cell_culture_state, target_lg_scenario)
                 else:
                     st.error("Logistic Growth scenario not found")
             elif selected_key.startswith('sg_result_'):
@@ -492,7 +493,7 @@ def render_recipe_page(fermentalg_state: FermentalgState) -> None:
                 target_sg_scenario = next((s for s in all_analyses_scenarios if s.id == sg_scenario_id), None)
                 if target_sg_scenario:
                     # Use the render function from spline_growth_analysis_results.py
-                    render_spline_growth_results(recipe, fermentalg_state, target_sg_scenario)
+                    render_spline_growth_results(recipe, cell_culture_state, target_sg_scenario)
                 else:
                     st.error("Spline Growth scenario not found")
                     st.error("Feature Extraction scenario not found")

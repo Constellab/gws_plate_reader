@@ -1,5 +1,5 @@
 """
-Graph View Step for Fermentalg Dashboard
+Graph View Step for Cell Culture Dashboard
 Handles graph visualizations with filtering and interactive plots using Plotly
 """
 import streamlit as st
@@ -8,22 +8,22 @@ import plotly.graph_objects as go
 from typing import Optional
 
 from gws_core import Scenario, ScenarioStatus, ScenarioProxy
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
 
-def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
                            scenario: Optional[Scenario] = None,
                            output_name: str = None) -> None:
     """Render the graph view step with data visualizations using Plotly
 
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param scenario: The scenario to display (selection or quality check)
     :param output_name: The output name to retrieve from the scenario (e.g., INTERPOLATION_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
     """
 
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     try:
         # If scenario is provided, use it
@@ -38,7 +38,7 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
             # Get data from scenario using the provided output name
             if not output_name:
                 # Default to interpolation output for backward compatibility
-                output_name = fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+                output_name = cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
 
             scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
             protocol_proxy = scenario_proxy.get_protocol()
@@ -65,13 +65,13 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                 st.warning(translate_service.translate('selection_not_successful'))
                 return
 
-            filtered_resource_set = fermentalg_state.get_interpolation_scenario_output(target_scenario)
+            filtered_resource_set = cell_culture_state.get_interpolation_scenario_output(target_scenario)
             if not filtered_resource_set:
                 st.error(translate_service.translate('cannot_retrieve_filtered_data'))
                 return
 
         # Extract data for visualization using State method
-        visualization_data = fermentalg_state.prepare_data_for_visualization(filtered_resource_set)
+        visualization_data = cell_culture_state.prepare_data_for_visualization(filtered_resource_set)
 
         if not visualization_data:
             st.warning(translate_service.translate('no_data_for_visualization'))
@@ -95,11 +95,11 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
 
                 if hasattr(resource, 'tags') and resource.tags:
                     for tag in resource.tags.get_tags():
-                        if tag.key == fermentalg_state.TAG_BATCH:
+                        if tag.key == cell_culture_state.TAG_BATCH:
                             batch = tag.value
-                        elif tag.key == fermentalg_state.TAG_SAMPLE:
+                        elif tag.key == cell_culture_state.TAG_SAMPLE:
                             sample = tag.value
-                        elif tag.key == fermentalg_state.TAG_MEDIUM:
+                        elif tag.key == cell_culture_state.TAG_MEDIUM:
                             medium = tag.value
 
                 # Get DataFrame and add metadata columns
@@ -115,8 +115,8 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
         df_all = pd.DataFrame(all_data_rows)
 
         # Get available columns for selection using the tagging system
-        index_columns = fermentalg_state.get_index_columns_from_resource_set(filtered_resource_set)
-        data_columns = fermentalg_state.get_data_columns_from_resource_set(filtered_resource_set)
+        index_columns = cell_culture_state.get_index_columns_from_resource_set(filtered_resource_set)
+        data_columns = cell_culture_state.get_data_columns_from_resource_set(filtered_resource_set)
 
         # === Section 1: Filters ===
         st.markdown("---")
@@ -257,7 +257,7 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                     # Assign a unique marker symbol for this column
                     marker_symbol = marker_symbols[column_idx % len(marker_symbols)]
                     # Use the optimized function to build the DataFrame for this column
-                    column_df = fermentalg_state.build_selected_column_df_from_resource_set(
+                    column_df = cell_culture_state.build_selected_column_df_from_resource_set(
                         filtered_resource_set, selected_index, column_name
                     )
 
@@ -326,7 +326,7 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                     st.markdown(f"##### 📈 {column_name}")
 
                     # Use the optimized function to build the DataFrame for this column
-                    column_df = fermentalg_state.build_selected_column_df_from_resource_set(
+                    column_df = cell_culture_state.build_selected_column_df_from_resource_set(
                         filtered_resource_set, selected_index, column_name
                     )
 
@@ -408,7 +408,7 @@ def render_graph_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                             st.download_button(
                                 label=translate_service.translate('download_data').format(column=column_name),
                                 data=csv_data,
-                                file_name=f"fermentalg_{column_name}_graph_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                file_name=f"cell_culture_{column_name}_graph_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                                 mime="text/csv", key=f"download_graph_{column_name}_{i}")
                         else:
                             st.warning(f"⚠️ Aucune donnée correspond aux filtres sélectionnés pour {column_name}")

@@ -1,5 +1,5 @@
 """
-Table View Step for Fermentalg Dashboard
+Table View Step for Cell Culture Dashboard
 Handles table visualization with filtering and column selection
 """
 import streamlit as st
@@ -9,8 +9,8 @@ from typing import List, Dict, Any, Optional
 from gws_core import Table, Scenario, ScenarioStatus, ScenarioProxy
 from gws_core.resource.resource_set.resource_set import ResourceSet
 from gws_core.tag.tag_list import TagList
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
 
 def get_available_columns_from_resource_set(resource_set: ResourceSet) -> Dict[str, Dict[str, str]]:
@@ -40,7 +40,7 @@ def get_available_columns_from_resource_set(resource_set: ResourceSet) -> Dict[s
         return {}
 
 
-def prepare_extended_data_for_visualization(resource_set: ResourceSet, fermentalg_state: FermentalgState,
+def prepare_extended_data_for_visualization(resource_set: ResourceSet, cell_culture_state: CellCultureState,
                                             selected_columns: List[str] = None) -> List[Dict[str, Any]]:
     """Prepare extended data from ResourceSet including selected columns"""
     try:
@@ -57,11 +57,11 @@ def prepare_extended_data_for_visualization(resource_set: ResourceSet, fermental
                 # Basic metadata
                 if hasattr(resource, 'tags') and resource.tags:
                     for tag in resource.tags.get_tags():
-                        if tag.key == fermentalg_state.TAG_BATCH:
+                        if tag.key == cell_culture_state.TAG_BATCH:
                             batch = tag.value
-                        elif tag.key == fermentalg_state.TAG_SAMPLE:
+                        elif tag.key == cell_culture_state.TAG_SAMPLE:
                             sample = tag.value
-                        elif tag.key == fermentalg_state.TAG_MEDIUM:
+                        elif tag.key == cell_culture_state.TAG_MEDIUM:
                             medium = tag.value
 
                 # Prepare row data
@@ -98,26 +98,26 @@ def prepare_extended_data_for_visualization(resource_set: ResourceSet, fermental
 
 def get_col_tag_list_from_available_columns(
         available_columns: Dict[str, Dict[str, str]],
-        fermentalg_state: FermentalgState) -> List[str]:
+        cell_culture_state: CellCultureState) -> List[str]:
     """Get a list of column tags from the available columns."""
     col_tags = []
     for col_info in available_columns.values():
-        col_tags.extend(col_info.get(fermentalg_state.TAG_COLUMN_NAME, []))
+        col_tags.extend(col_info.get(cell_culture_state.TAG_COLUMN_NAME, []))
     return col_tags
 
 
-def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
                            scenario: Optional[Scenario] = None,
                            output_name: str = None) -> None:
     """Render the table view step with filtered data visualization
 
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param scenario: The scenario to display (selection or quality check)
     :param output_name: The output name to retrieve from the scenario (e.g., INTERPOLATION_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
     """
 
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     try:
         # If scenario is provided, use it
@@ -132,7 +132,7 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
             # Get data from scenario using the provided output name
             if not output_name:
                 # Default to interpolation output for backward compatibility
-                output_name = fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+                output_name = cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
 
             scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
             protocol_proxy = scenario_proxy.get_protocol()
@@ -159,13 +159,13 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                 st.warning(translate_service.translate('selection_not_successful'))
                 return
 
-            filtered_resource_set = fermentalg_state.get_interpolation_scenario_output(target_scenario)
+            filtered_resource_set = cell_culture_state.get_interpolation_scenario_output(target_scenario)
             if not filtered_resource_set:
                 st.error(translate_service.translate('cannot_retrieve_filtered_data'))
                 return
 
         # Extract data for visualization
-        visualization_data = fermentalg_state.prepare_data_for_visualization(filtered_resource_set)
+        visualization_data = cell_culture_state.prepare_data_for_visualization(filtered_resource_set)
 
         if not visualization_data:
             st.warning(translate_service.translate('no_data_for_visualization'))
@@ -176,8 +176,8 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
         unique_samples = sorted(list(set(item['Sample'] for item in visualization_data if item['Sample'])))
 
         # Get available columns for selection using the new tagging system
-        index_columns = fermentalg_state.get_index_columns_from_resource_set(filtered_resource_set)
-        data_columns = fermentalg_state.get_data_columns_from_resource_set(filtered_resource_set)
+        index_columns = cell_culture_state.get_index_columns_from_resource_set(filtered_resource_set)
+        data_columns = cell_culture_state.get_data_columns_from_resource_set(filtered_resource_set)
 
         st.markdown("---")
         st.markdown(f"### {translate_service.translate('filters_selection_title')}")
@@ -264,7 +264,7 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
 
         # Prepare extended data with selected columns
         extended_data = prepare_extended_data_for_visualization(
-            filtered_resource_set, fermentalg_state, selected_columns
+            filtered_resource_set, cell_culture_state, selected_columns
         )
 
         # Filter data based on batch and sample selection
@@ -304,7 +304,7 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                 st.markdown(f"##### 📈 {column_name}")
 
                 # Use the optimized function to build the DataFrame for this column
-                column_df = fermentalg_state.build_selected_column_df_from_resource_set(
+                column_df = cell_culture_state.build_selected_column_df_from_resource_set(
                     filtered_resource_set, selected_index, column_name
                 )
 
@@ -372,15 +372,15 @@ def render_table_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
 
                         # Download button for this specific column
                         if st.button(translate_service.translate('save_table'), key=f"download_{column_name}_{i}"):
-                            fermentalg_state.save_df_as_table(
+                            cell_culture_state.save_df_as_table(
                                 filtered_column_df,
-                                f"fermentalg_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}",
+                                f"cell_culture_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}",
                                 scenario=target_scenario)
                         # csv_data = filtered_column_df.to_csv(index=False)
                         # st.download_button(
                         #     label=translate_service.translate('download_column').format(column=column_name),
                         #     data=csv_data,
-                        #     file_name=f"fermentalg_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        #     file_name=f"cell_culture_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                         #     mime="text/csv",
                         #     key=f"download_{column_name}_{i}"
                         # )

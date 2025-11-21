@@ -1,5 +1,5 @@
 """
-Selection Step for Fermentalg Dashboard
+Selection Step for Cell Culture Dashboard
 Handles data selection with interactive table and scenario launching
 """
 import streamlit as st
@@ -12,17 +12,17 @@ from gws_core.resource.resource_set.resource_set import ResourceSet
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitTaskRunner, StreamlitAuthenticateUser
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.fermentalg_filter import FilterFermentorAnalyseLoadedResourceSetBySelection, FermentalgInterpolation
 
 
 def launch_selection_scenario(
-        selected_df: pd.DataFrame, load_scenario: Scenario, fermentalg_state: FermentalgState,
+        selected_df: pd.DataFrame, load_scenario: Scenario, cell_culture_state: CellCultureState,
         interpolation_config: dict = None) -> Optional[Scenario]:
     """Launch a scenario to filter the ResourceSet based on user selection."""
 
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     try:
         # Authenticate user for database operations
@@ -33,13 +33,13 @@ def launch_selection_scenario(
                 return None
 
             # 2. Get the ResourceSet from the load scenario using the state
-            resource_set = fermentalg_state.get_load_scenario_output()
+            resource_set = cell_culture_state.get_load_scenario_output()
             if not resource_set:
                 st.error(translate_service.translate('cannot_retrieve_resourceset'))
                 return None
 
             resource_set_model = ScenarioProxy.from_existing_scenario(load_scenario.id).get_protocol(
-            ).get_process('fermentalg_data_processing').get_output_resource_model('resource_set')
+            ).get_process(cell_culture_state.PROCESS_NAME_DATA_PROCESSING).get_output_resource_model('resource_set')
 
             # 3. Create a new scenario for the selection filtering with timestamp
             timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -105,7 +105,7 @@ def launch_selection_scenario(
 
             # Add output to make the interpolated result visible
             protocol_proxy.add_output(
-                fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME,
+                cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME,
                 interpolation_task >> 'interpolated_resource_set',
                 flag_resource=True
             )
@@ -116,32 +116,32 @@ def launch_selection_scenario(
 
             # Get original recipe name from parent scenario
             parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             original_recipe_name = parent_recipe_name_tags[0].tag_value if parent_recipe_name_tags else load_scenario.title
 
             # Get pipeline ID from parent scenario
             parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID)
             pipeline_id = parent_pipeline_id_tags[0].tag_value if parent_pipeline_id_tags else load_scenario.id
 
             # Get microplate analysis flag from parent scenario
-            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(fermentalg_state.TAG_MICROPLATE_ANALYSIS)
+            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(cell_culture_state.TAG_MICROPLATE_ANALYSIS)
             microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
 
             # Classification tag - indicate this is a selection processing step
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
-                                   fermentalg_state.TAG_SELECTION_PROCESSING, is_propagable=False))
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR,
+                                   cell_culture_state.TAG_SELECTION_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags from parent scenario
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
                                    original_recipe_name, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID,
                                    pipeline_id, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_MICROPLATE_ANALYSIS,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_MICROPLATE_ANALYSIS,
                                    microplate_analysis, is_propagable=False))
 
             # Add specific selection step tag
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_SELECTION_STEP,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_SELECTION_STEP,
                                    load_scenario.id, is_propagable=False))
             scenario_proxy.add_tag(Tag("parent_analysis_id", load_scenario.id, is_propagable=False))
 
@@ -153,7 +153,7 @@ def launch_selection_scenario(
 
             # Add the new selection scenario to the state and update the analyse instance
             new_scenario = scenario_proxy.get_model()
-            fermentalg_state.add_selection_scenario(new_scenario)
+            cell_culture_state.add_selection_scenario(new_scenario)
 
             return new_scenario
 
@@ -162,13 +162,13 @@ def launch_selection_scenario(
         return None
 
 
-def render_selection_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState) -> None:
+def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState) -> None:
     """Render the selection step with selectable table of valid data"""
 
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     try:
-        resource_set = fermentalg_state.get_load_scenario_output()
+        resource_set = cell_culture_state.get_load_scenario_output()
 
         if not resource_set or not isinstance(resource_set, ResourceSet):
             st.error(translate_service.translate('no_resourceset_found'))
@@ -213,13 +213,13 @@ def render_selection_step(recipe: FermentalgRecipe, fermentalg_state: Fermentalg
 
                 if hasattr(resource, 'tags') and resource.tags:
                     for tag in resource.tags.get_tags():
-                        if tag.key == fermentalg_state.TAG_BATCH:
+                        if tag.key == cell_culture_state.TAG_BATCH:
                             batch = tag.value
-                        elif tag.key == fermentalg_state.TAG_SAMPLE:
+                        elif tag.key == cell_culture_state.TAG_SAMPLE:
                             sample = tag.value
-                        elif tag.key == fermentalg_state.TAG_MEDIUM:
+                        elif tag.key == cell_culture_state.TAG_MEDIUM:
                             medium = tag.value
-                        elif tag.key == fermentalg_state.TAG_MISSING_VALUE:
+                        elif tag.key == cell_culture_state.TAG_MISSING_VALUE:
                             missing_value = tag.value
 
                 # Only include if no missing data
@@ -283,7 +283,7 @@ def render_selection_step(recipe: FermentalgRecipe, fermentalg_state: Fermentalg
                             interpolation_config = interpolation_config.get("config", None)
 
                         selection_scenario = launch_selection_scenario(
-                            selected_df, recipe.get_load_scenario(), fermentalg_state,
+                            selected_df, recipe.get_load_scenario(), cell_culture_state,
                             interpolation_config=interpolation_config
                         )
 

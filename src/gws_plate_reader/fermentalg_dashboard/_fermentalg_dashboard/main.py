@@ -1,14 +1,23 @@
 import streamlit as st
+import os
 
 from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.pages import first_page, new_recipe_page, recipe_page, settings
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.pages import new_recipe_page
+from gws_plate_reader.cell_culture_app_core.pages import first_page, recipe_page, settings
 from gws_core.streamlit import StreamlitRouter
 
 sources: list
 params: dict
 
+# Get the directory of this file
+current_dir = os.path.dirname(__file__)
+# Get the parent directory (_fermentalg_dashboard_core)
+core_dir = os.path.join(current_dir, '..', '_fermentalg_dashboard_core')
+# Build absolute path to translation folder
+lang_translation_folder_path = os.path.abspath(core_dir)
+
 # Initialize Fermentalg state
-fermentalg_state = FermentalgState()
+fermentalg_state = FermentalgState(lang_translation_folder_path)
 
 
 def display_first_page(fermentalg_state: FermentalgState):

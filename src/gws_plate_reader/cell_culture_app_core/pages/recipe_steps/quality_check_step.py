@@ -1,5 +1,5 @@
 """
-Quality Check Step for Fermentalg Dashboard
+Quality Check Step for Cell Culture Dashboard
 Handles quality check configuration and scenario launching for selections
 """
 import streamlit as st
@@ -11,16 +11,16 @@ from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_core.impl.table.table import Table
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.fermentalg_filter import FermentalgQualityCheck
 
 
-def get_available_columns_from_selection(selection_scenario: Scenario, fermentalg_state: FermentalgState) -> List[str]:
+def get_available_columns_from_selection(selection_scenario: Scenario, cell_culture_state: CellCultureState) -> List[str]:
     """Get list of available numeric columns from a selection scenario's interpolated output"""
     try:
         # Get interpolated ResourceSet from selection scenario using state method
-        resource_set = fermentalg_state.get_interpolation_scenario_output(selection_scenario)
+        resource_set = cell_culture_state.get_interpolation_scenario_output(selection_scenario)
 
         if not resource_set:
             return []
@@ -43,19 +43,19 @@ def get_available_columns_from_selection(selection_scenario: Scenario, fermental
 
 def render_quality_check_config_form(
         selection: Scenario,
-        fermentalg_state: FermentalgState,
+        cell_culture_state: CellCultureState,
         config_key: str) -> Dict:
     """Render custom quality check configuration form with column selection
 
     :param selection: The selection scenario
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param config_key: Session state key for storing config
     :return: Configuration dictionary
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     # Get available columns from selection
-    available_columns = get_available_columns_from_selection(selection, fermentalg_state)
+    available_columns = get_available_columns_from_selection(selection, cell_culture_state)
 
     if not available_columns:
         st.warning("⚠️ Impossible de récupérer les colonnes disponibles. Le scénario parent est peut-être en cours d'exécution.")
@@ -292,7 +292,7 @@ def render_quality_check_config_form(
 
 
 def launch_quality_check_scenario(
-        selection_scenario: Scenario, fermentalg_state: FermentalgState,
+        selection_scenario: Scenario, cell_culture_state: CellCultureState,
         quality_check_config: dict = None) -> Optional[Scenario]:
     """Launch a quality check scenario for a specific selection."""
 
@@ -300,7 +300,7 @@ def launch_quality_check_scenario(
         # Authenticate user for database operations
         with StreamlitAuthenticateUser():
             # 1. Get the data ResourceSet from the load scenario output
-            data_resource = fermentalg_state.get_load_scenario_output()
+            data_resource = cell_culture_state.get_load_scenario_output()
 
             if not data_resource:
                 st.error("Impossible de récupérer les données brutes (data) depuis le scénario de load.")
@@ -309,7 +309,7 @@ def launch_quality_check_scenario(
             data_resource_id = data_resource.get_model_id()
 
             # 2. Get the interpolated ResourceSet from the selection scenario (using state method)
-            interpolated_resource = fermentalg_state.get_interpolation_scenario_output(selection_scenario)
+            interpolated_resource = cell_culture_state.get_interpolation_scenario_output(selection_scenario)
 
             if not interpolated_resource:
                 st.error(
@@ -371,13 +371,13 @@ def launch_quality_check_scenario(
 
             # Add outputs to make the quality-checked results visible
             protocol_proxy.add_output(
-                fermentalg_state.QUALITY_CHECK_SCENARIO_OUTPUT_NAME,
+                cell_culture_state.QUALITY_CHECK_SCENARIO_OUTPUT_NAME,
                 quality_check_task >> 'filtered_data',
                 flag_resource=True
             )
 
             protocol_proxy.add_output(
-                fermentalg_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME,
+                cell_culture_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME,
                 quality_check_task >> 'filtered_interpolated_data',
                 flag_resource=True
             )
@@ -387,32 +387,32 @@ def launch_quality_check_scenario(
 
             # Get recipe name from parent
             parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             original_recipe_name = parent_recipe_name_tags[0].tag_value if parent_recipe_name_tags else selection_scenario.title
 
             # Get pipeline ID from parent
             parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID)
             pipeline_id = parent_pipeline_id_tags[0].tag_value if parent_pipeline_id_tags else selection_scenario.id
 
             # Get microplate analysis flag from parent
-            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(fermentalg_state.TAG_MICROPLATE_ANALYSIS)
+            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(cell_culture_state.TAG_MICROPLATE_ANALYSIS)
             microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
 
             # Classification tag - indicate this is a quality check step
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
-                                   fermentalg_state.TAG_QUALITY_CHECK_PROCESSING, is_propagable=False))
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR,
+                                   cell_culture_state.TAG_QUALITY_CHECK_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
                                    original_recipe_name, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID,
                                    pipeline_id, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_MICROPLATE_ANALYSIS,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_MICROPLATE_ANALYSIS,
                                    microplate_analysis, is_propagable=False))
 
             # Link to parent selection scenario
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION,
                                    selection_scenario.id, is_propagable=False))
             scenario_proxy.add_tag(Tag("parent_selection_id", selection_scenario.id, is_propagable=False))
 
@@ -434,16 +434,16 @@ def launch_quality_check_scenario(
 
 
 def render_quality_check_step(
-        recipe: FermentalgRecipe,
-        fermentalg_state: FermentalgState,
+        recipe: CellCultureRecipe,
+        cell_culture_state: CellCultureState,
         selection_scenario: Optional[Scenario] = None) -> None:
     """Render the quality check step with configuration form
 
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param selection_scenario: Specific selection scenario to manage quality checks for (if provided, shows only this selection)
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     # If a specific selection scenario is provided, only show that one
     if selection_scenario:
@@ -455,7 +455,7 @@ def render_quality_check_step(
         )
 
         # Display only this selection's quality checks
-        _render_selection_quality_checks(selection_scenario, recipe, fermentalg_state)
+        _render_selection_quality_checks(selection_scenario, recipe, cell_culture_state)
 
     else:
         # Show all selections (backward compatibility if called without selection_scenario)
@@ -475,7 +475,7 @@ def render_quality_check_step(
         st.markdown(f"### {translate_service.translate('available_selections_title')}")
 
         for idx, selection in enumerate(selection_scenarios):
-            _render_selection_quality_checks(selection, recipe, fermentalg_state, show_in_expander=True, idx=idx)
+            _render_selection_quality_checks(selection, recipe, cell_culture_state, show_in_expander=True, idx=idx)
 
     # Info box with quality check tips
     with st.expander("💡 Conseils pour le Quality Check"):
@@ -508,19 +508,19 @@ def render_quality_check_step(
 
 def _render_selection_quality_checks(
         selection: Scenario,
-        recipe: FermentalgRecipe,
-        fermentalg_state: FermentalgState,
+        recipe: CellCultureRecipe,
+        cell_culture_state: CellCultureState,
         show_in_expander: bool = False,
         idx: int = 0) -> None:
     """Render quality check interface for a specific selection
 
     :param selection: The selection scenario
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param show_in_expander: Whether to show in an expander (for list view)
     :param idx: Index for display (used in list view)
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     # Extract timestamp from title
     timestamp = "Non défini"
@@ -545,7 +545,7 @@ def _render_selection_quality_checks(
         # Render custom quality check configuration form
         quality_check_config = render_quality_check_config_form(
             selection,
-            fermentalg_state,
+            cell_culture_state,
             config_key
         )
 
@@ -557,7 +557,7 @@ def _render_selection_quality_checks(
                 with StreamlitAuthenticateUser():
                     # Launch quality check scenario
                     qc_scenario = launch_quality_check_scenario(
-                        selection, fermentalg_state, quality_check_config
+                        selection, cell_culture_state, quality_check_config
                     )
 
                     if qc_scenario:

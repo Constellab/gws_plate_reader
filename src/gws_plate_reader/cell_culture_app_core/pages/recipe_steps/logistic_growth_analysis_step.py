@@ -1,5 +1,5 @@
 """
-Logistic Growth Analysis Step for Fermentalg Dashboard
+Logistic Growth Analysis Step for Cell Culture Dashboard
 Allows users to run logistic growth curve fitting with cross-validation
 """
 import streamlit as st
@@ -10,15 +10,15 @@ from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, T
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.features_extraction.logistic_growth_fitter import LogisticGrowthFitter
 from gws_plate_reader.fermentalg_analysis import ResourceSetToDataTable
 
 
 def launch_logistic_growth_scenario(
         quality_check_scenario: Scenario,
-        fermentalg_state: FermentalgState,
+        cell_culture_state: CellCultureState,
         index_column: str,
         data_column: str,
         n_splits: int = 3,
@@ -27,7 +27,7 @@ def launch_logistic_growth_scenario(
     Launch a Logistic Growth Fitting scenario
 
     :param quality_check_scenario: The parent quality check scenario
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param index_column: Column to use as index (time/temperature)
     :param data_column: Data column to analyze
     :param n_splits: Number of K-Fold cross-validation splits
@@ -51,7 +51,7 @@ def launch_logistic_growth_scenario(
             protocol_proxy = scenario_proxy.get_protocol()
 
             # Get the quality check interpolated output ResourceSet
-            qc_output = fermentalg_state.get_quality_check_scenario_interpolated_output_resource_model(
+            qc_output = cell_culture_state.get_quality_check_scenario_interpolated_output_resource_model(
                 quality_check_scenario)
             if not qc_output:
                 st.error("Impossible de récupérer le ResourceSet interpolé de sortie du Quality Check")
@@ -115,32 +115,32 @@ def launch_logistic_growth_scenario(
 
             # Get recipe name from parent
             parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             original_recipe_name = parent_recipe_name_tags[0].tag_value if parent_recipe_name_tags else quality_check_scenario.title
 
             # Get pipeline ID from parent
             parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID)
             pipeline_id = parent_pipeline_id_tags[0].tag_value if parent_pipeline_id_tags else quality_check_scenario.id
 
             # Get microplate analysis flag from parent
-            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(fermentalg_state.TAG_MICROPLATE_ANALYSIS)
+            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(cell_culture_state.TAG_MICROPLATE_ANALYSIS)
             microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
 
             # Classification tag - indicate this is an analysis
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
-                                   fermentalg_state.TAG_ANALYSES_PROCESSING, is_propagable=False))
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR,
+                                   cell_culture_state.TAG_ANALYSES_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
                                    original_recipe_name, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID,
                                    pipeline_id, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_MICROPLATE_ANALYSIS,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_MICROPLATE_ANALYSIS,
                                    microplate_analysis, is_propagable=False))
 
             # Link to parent quality check scenario
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK,
                                    quality_check_scenario.id, is_propagable=False))
 
             # Add analysis type tags
@@ -165,16 +165,16 @@ def launch_logistic_growth_scenario(
         return None
 
 
-def render_logistic_growth_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+def render_logistic_growth_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
                                 quality_check_scenario: Scenario) -> None:
     """
     Render the Logistic Growth Fitting step
 
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param quality_check_scenario: The quality check scenario to analyze
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     st.markdown(f"### 📈 {translate_service.translate('logistic_growth_title')}")
 
@@ -187,7 +187,7 @@ def render_logistic_growth_step(recipe: FermentalgRecipe, fermentalg_state: Ferm
     st.markdown(f"- {translate_service.translate('logistic_growth_r_squared')}")
 
     # Get the quality check output for column selection
-    qc_output = fermentalg_state.get_quality_check_scenario_interpolated_output_resource_model(quality_check_scenario)
+    qc_output = cell_culture_state.get_quality_check_scenario_interpolated_output_resource_model(quality_check_scenario)
     qc_output_resource_set = qc_output.get_resource() if qc_output else None
 
     if not qc_output_resource_set:
@@ -195,8 +195,8 @@ def render_logistic_growth_step(recipe: FermentalgRecipe, fermentalg_state: Ferm
         return
 
     # Get available columns
-    index_columns = fermentalg_state.get_strict_index_columns_from_resource_set(qc_output_resource_set)
-    data_columns = fermentalg_state.get_data_columns_from_resource_set(qc_output_resource_set)
+    index_columns = cell_culture_state.get_strict_index_columns_from_resource_set(qc_output_resource_set)
+    data_columns = cell_culture_state.get_data_columns_from_resource_set(qc_output_resource_set)
 
     if not index_columns:
         st.warning(f"⚠️ {translate_service.translate('no_index_columns_found')}")
@@ -256,7 +256,7 @@ def render_logistic_growth_step(recipe: FermentalgRecipe, fermentalg_state: Ferm
         with st.spinner(f"{translate_service.translate('launching_analysis')}"):
             new_scenario = launch_logistic_growth_scenario(
                 quality_check_scenario,
-                fermentalg_state,
+                cell_culture_state,
                 index_column=index_column,
                 data_column=data_column,
                 n_splits=n_splits,

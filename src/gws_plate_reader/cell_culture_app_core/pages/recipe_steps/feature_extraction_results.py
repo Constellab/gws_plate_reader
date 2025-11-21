@@ -1,25 +1,25 @@
 """
-Feature Extraction Results Display for Fermentalg Dashboard
+Feature Extraction Results Display for Cell Culture Dashboard
 Displays the results of a Feature Extraction analysis scenario
 """
 import streamlit as st
 
 from gws_core import Scenario, ScenarioStatus, ScenarioProxy, Table, ResourceSet
 from gws_core.impl.plotly.plotly_resource import PlotlyResource
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
 
-def render_feature_extraction_results(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+def render_feature_extraction_results(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
                                       fe_scenario: Scenario) -> None:
     """
     Render the Feature Extraction analysis results
 
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param fe_scenario: The Feature Extraction scenario to display results for
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     st.title(f"{recipe.name} - {fe_scenario.title}")
 

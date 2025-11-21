@@ -1,5 +1,5 @@
 """
-Analysis steps package for fermentalg dashboard
+Analysis steps package for cell culture dashboard
 Each step corresponds to a sub-page within the analysis section
 """
 

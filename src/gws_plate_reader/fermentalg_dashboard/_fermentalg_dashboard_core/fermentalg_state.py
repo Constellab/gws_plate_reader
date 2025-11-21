@@ -11,6 +11,8 @@ import os
 from typing import Dict, List, Optional
 
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
+from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
 
 
 class FermentalgState(CellCultureState):
@@ -31,12 +33,15 @@ class FermentalgState(CellCultureState):
     TAG_SELECTION_PROCESSING = "selection_processing"
     TAG_QUALITY_CHECK_PROCESSING = "quality_check_processing"
     TAG_ANALYSES_PROCESSING = "analyses_processing"
-    TAG_FERMENTOR_FERMENTALG_PIPELINE_ID = "fermentor_fermentalg_pipeline_id"
+    TAG_FERMENTOR_PIPELINE_ID = "fermentor_fermentalg_pipeline_id"
     TAG_MICROPLATE_ANALYSIS = "microplate_analysis"
     TAG_FERMENTOR_SELECTION_STEP = "fermentor_selection_step"
     TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION = "fermentor_quality_check_parent_selection"
     TAG_FERMENTOR_ANALYSES_PARENT_SELECTION = "fermentor_analyses_parent_selection"
     TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK = "fermentor_analyses_parent_quality_check"
+
+    # Process names (Fermentalg-specific)
+    PROCESS_NAME_DATA_PROCESSING = 'fermentalg_data_processing'
 
     # Additional Fermentalg session state keys
     LOAD_SCENARIO_KEY = "load_scenario"
@@ -65,6 +70,15 @@ class FermentalgState(CellCultureState):
 
         # Call parent constructor
         super().__init__(lang_translation_folder_path)
+
+    def create_recipe_from_scenario(self, scenario: Scenario) -> CellCultureRecipe:
+        """
+        Create a FermentalgRecipe instance from a scenario.
+
+        :param scenario: The scenario to create the recipe from
+        :return: A FermentalgRecipe instance
+        """
+        return FermentalgRecipe.from_scenario(scenario)
 
     def get_load_scenario_output(self) -> Optional[ResourceSet]:
         """Get a specific output from the main scenario."""

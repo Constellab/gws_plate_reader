@@ -1,5 +1,5 @@
 """
-Medium View Step for Fermentalg Dashboard
+Medium View Step for Cell Culture Dashboard
 Displays culture medium composition for each batch-sample pair
 """
 import streamlit as st
@@ -8,12 +8,12 @@ from typing import List, Dict, Any, Optional
 
 from gws_core import Table, Scenario, ScenarioProxy, ScenarioStatus
 from gws_core.resource.resource_set.resource_set import ResourceSet
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
 
 def get_medium_data_from_resource_set(
-        resource_set: ResourceSet, fermentalg_state: FermentalgState) -> List[
+        resource_set: ResourceSet, cell_culture_state: CellCultureState) -> List[
         Dict[str, Any]]:
     """
     Extract medium composition data from ResourceSet.
@@ -35,11 +35,11 @@ def get_medium_data_from_resource_set(
 
                 # Extract batch, sample, and medium from tags
                 for tag in resource_tags:
-                    if tag.key == fermentalg_state.TAG_BATCH:
+                    if tag.key == cell_culture_state.TAG_BATCH:
                         batch = tag.value
-                    elif tag.key == fermentalg_state.TAG_SAMPLE:
+                    elif tag.key == cell_culture_state.TAG_SAMPLE:
                         sample = tag.value
-                    elif tag.key == fermentalg_state.TAG_MEDIUM:
+                    elif tag.key == cell_culture_state.TAG_MEDIUM:
                         medium_name = tag.value
                         # Extract composition from additional_info
                         # Debug: print what we have
@@ -67,18 +67,18 @@ def get_medium_data_from_resource_set(
         return []
 
 
-def render_medium_view_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+def render_medium_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
                             scenario: Optional[Scenario] = None, output_name: str = None) -> None:
     """
     Render the medium view step showing medium composition for each batch-sample pair.
 
     Args:
-        recipe: The FermentalgRecipe instance
-        fermentalg_state: State manager
+        recipe: The CellCultureRecipe instance
+        cell_culture_state: State manager
         scenario: The scenario to get data from (selection or quality check scenario)
         output_name: Name of the output to retrieve from the scenario
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     try:
         # If scenario is provided, use it
@@ -93,7 +93,7 @@ def render_medium_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermenta
             # Get data from scenario using the provided output name
             if not output_name:
                 # Default to interpolation output for backward compatibility
-                output_name = fermentalg_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
+                output_name = cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
 
             scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
             protocol_proxy = scenario_proxy.get_protocol()
@@ -114,7 +114,7 @@ def render_medium_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermenta
                 return
 
             target_scenario = recipe.load_scenario
-            output_name = fermentalg_state.LOAD_SCENARIO_OUTPUT_NAME
+            output_name = cell_culture_state.LOAD_SCENARIO_OUTPUT_NAME
 
             scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
             protocol_proxy = scenario_proxy.get_protocol()
@@ -134,7 +134,7 @@ def render_medium_view_step(recipe: FermentalgRecipe, fermentalg_state: Fermenta
             return
 
         # Extract medium data
-        medium_data = get_medium_data_from_resource_set(filtered_resource_set, fermentalg_state)
+        medium_data = get_medium_data_from_resource_set(filtered_resource_set, cell_culture_state)
 
         if not medium_data:
             st.info(translate_service.translate('no_medium_data'))

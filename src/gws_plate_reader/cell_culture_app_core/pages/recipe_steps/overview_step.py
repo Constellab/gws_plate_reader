@@ -1,5 +1,5 @@
 """
-Overview Step for Fermentalg Dashboard
+Overview Step for Cell Culture Dashboard
 Displays analysis overview, input files, basic statistics, missing data information, and data visualizations
 """
 import streamlit as st
@@ -11,8 +11,8 @@ from typing import List, Dict, Tuple, Optional, Any
 
 from gws_core import Table, Scenario
 from gws_core.resource.resource_set.resource_set import ResourceSet
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
 
 def create_venn_diagram_3_sets_fallback(sample_sets: Dict[str, set], translate_service) -> go.Figure:
@@ -138,7 +138,7 @@ def create_venn_diagram_3_sets_fallback(sample_sets: Dict[str, set], translate_s
 
 
 def prepare_complete_data_for_visualization(
-        resource_set: ResourceSet, fermentalg_state: FermentalgState) -> List[
+        resource_set: ResourceSet, cell_culture_state: CellCultureState) -> List[
         Dict[str, str]]:
     """Prepare complete (non-missing) data from ResourceSet for visualization"""
     try:
@@ -155,13 +155,13 @@ def prepare_complete_data_for_visualization(
 
                 if hasattr(resource, 'tags') and resource.tags:
                     for tag in resource.tags.get_tags():
-                        if tag.key == fermentalg_state.TAG_BATCH:
+                        if tag.key == cell_culture_state.TAG_BATCH:
                             batch = tag.value
-                        elif tag.key == fermentalg_state.TAG_SAMPLE:
+                        elif tag.key == cell_culture_state.TAG_SAMPLE:
                             sample = tag.value
-                        elif tag.key == fermentalg_state.TAG_MEDIUM:
+                        elif tag.key == cell_culture_state.TAG_MEDIUM:
                             medium = tag.value
-                        elif tag.key == fermentalg_state.TAG_MISSING_VALUE:
+                        elif tag.key == cell_culture_state.TAG_MISSING_VALUE:
                             missing_value = tag.value
 
                 # Only include if no missing data
@@ -178,7 +178,7 @@ def prepare_complete_data_for_visualization(
         return []
 
 
-def prepare_extended_complete_data(resource_set: ResourceSet, fermentalg_state: FermentalgState,
+def prepare_extended_complete_data(resource_set: ResourceSet, cell_culture_state: CellCultureState,
                                    selected_columns: List[str] = None) -> List[Dict[str, Any]]:
     """Prepare extended complete data from ResourceSet including selected columns"""
     try:
@@ -195,13 +195,13 @@ def prepare_extended_complete_data(resource_set: ResourceSet, fermentalg_state: 
 
                 if hasattr(resource, 'tags') and resource.tags:
                     for tag in resource.tags.get_tags():
-                        if tag.key == fermentalg_state.TAG_BATCH:
+                        if tag.key == cell_culture_state.TAG_BATCH:
                             batch = tag.value
-                        elif tag.key == fermentalg_state.TAG_SAMPLE:
+                        elif tag.key == cell_culture_state.TAG_SAMPLE:
                             sample = tag.value
-                        elif tag.key == fermentalg_state.TAG_MEDIUM:
+                        elif tag.key == cell_culture_state.TAG_MEDIUM:
                             medium = tag.value
-                        elif tag.key == fermentalg_state.TAG_MISSING_VALUE:
+                        elif tag.key == cell_culture_state.TAG_MISSING_VALUE:
                             missing_value = tag.value
 
                 # Only process resources without missing data
@@ -230,10 +230,10 @@ def prepare_extended_complete_data(resource_set: ResourceSet, fermentalg_state: 
         return []
 
 
-def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState) -> None:
+def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState) -> None:
     """Render the overview step showing basic recipe information and visualizations"""
 
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     # Get the load scenario (main scenario) which should already exist when recipe is created
     load_scenario = recipe.get_load_scenario()
@@ -244,7 +244,7 @@ def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgS
 
     try:
         # Get the ResourceSet from the load scenario
-        resource_set = fermentalg_state.get_load_scenario_output()
+        resource_set = cell_culture_state.get_load_scenario_output()
         if not resource_set:
             st.warning(translate_service.translate('no_data_found'))
             return
@@ -271,13 +271,13 @@ def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgS
 
                 if hasattr(resource, 'tags') and resource.tags:
                     for tag in resource.tags.get_tags():
-                        if tag.key == fermentalg_state.TAG_BATCH:
+                        if tag.key == cell_culture_state.TAG_BATCH:
                             batch = tag.value
-                        elif tag.key == fermentalg_state.TAG_SAMPLE:
+                        elif tag.key == cell_culture_state.TAG_SAMPLE:
                             sample = tag.value
-                        elif tag.key == fermentalg_state.TAG_MEDIUM:
+                        elif tag.key == cell_culture_state.TAG_MEDIUM:
                             medium = tag.value
-                        elif tag.key == fermentalg_state.TAG_MISSING_VALUE:
+                        elif tag.key == cell_culture_state.TAG_MISSING_VALUE:
                             missing_value = tag.value
 
                 resource_info = {
@@ -317,7 +317,7 @@ def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgS
         st.markdown(f"### {translate_service.translate('missing_data_couples')}")
 
         # Try to get the Venn diagram from the load scenario output
-        venn_diagram = fermentalg_state.get_venn_diagram_output()
+        venn_diagram = cell_culture_state.get_venn_diagram_output()
 
         if venn_diagram is not None:
             # Display the pre-computed Venn diagram from the load task
@@ -420,7 +420,7 @@ def render_overview_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgS
         st.markdown(f"### {translate_service.translate('complete_data_viz')}")
 
         # Prepare visualization data for complete (non-missing) data
-        complete_visualization_data = prepare_complete_data_for_visualization(resource_set, fermentalg_state)
+        complete_visualization_data = prepare_complete_data_for_visualization(resource_set, cell_culture_state)
 
         if complete_visualization_data:
 

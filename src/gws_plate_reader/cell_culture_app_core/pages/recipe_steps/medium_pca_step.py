@@ -1,5 +1,5 @@
 """
-Medium PCA Analysis Step for Fermentalg Dashboard
+Medium PCA Analysis Step for Cell Culture Dashboard
 Allows users to run PCA analysis on medium composition data
 """
 import streamlit as st
@@ -10,18 +10,18 @@ from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, T
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.fermentalg_analysis import CellCultureMediumPCA
 
 
 def get_available_media_from_quality_check(
-        quality_check_scenario: Scenario, fermentalg_state: FermentalgState) -> List[str]:
+        quality_check_scenario: Scenario, cell_culture_state: CellCultureState) -> List[str]:
     """
     Get list of unique medium names from the quality check scenario's filtered interpolated output
 
     :param quality_check_scenario: The quality check scenario
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :return: List of unique medium names
     """
     try:
@@ -29,7 +29,7 @@ def get_available_media_from_quality_check(
         scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
         protocol_proxy = scenario_proxy.get_protocol()
 
-        resource_set = protocol_proxy.get_output(fermentalg_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME)
+        resource_set = protocol_proxy.get_output(cell_culture_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME)
 
         if not resource_set:
             return []
@@ -43,7 +43,7 @@ def get_available_media_from_quality_check(
             if isinstance(resource, Table):
                 if hasattr(resource, 'tags') and resource.tags:
                     for tag in resource.tags.get_tags():
-                        if tag.key == fermentalg_state.TAG_MEDIUM:
+                        if tag.key == cell_culture_state.TAG_MEDIUM:
                             if tag.value:
                                 media.add(tag.value)
 
@@ -56,7 +56,7 @@ def get_available_media_from_quality_check(
 
 def launch_medium_pca_scenario(
         quality_check_scenario: Scenario,
-        fermentalg_state: FermentalgState,
+        cell_culture_state: CellCultureState,
         medium_csv_resource_id: str,
         selected_media: List[str],
         decimal_separator: str = ',') -> Optional[Scenario]:
@@ -64,7 +64,7 @@ def launch_medium_pca_scenario(
     Launch a Medium PCA analysis scenario
 
     :param quality_check_scenario: The parent quality check scenario
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param medium_csv_resource_id: Resource model ID of the medium CSV file
     :param selected_media: List of selected medium names to include in analysis
     :param decimal_separator: Decimal separator for CSV (default: ',')
@@ -129,32 +129,32 @@ def launch_medium_pca_scenario(
 
             # Get recipe name from parent
             parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             original_recipe_name = parent_recipe_name_tags[0].tag_value if parent_recipe_name_tags else quality_check_scenario.title
 
             # Get pipeline ID from parent
             parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
-                fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID)
             pipeline_id = parent_pipeline_id_tags[0].tag_value if parent_pipeline_id_tags else quality_check_scenario.id
 
             # Get microplate analysis flag from parent
-            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(fermentalg_state.TAG_MICROPLATE_ANALYSIS)
+            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(cell_culture_state.TAG_MICROPLATE_ANALYSIS)
             microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
 
             # Classification tag - indicate this is an analysis
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR,
-                                   fermentalg_state.TAG_ANALYSES_PROCESSING, is_propagable=False))
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR,
+                                   cell_culture_state.TAG_ANALYSES_PROCESSING, is_propagable=False))
 
             # Inherit core identification tags
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
                                    original_recipe_name, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID,
                                    pipeline_id, is_propagable=False))
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_MICROPLATE_ANALYSIS,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_MICROPLATE_ANALYSIS,
                                    microplate_analysis, is_propagable=False))
 
             # Link to parent quality check scenario
-            scenario_proxy.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK,
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK,
                                    quality_check_scenario.id, is_propagable=False))
 
             # Add timestamp and analysis type tags
@@ -175,23 +175,23 @@ def launch_medium_pca_scenario(
         return None
 
 
-def render_medium_pca_step(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
                            quality_check_scenario: Scenario) -> None:
     """
     Render the Medium PCA analysis step
 
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param quality_check_scenario: The quality check scenario to analyze
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     st.markdown(f"### 🧬 {translate_service.translate('pca_title')}")
 
     st.info(translate_service.translate('pca_info_intro'))
 
     # Get the medium CSV resource model
-    medium_csv_resource_model = fermentalg_state.get_medium_csv_input_resource_model()
+    medium_csv_resource_model = cell_culture_state.get_medium_csv_input_resource_model()
 
     if not medium_csv_resource_model:
         st.warning(translate_service.translate('pca_error_media_info'))
@@ -200,7 +200,7 @@ def render_medium_pca_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
     st.success(f"✅ Fichier de milieu disponible : {medium_csv_resource_model.name}")
 
     # Get available media from quality check scenario
-    available_media = get_available_media_from_quality_check(quality_check_scenario, fermentalg_state)
+    available_media = get_available_media_from_quality_check(quality_check_scenario, cell_culture_state)
 
     if not available_media:
         st.warning(translate_service.translate('pca_error_media_info'))
@@ -255,7 +255,7 @@ def render_medium_pca_step(recipe: FermentalgRecipe, fermentalg_state: Fermental
                 # Launch PCA scenario
                 pca_scenario = launch_medium_pca_scenario(
                     quality_check_scenario,
-                    fermentalg_state,
+                    cell_culture_state,
                     medium_csv_resource_model.id,
                     selected_media,
                     decimal_separator

@@ -1,24 +1,24 @@
 """
-Spline Growth Rate Analysis Results Display for Fermentalg Dashboard
+Spline Growth Rate Analysis Results Display for Cell Culture Dashboard
 """
 import streamlit as st
 
 from gws_core import Scenario, ScenarioProxy, Table
 from gws_core.impl.plotly.plotly_resource import PlotlyResource
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
 
-def render_spline_growth_results(recipe: FermentalgRecipe, fermentalg_state: FermentalgState,
+def render_spline_growth_results(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
                                  scenario: Scenario) -> None:
     """
     Render results of a Spline Growth Rate Inference analysis
 
     :param recipe: The Recipe instance
-    :param fermentalg_state: The fermentalg state
+    :param cell_culture_state: The cell culture state
     :param scenario: The spline growth scenario to display
     """
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     st.markdown(f"### 📊 {translate_service.translate('results_title')} : {scenario.title}")
     st.markdown(f"**{translate_service.translate('status')}** : {scenario.status.value}")

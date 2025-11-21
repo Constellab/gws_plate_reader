@@ -4,18 +4,18 @@ from gws_core.streamlit import StreamlitContainers, StreamlitRouter
 from gws_core import Tag, ScenarioSearchBuilder, Scenario
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_state import FermentalgState
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.fermentalg_recipe import FermentalgRecipe
-from gws_plate_reader.fermentalg_dashboard._fermentalg_dashboard_core.functions_steps import (
-    render_fermentalg_recipe_table,
-    create_fermentalg_recipe_table_data
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
+from gws_plate_reader.cell_culture_app_core.functions_steps import (
+    render_recipe_table,
+    create_recipe_table_data
 )
 
 
-def render_first_page(fermentalg_state: FermentalgState) -> None:
+def render_first_page(cell_culture_state: CellCultureState) -> None:
     """Render the main page showing list of existing analyses."""
 
-    translate_service = fermentalg_state.get_translate_service()
+    translate_service = cell_culture_state.get_translate_service()
 
     style = """
     [CLASS_NAME] {
@@ -41,28 +41,28 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
                 router = StreamlitRouter.load_from_session()
                 router.navigate("new-analysis")
 
-        # Search for existing Fermentalg analyses (both load and selection scenarios)
+        # Search for existing cell culture analyses (both load and selection scenarios)
         # Get load scenarios
         load_scenarios = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_DATA_PROCESSING)) \
+            .add_tag_filter(Tag(key=cell_culture_state.TAG_FERMENTOR, value=cell_culture_state.TAG_DATA_PROCESSING)) \
             .add_is_archived_filter(False) \
             .search_all()
 
         # Get selection scenarios
         selection_scenarios = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_SELECTION_PROCESSING)) \
+            .add_tag_filter(Tag(key=cell_culture_state.TAG_FERMENTOR, value=cell_culture_state.TAG_SELECTION_PROCESSING)) \
             .add_is_archived_filter(False) \
             .search_all()
 
         # Get quality check scenarios
         quality_check_scenarios = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_QUALITY_CHECK_PROCESSING)) \
+            .add_tag_filter(Tag(key=cell_culture_state.TAG_FERMENTOR, value=cell_culture_state.TAG_QUALITY_CHECK_PROCESSING)) \
             .add_is_archived_filter(False) \
             .search_all()
 
         # Get analyses scenarios
         analyses_scenarios = ScenarioSearchBuilder() \
-            .add_tag_filter(Tag(key=fermentalg_state.TAG_FERMENTOR, value=fermentalg_state.TAG_ANALYSES_PROCESSING)) \
+            .add_tag_filter(Tag(key=cell_culture_state.TAG_FERMENTOR, value=cell_culture_state.TAG_ANALYSES_PROCESSING)) \
             .add_is_archived_filter(False) \
             .search_all()
 
@@ -72,7 +72,7 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
         # First, organize load scenarios by recipe name
         for scenario in load_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+            recipe_name_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
             if recipe_name not in recipes_dict:
@@ -87,7 +87,7 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
         # Then, add selection scenarios to their corresponding recipes
         for scenario in selection_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+            recipe_name_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
             if recipe_name in recipes_dict:
@@ -96,7 +96,7 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
         # Then, add quality check scenarios to their corresponding recipes
         for scenario in quality_check_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+            recipe_name_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
             if recipe_name in recipes_dict:
@@ -105,7 +105,7 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
         # Finally, add analyses scenarios to their corresponding recipes
         for scenario in analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+            recipe_name_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
             if recipe_name in recipes_dict:
@@ -115,7 +115,7 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
         list_scenario_user: List[Scenario] = load_scenarios + selection_scenarios
 
         # Use the new centralized function to render the table
-        selected_scenario_id = render_fermentalg_recipe_table(list_scenario_user, fermentalg_state)
+        selected_scenario_id = render_recipe_table(list_scenario_user, cell_culture_state)
 
         if selected_scenario_id:
             # Find the selected recipe name
@@ -126,14 +126,14 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
             for scenario in load_scenarios:
                 if scenario.id == selected_scenario_id:
                     entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-                    recipe_name_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME)
+                    recipe_name_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
                     selected_recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
                     selected_load_scenario = scenario
                     break
 
             # If not found, try to find by recipe name from table
             if not selected_recipe_name:
-                table_data = create_fermentalg_recipe_table_data(list_scenario_user, fermentalg_state)
+                table_data = create_recipe_table_data(list_scenario_user, cell_culture_state, translate_service)
                 selected_row = next((row for row in table_data if row.get("id") == selected_scenario_id), None)
                 if selected_row:
                     selected_recipe_name = selected_row["Recipe Name"]
@@ -141,8 +141,8 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
                         selected_load_scenario = recipes_dict[selected_recipe_name]['load_scenario']
 
             if selected_recipe_name and selected_load_scenario and selected_recipe_name in recipes_dict:
-                # Create Recipe instance from load scenario only
-                recipe_instance = FermentalgRecipe.from_scenario(selected_load_scenario)
+                # Create Recipe instance from load scenario only using the state's recipe class
+                recipe_instance = cell_culture_state.create_recipe_from_scenario(selected_load_scenario)
 
                 # Add selection scenarios if they exist
                 recipe_data = recipes_dict[selected_recipe_name]
@@ -158,7 +158,7 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
                     recipe_instance.add_scenarios_by_step('analyses', recipe_data['analyses_scenarios'])
 
                 # Store the complete instance in state
-                fermentalg_state.set_selected_recipe_instance(recipe_instance)
+                cell_culture_state.set_selected_recipe_instance(recipe_instance)
 
                 # Navigate to analysis page
                 router = StreamlitRouter.load_from_session()
@@ -169,7 +169,7 @@ def render_first_page(fermentalg_state: FermentalgState) -> None:
         if not recipes_dict:
             # No recipes found - show getting started guide
             st.subheader(f"🚀 {translate_service.translate('getting_started')}")
-            st.info(translate_service.translate('no_fermentalg_recipe_found'))
+            st.info(translate_service.translate('no_recipe_found'))
 
             # Show example of what the recipe includes
             with st.expander(f"ℹ️ {translate_service.translate('what_is_recipe')}"):

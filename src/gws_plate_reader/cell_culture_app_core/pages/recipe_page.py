@@ -17,6 +17,8 @@ from .recipe_steps import (
     render_medium_view_step,
     render_medium_pca_step,
     render_medium_pca_results,
+    render_medium_umap_step,
+    render_medium_umap_results,
     render_feature_extraction_step,
     render_feature_extraction_results,
     render_logistic_growth_step,
@@ -185,6 +187,23 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                         material_icon='assessment'
                                     )
                                     analysis_item.add_child(pca_result_item)
+
+                        # For Medium UMAP, add existing scenarios as sub-folders
+                        if analysis_type == 'medium_umap':
+                            umap_scenarios = recipe.get_medium_umap_scenarios_for_quality_check(qc_scenario.id)
+                            if umap_scenarios:
+                                for umap_scenario in umap_scenarios:
+                                    umap_timestamp = umap_scenario.title
+                                    if "Medium UMAP - " in umap_scenario.title:
+                                        umap_timestamp = umap_scenario.title.replace("Medium UMAP - ", "")
+
+                                    # Create sub-item for this UMAP scenario
+                                    umap_result_item = StreamlitTreeMenuItem(
+                                        label=umap_timestamp,
+                                        key=f'umap_result_{umap_scenario.id}',
+                                        material_icon='bubble_chart'
+                                    )
+                                    analysis_item.add_child(umap_result_item)
 
                         # For Feature Extraction, add existing scenarios as sub-folders
                         if analysis_type == 'feature_extraction':
@@ -418,6 +437,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     render_medium_pca_step(recipe, cell_culture_state, quality_check_scenario=target_qc_scenario)
                 else:
                     st.error("Quality Check scenario not found")
+            elif selected_key.startswith('analysis_medium_umap_qc_'):
+                # Extract quality check scenario ID from key (analysis_medium_umap_qc_{qc_id})
+                qc_scenario_id = selected_key.replace('analysis_medium_umap_qc_', '')
+                # Find the corresponding quality check scenario
+                all_qc_scenarios = recipe.get_quality_check_scenarios()
+                target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+                if target_qc_scenario:
+                    st.title(f"{recipe.name} - Medium UMAP Analysis")
+                    render_medium_umap_step(recipe, cell_culture_state, quality_check_scenario=target_qc_scenario)
+                else:
+                    st.error("Quality Check scenario not found")
             elif selected_key.startswith('analysis_feature_extraction_qc_'):
                 # Extract quality check scenario ID from key (analysis_feature_extraction_qc_{qc_id})
                 qc_scenario_id = selected_key.replace('analysis_feature_extraction_qc_', '')
@@ -463,6 +493,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     render_medium_pca_results(recipe, cell_culture_state, target_pca_scenario)
                 else:
                     st.error("PCA scenario not found")
+            elif selected_key.startswith('umap_result_'):
+                # Extract UMAP scenario ID from key (umap_result_{umap_scenario_id})
+                umap_scenario_id = selected_key.replace('umap_result_', '')
+                # Find the corresponding UMAP scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_umap_scenario = next((s for s in all_analyses_scenarios if s.id == umap_scenario_id), None)
+                if target_umap_scenario:
+                    # Use the render function from medium_umap_results.py
+                    render_medium_umap_results(recipe, cell_culture_state, target_umap_scenario)
+                else:
+                    st.error("UMAP scenario not found")
             elif selected_key.startswith('fe_result_'):
                 # Extract Feature Extraction scenario ID from key (fe_result_{fe_scenario_id})
                 fe_scenario_id = selected_key.replace('fe_result_', '')

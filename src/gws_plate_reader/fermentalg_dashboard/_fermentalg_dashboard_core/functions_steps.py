@@ -97,7 +97,7 @@ def create_fermentalg_recipe_table_data(scenarios: List[Scenario], fermentalg_st
 
                 # Extract additional info from load scenario
                 pipeline_id_tags = entity_tag_list.get_tags_by_key(
-                    fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+                    fermentalg_state.TAG_FERMENTOR_PIPELINE_ID)
                 if pipeline_id_tags:
                     recipes_dict[recipe_name]['pipeline_id'] = pipeline_id_tags[0].tag_value[:8] + "..."
 
@@ -261,7 +261,7 @@ def get_fermentalg_input_files_info(scenario_id: str, fermentalg_state: Fermenta
     try:
         # Get pipeline ID from scenario tags
         scenario_tags = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario_id)
-        pipeline_id_tags = scenario_tags.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+        pipeline_id_tags = scenario_tags.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_PIPELINE_ID)
 
         if not pipeline_id_tags:
             return files_info
@@ -324,7 +324,7 @@ def get_analysis_summary(scenario: Scenario, fermentalg_state: FermentalgState,
                 'summary_scenario').format(id=scenario.id[:8])
 
         # Pipeline ID
-        pipeline_id_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+        pipeline_id_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_PIPELINE_ID)
         summary[translate_service.translate(
             'summary_pipeline_id')] = pipeline_id_tags[0].tag_value if pipeline_id_tags else translate_service.translate('summary_not_available')
 
@@ -441,7 +441,7 @@ def setup_recipe_scenarios(recipe_name: str, fermentalg_state: FermentalgState,
         entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, load_scenario.id)
 
         # Get and store pipeline ID in state
-        pipeline_id_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID)
+        pipeline_id_tags = entity_tag_list.get_tags_by_key(fermentalg_state.TAG_FERMENTOR_PIPELINE_ID)
         if pipeline_id_tags:
             fermentalg_state.set_pipeline_id(pipeline_id_tags[0].tag_value)
 

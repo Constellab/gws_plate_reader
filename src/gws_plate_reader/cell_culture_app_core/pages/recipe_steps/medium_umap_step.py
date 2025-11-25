@@ -1,6 +1,6 @@
 """
-Medium PCA Analysis Step for Cell Culture Dashboard
-Allows users to run PCA analysis on medium composition data
+Medium UMAP Analysis Step for Cell Culture Dashboard
+Allows users to run UMAP analysis on medium composition data
 """
 import streamlit as st
 from typing import List, Optional
@@ -12,7 +12,8 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_analysis import CellCultureMediumPCA, CellCultureMediumTableFilter
+from gws_plate_reader.fermentalg_analysis import CellCultureMediumTableFilter
+from gws_design_of_experiments.umap.umap import UMAPTask
 
 
 def get_available_media_from_quality_check(
@@ -54,28 +55,38 @@ def get_available_media_from_quality_check(
         return []
 
 
-def launch_medium_pca_scenario(
+def launch_medium_umap_scenario(
         quality_check_scenario: Scenario,
         cell_culture_state: CellCultureState,
         load_scenario: Scenario,
-        selected_media: List[str]) -> Optional[Scenario]:
+        selected_media: List[str],
+        n_neighbors: int,
+        min_dist: float,
+        metric: str,
+        scale_data: bool,
+        n_clusters: Optional[int]) -> Optional[Scenario]:
     """
-    Launch a Medium PCA analysis scenario
+    Launch a Medium UMAP analysis scenario
 
     :param quality_check_scenario: The parent quality check scenario
     :param cell_culture_state: The cell culture state
     :param load_scenario: The load scenario containing medium_table output
     :param selected_media: List of selected medium names to include in analysis
+    :param n_neighbors: Number of neighbors for UMAP
+    :param min_dist: Minimum distance for UMAP
+    :param metric: Distance metric for UMAP
+    :param scale_data: Whether to scale data before UMAP
+    :param n_clusters: Number of clusters for K-Means (optional)
     :return: The created scenario or None if error
     """
     try:
         with StreamlitAuthenticateUser():
-            # Create a new scenario for Medium PCA
+            # Create a new scenario for Medium UMAP
             timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             scenario_proxy = ScenarioProxy(
                 None,
                 folder=quality_check_scenario.folder,
-                title=f"Medium PCA - {timestamp}",
+                title=f"Medium UMAP - {timestamp}",
                 creation_type=ScenarioCreationType.MANUAL,
             )
 
@@ -87,7 +98,6 @@ def launch_medium_pca_scenario(
             load_protocol_proxy = load_scenario_proxy.get_protocol()
 
             # Get the medium_table resource model from the load scenario's process
-            # We need to get the process that produces the medium_table output
             medium_table_resource_model = load_protocol_proxy.get_process(
                 cell_culture_state.PROCESS_NAME_DATA_PROCESSING
             ).get_output_resource_model('medium_table')
@@ -117,35 +127,46 @@ def launch_medium_pca_scenario(
             filter_task.set_param('medium_column', 'MILIEU')
             filter_task.set_param('selected_medium', selected_media)
 
-            # Add the Medium PCA task
-            pca_task = protocol_proxy.add_process(
-                CellCultureMediumPCA,
-                'medium_pca_task'
+            # Add the UMAP task
+            umap_task = protocol_proxy.add_process(
+                UMAPTask,
+                'medium_umap_task'
             )
 
-            # Connect the filtered table to the PCA task
+            # Connect the filtered table to the UMAP task
             protocol_proxy.add_connector(
                 out_port=filter_task >> 'filtered_table',
-                in_port=pca_task << 'medium_table'
+                in_port=umap_task << 'data'
             )
 
-            # Set PCA parameters
-            pca_task.set_param('medium_column', 'MILIEU')
+            # Set UMAP parameters
+            umap_task.set_param('n_neighbors', n_neighbors)
+            umap_task.set_param('min_dist', min_dist)
+            umap_task.set_param('metric', metric)
+            umap_task.set_param('scale_data', scale_data)
+            umap_task.set_param('color_by', 'MILIEU')
+            if n_clusters is not None:
+                umap_task.set_param('n_clusters', n_clusters)
 
             # Add outputs
             protocol_proxy.add_output(
-                'pca_scores_table',
-                pca_task >> 'scores_table',
+                'umap_2d_plot',
+                umap_task >> 'umap_2d_plot',
                 flag_resource=True
             )
             protocol_proxy.add_output(
-                'pca_scatter_plot',
-                pca_task >> 'scatter_plot',
+                'umap_3d_plot',
+                umap_task >> 'umap_3d_plot',
                 flag_resource=True
             )
             protocol_proxy.add_output(
-                'pca_biplot',
-                pca_task >> 'biplot',
+                'umap_2d_table',
+                umap_task >> 'umap_2d_table',
+                flag_resource=True
+            )
+            protocol_proxy.add_output(
+                'umap_3d_table',
+                umap_task >> 'umap_3d_table',
                 flag_resource=True
             )
 
@@ -184,7 +205,7 @@ def launch_medium_pca_scenario(
 
             # Add timestamp and analysis type tags
             scenario_proxy.add_tag(Tag("analysis_timestamp", timestamp, is_propagable=False))
-            scenario_proxy.add_tag(Tag("analysis_type", "medium_pca", is_propagable=False))
+            scenario_proxy.add_tag(Tag("analysis_type", "medium_umap", is_propagable=False))
 
             # Add to queue
             scenario_proxy.add_to_queue()
@@ -194,16 +215,16 @@ def launch_medium_pca_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario Medium PCA: {str(e)}")
+        st.error(f"Erreur lors du lancement du scénario Medium UMAP: {str(e)}")
         import traceback
         st.code(traceback.format_exc())
         return None
 
 
-def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
-                           quality_check_scenario: Scenario) -> None:
+def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
+                            quality_check_scenario: Scenario) -> None:
     """
-    Render the Medium PCA analysis step
+    Render the Medium UMAP analysis step
 
     :param recipe: The Recipe instance
     :param cell_culture_state: The cell culture state
@@ -211,15 +232,15 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 🧬 {translate_service.translate('pca_title')}")
+    st.markdown(f"### 🗺️ Analyse UMAP des Milieux")
 
-    st.info(translate_service.translate('pca_info_intro'))
+    st.info("L'analyse UMAP (Uniform Manifold Approximation and Projection) permet de visualiser les données de composition des milieux en 2D ou 3D, révélant des structures et groupes de milieux similaires.")
 
     # Get the load scenario to check for medium_table output
     load_scenario = recipe.get_load_scenario()
 
     if not load_scenario:
-        st.warning("⚠️ Aucun scénario de chargement de données trouvé. L'analyse PCA n'est pas disponible.")
+        st.warning("⚠️ Aucun scénario de chargement de données trouvé. L'analyse UMAP n'est pas disponible.")
         return
 
     # Check if load scenario has medium_table output
@@ -234,7 +255,7 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
 
         if not medium_table_resource_model:
             st.warning(
-                "⚠️ La table des milieux (medium_table) n'est pas disponible dans le scénario de chargement. L'analyse PCA n'est pas disponible.")
+                "⚠️ La table des milieux (medium_table) n'est pas disponible dans le scénario de chargement. L'analyse UMAP n'est pas disponible.")
             st.info("💡 Assurez-vous que le scénario de chargement a été exécuté avec succès et qu'il produit une sortie 'medium_table'.")
             return
 
@@ -247,94 +268,146 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
     available_media = get_available_media_from_quality_check(quality_check_scenario, cell_culture_state)
 
     if not available_media:
-        st.warning(translate_service.translate('pca_error_media_info'))
+        st.warning("⚠️ Aucun milieu trouvé dans le scénario de contrôle qualité.")
         return
 
-    st.markdown(f"**{translate_service.translate('pca_available_media')}** : {', '.join(available_media)}")
+    st.markdown(f"**Milieux disponibles** : {', '.join(available_media)}")
 
-    # Check existing PCA scenarios
-    existing_pca_scenarios = recipe.get_medium_pca_scenarios_for_quality_check(quality_check_scenario.id)
+    # Check existing UMAP scenarios
+    existing_umap_scenarios = recipe.get_medium_umap_scenarios_for_quality_check(quality_check_scenario.id)
 
-    if existing_pca_scenarios:
-        st.markdown(f"**{translate_service.translate('pca_existing_analyses')}** : {len(existing_pca_scenarios)}")
-        with st.expander(f"📊 {translate_service.translate('view_button')} {translate_service.translate('pca_existing_analyses').lower()}"):
-            for idx, pca_scenario in enumerate(existing_pca_scenarios):
+    if existing_umap_scenarios:
+        st.markdown(f"**Analyses UMAP existantes** : {len(existing_umap_scenarios)}")
+        with st.expander(f"📊 Voir les analyses UMAP existantes"):
+            for idx, umap_scenario in enumerate(existing_umap_scenarios):
                 st.write(
-                    f"{idx + 1}. {pca_scenario.title} (ID: {pca_scenario.id}) - {translate_service.translate('status')}: {pca_scenario.status.name}")
+                    f"{idx + 1}. {umap_scenario.title} (ID: {umap_scenario.id}) - Statut: {umap_scenario.status.name}")
 
-    # Configuration form for new PCA
+    # Configuration form for new UMAP
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('pca_launch_button')}")
+    st.markdown(f"### ➕ Lancer une nouvelle analyse UMAP")
 
-    with st.form(key=f"medium_pca_form_{quality_check_scenario.id}"):
-        st.markdown(f"**{translate_service.translate('pca_select_media')}**")
+    with st.form(key=f"medium_umap_form_{quality_check_scenario.id}"):
+        st.markdown(f"**Sélection des milieux**")
 
         # Multiselect for media selection
         selected_media = st.multiselect(
-            translate_service.translate('pca_select_media'),
+            "Milieux à inclure",
             options=available_media,
             default=available_media,
-            help=translate_service.translate('pca_select_media')
+            help="Sélectionner les milieux à inclure dans l'analyse UMAP"
         )
+
+        st.markdown("**Paramètres UMAP**")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            n_neighbors = st.slider(
+                "Nombre de voisins",
+                min_value=2,
+                max_value=50,
+                value=15,
+                help="Contrôle l'équilibre entre structure locale et globale (plus élevé = structure plus globale)"
+            )
+
+            metric = st.selectbox(
+                "Métrique de distance",
+                options=["euclidean", "manhattan", "cosine", "correlation"],
+                index=0,
+                help="Métrique pour calculer la distance entre points"
+            )
+
+        with col2:
+            min_dist = st.slider(
+                "Distance minimale",
+                min_value=0.0,
+                max_value=0.99,
+                value=0.1,
+                step=0.05,
+                help="Distance minimale entre points dans l'espace réduit (plus faible = points plus groupés)"
+            )
+
+            scale_data = st.checkbox(
+                "Normaliser les données",
+                value=True,
+                help="Standardiser les données avant UMAP (recommandé)"
+            )
+
+        st.markdown("**Clustering (optionnel)**")
+        enable_clustering = st.checkbox("Activer le clustering K-Means", value=False)
+        n_clusters = None
+        if enable_clustering:
+            n_clusters = st.slider(
+                "Nombre de clusters",
+                min_value=2,
+                max_value=10,
+                value=3,
+                help="Nombre de groupes à identifier"
+            )
 
         # Submit button
         submit_button = st.form_submit_button(
-            f"🚀 {translate_service.translate('pca_launch_button')}",
+            f"🚀 Lancer l'analyse UMAP",
             type="primary",
             use_container_width=True
         )
 
         if submit_button:
             if not selected_media:
-                st.error(translate_service.translate('pca_select_media_warning'))
+                st.error("⚠️ Veuillez sélectionner au moins un milieu")
             else:
-                # Launch PCA scenario
-                pca_scenario = launch_medium_pca_scenario(
+                # Launch UMAP scenario
+                umap_scenario = launch_medium_umap_scenario(
                     quality_check_scenario,
                     cell_culture_state,
                     load_scenario,
-                    selected_media
+                    selected_media,
+                    n_neighbors,
+                    min_dist,
+                    metric,
+                    scale_data,
+                    n_clusters
                 )
 
-                if pca_scenario:
-                    st.success(f"✅ {translate_service.translate('pca_launched_success')} ID : {pca_scenario.id}")
-                    st.info(translate_service.translate('analysis_running'))
+                if umap_scenario:
+                    st.success(f"✅ Analyse UMAP lancée avec succès ! ID : {umap_scenario.id}")
+                    st.info("⏳ L'analyse est en cours d'exécution...")
 
                     # Add to recipe
-                    recipe.add_medium_pca_scenario(quality_check_scenario.id, pca_scenario)
+                    recipe.add_medium_umap_scenario(quality_check_scenario.id, umap_scenario)
 
                     st.rerun()
                 else:
-                    st.error(translate_service.translate('pca_error_launching'))
+                    st.error("❌ Erreur lors du lancement de l'analyse UMAP")
 
-    # Info box with PCA explanation
-    with st.expander(f"💡 {translate_service.translate('pca_help_title')}"):
-        st.markdown(f"### {translate_service.translate('pca_help_intro_title')}")
-        st.markdown(translate_service.translate('pca_help_intro_text'))
+    # Info box with UMAP explanation
+    with st.expander(f"💡 Aide sur l'analyse UMAP"):
+        st.markdown(f"### Qu'est-ce que UMAP ?")
+        st.markdown("""
+UMAP (Uniform Manifold Approximation and Projection) est une technique de réduction de dimensionnalité qui permet de visualiser des données complexes en 2D ou 3D.
 
-        st.markdown(f"\n### {translate_service.translate('pca_help_scores_title')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scores_1')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scores_2')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scores_3')}")
-        st.markdown(f"\n{translate_service.translate('pca_help_scores_tip')}")
+### Interprétation des résultats
 
-        st.markdown(f"\n### {translate_service.translate('pca_help_scatter_title')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_1')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_2')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_3')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_4')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_5')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_6')}")
+**Graphiques 2D et 3D** :
+- Chaque point représente un milieu
+- Les milieux proches ont des compositions similaires
+- Les groupes de points indiquent des familles de milieux apparentés
+- La couleur distingue les différents milieux (ou clusters si activés)
 
-        st.markdown(f"\n### {translate_service.translate('pca_help_biplot_title')}")
-        st.markdown(f"- {translate_service.translate('pca_help_biplot_1')}")
-        st.markdown(f"- {translate_service.translate('pca_help_biplot_2')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2a')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2b')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2c')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2d')}")
-        st.markdown(f"- {translate_service.translate('pca_help_biplot_3')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3a')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3b')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3c')}")
-        st.markdown(f"\n{translate_service.translate('pca_help_biplot_tip')}")
+**Paramètres clés** :
+- **Nombre de voisins** : Plus élevé préserve la structure globale, plus faible préserve la structure locale
+- **Distance minimale** : Contrôle la dispersion des points (faible = groupes serrés, élevé = dispersion)
+- **Métrique** : Euclidienne pour les données numériques générales, cosinus pour les proportions
+
+**Clustering** :
+- Identifie automatiquement des groupes de milieux similaires
+- Utile pour découvrir des catégories naturelles dans vos données
+- Le nombre de clusters doit être choisi en fonction de vos connaissances du domaine
+
+### Conseils d'utilisation
+- Commencez avec les paramètres par défaut
+- Ajustez le nombre de voisins si vous voulez voir plus de structure locale ou globale
+- Activez le clustering pour identifier des familles de milieux
+- Comparez les résultats 2D et 3D pour une meilleure compréhension
+""")

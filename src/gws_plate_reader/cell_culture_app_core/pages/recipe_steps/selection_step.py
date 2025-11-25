@@ -11,7 +11,7 @@ from gws_core import Table, Scenario, ScenarioProxy, ScenarioCreationType, Input
 from gws_core.resource.resource_set.resource_set import ResourceSet
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
-from gws_core.streamlit import StreamlitTaskRunner, StreamlitAuthenticateUser
+from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.fermentalg_filter import FilterFermentorAnalyseLoadedResourceSetBySelection, FermentalgInterpolation
@@ -99,6 +99,9 @@ def launch_selection_scenario(
                 # Use default configuration if none provided
                 interpolation_config = FermentalgInterpolation.config_specs.get_default_values()
 
+            # Override min_values_threshold to 500 (only interpolate columns with at least 500 values)
+            interpolation_config['min_values_threshold'] = 500
+
             # Apply all configuration parameters to the interpolation task
             for param_name, param_value in interpolation_config.items():
                 interpolation_task.set_param(param_name, param_value)
@@ -107,6 +110,14 @@ def launch_selection_scenario(
             protocol_proxy.add_output(
                 cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME,
                 interpolation_task >> 'interpolated_resource_set',
+                flag_resource=True
+            )
+
+            # Add output for the filtered (non-interpolated) ResourceSet
+            # This allows visualization steps to access the original filtered data
+            protocol_proxy.add_output(
+                'filtered_resource_set',
+                filter_task >> 'filtered_resource_set',
                 flag_resource=True
             )
 
@@ -249,26 +260,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                 key="data_selection_table"
             )
 
-            # Configuration section for interpolation using StreamlitTaskRunner
-            st.markdown(translate_service.translate('interpolation_config'))
-
-            # Initialize session state for interpolation config
-            if "interpolation_config" not in st.session_state:
-                st.session_state["interpolation_config"] = None
-
-            # Create a StreamlitTaskRunner for the interpolation task to generate the config form
-            task_runner = StreamlitTaskRunner(FermentalgInterpolation)
-
-            # Get all default parameters from the task config specs
-            default_config = FermentalgInterpolation.config_specs.get_default_values()
-
-            # Generate config form without running the task
-            task_runner.generate_config_form_without_run(
-                session_state_key="interpolation_config",
-                default_config_values=default_config,
-                is_default_config_valid=FermentalgInterpolation.config_specs.mandatory_values_are_set(default_config),
-                key="interpolation_config_form"
-            )            # Button to validate selection
+            # Button to validate selection
             if st.button(translate_service.translate('validate_selection'), type="primary", use_container_width=True):
                 if selected_data.selection.rows:
                     # Get selected rows
@@ -277,10 +269,8 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
 
                     # Launch selection scenario
                     try:
-                        # Get interpolation config from session state
-                        interpolation_config: dict = st.session_state.get("interpolation_config")
-                        if interpolation_config is not None:
-                            interpolation_config = interpolation_config.get("config", None)
+                        # Force interpolation_config to None to use default values with min_values_threshold=500
+                        interpolation_config = None
 
                         selection_scenario = launch_selection_scenario(
                             selected_df, recipe.get_load_scenario(), cell_culture_state,

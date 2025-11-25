@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from gws_core import (
     ConfigParams, InputSpec, InputSpecs, OutputSpec, OutputSpecs,
     Task, TaskInputs, TaskOutputs, task_decorator, ConfigSpecs,
-    File, Table, ListParam, StrParam, PlotlyResource, Tag
+    Table, StrParam, PlotlyResource, Tag
 )
 
 
@@ -23,21 +23,18 @@ class CellCultureMediumPCA(Task):
 
     Performs **Principal Component Analysis (PCA)** on cell culture medium composition data.
 
-    This task takes a CSV file containing medium composition data and performs dimensionality
+    This task takes a Table containing medium composition data and performs dimensionality
     reduction using PCA. It generates:
     - A table of PCA scores for all samples
     - A scatter plot showing PC1 vs PC2 projection
     - A biplot combining scores and variable loadings
 
     ## Input
-    - **medium_csv**: CSV file with medium composition data. Must contain a 'MILIEU' column
+    - **medium_table**: Table with medium composition data. Must contain a 'MILIEU' column
       identifying different medium, and numeric columns for compositional features.
 
     ## Configuration
     - **medium_column**: Name of the column containing medium identifiers (default: 'MILIEU')
-    - **selected_medium**: Optional list of specific medium to include in the analysis.
-      If empty, all medium are included.
-    - **decimal_separator**: Decimal separator used in the CSV file (default: ',')
 
     ## Outputs
     - **scores_table**: Table containing PCA scores (principal components) for each sample
@@ -45,16 +42,16 @@ class CellCultureMediumPCA(Task):
     - **biplot**: Plotly biplot combining sample scores and variable loadings
 
     ## Notes
-    - Rows with any missing (NaN) values in numeric columns are automatically removed
+    - Use CellCultureMediumTableFilter task before PCA to select specific medium
     - Data is standardized (mean=0, std=1) before PCA
     - The number of components is determined automatically based on data dimensions
     """
 
     input_specs = InputSpecs({
-        'medium_csv': InputSpec(
-            File,
-            human_name="Medium CSV File",
-            short_description="CSV file containing medium composition data with MILIEU column"
+        'medium_table': InputSpec(
+            Table,
+            human_name="Medium Table",
+            short_description="Table containing medium composition data with MILIEU column"
         )
     })
 
@@ -82,20 +79,6 @@ class CellCultureMediumPCA(Task):
             human_name="Medium Column Name",
             short_description="Name of the column containing medium identifiers",
             visibility='public'
-        ),
-        'selected_medium': ListParam(
-            default_value=[],
-            human_name="Selected Medium",
-            short_description="List of specific medium to include (empty = all medium)",
-            visibility='public',
-            optional=True
-        ),
-        'decimal_separator': StrParam(
-            default_value=',',
-            human_name="Decimal Separator",
-            short_description="Decimal separator used in CSV file",
-            allowed_values=[',', '.'],
-            visibility='public'
         )
     })
 
@@ -106,55 +89,28 @@ class CellCultureMediumPCA(Task):
 
         # Get parameters
         medium_col = params.get_value('medium_column')
-        selected_medium = params.get_value('selected_medium', [])
-        decimal_sep = params.get_value('decimal_separator')
 
-        # Get input file
-        csv_file: File = inputs['medium_csv']
-        csv_path = csv_file.path
+        # Get input table
+        medium_table: Table = inputs['medium_table']
+        df = medium_table.get_data()
 
-        self.update_progress_value(10, "Reading CSV file...")
-
-        # Read CSV with auto-detection of separator
-        try:
-            df = pd.read_csv(csv_path, sep=None, decimal=decimal_sep, encoding="utf-8", engine='python')
-            self.log_info_message(f"Successfully loaded CSV with {len(df)} rows and {len(df.columns)} columns")
-        except Exception as e:
-            self.log_error_message(f"Failed to read CSV file: {str(e)}")
-            raise
+        self.log_info_message(f"Successfully loaded table with {len(df)} rows and {len(df.columns)} columns")
 
         # Verify medium column exists
         if medium_col not in df.columns:
-            raise ValueError(f"Column '{medium_col}' not found in CSV. Available columns: {list(df.columns)}")
+            raise ValueError(f"Column '{medium_col}' not found in table. Available columns: {list(df.columns)}")
 
         self.update_progress_value(20, "Preparing data...")
 
-        # Filter by selected medium if specified
-        if selected_medium and len(selected_medium) > 0:
-            df = df[df[medium_col].isin(selected_medium)].copy()
-            self.log_info_message(f"Filtered to {len(df)} rows matching selected medium: {selected_medium}")
-
         if len(df) == 0:
-            raise ValueError("No data remaining after filtering")
+            raise ValueError("Input table is empty")
 
         # Separate medium identifiers and numeric features
         milieu = df[medium_col].copy()
-        X = df.drop(columns=[medium_col])
-
-        # Convert to numeric (coerce errors to NaN)
-        X_num = X.apply(lambda c: pd.to_numeric(c, errors="coerce"))
-
-        # Remove rows with any NaN values
-        row_mask = ~X_num.isna().any(axis=1)
-        n_removed = (~row_mask).sum()
-        if n_removed > 0:
-            self.log_warning_message(f"Removed {n_removed} rows containing missing values")
-
-        X_num = X_num.loc[row_mask].copy()
-        milieu = milieu.loc[row_mask].reset_index(drop=True)
+        X_num = df.drop(columns=[medium_col])
 
         if len(X_num) < 2:
-            raise ValueError(f"Insufficient data for PCA: only {len(X_num)} complete samples remaining")
+            raise ValueError(f"Insufficient data for PCA: only {len(X_num)} samples available")
 
         self.update_progress_value(40, "Performing PCA...")
 

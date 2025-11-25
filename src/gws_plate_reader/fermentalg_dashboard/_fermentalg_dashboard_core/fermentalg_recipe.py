@@ -318,6 +318,48 @@ class FermentalgRecipe(CellCultureRecipe):
         # Update the scenarios dict
         self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
 
+    def get_medium_umap_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+        """
+        Get Medium UMAP scenarios for a specific quality check
+
+        :param qc_id: Quality check scenario ID
+        :return: List of Medium UMAP scenarios for this quality check
+        """
+        # Get all analyses scenarios (medium_umap scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent quality check tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_qc_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_quality_check")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a medium_umap analysis for the specified quality check
+            is_medium_umap = analysis_type_tags and analysis_type_tags[0].tag_value == "medium_umap"
+            is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
+
+            if is_medium_umap and is_for_qc:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_medium_umap_scenario(self, qc_id: str, umap_scenario: Scenario) -> None:
+        """
+        Add a Medium UMAP scenario to this recipe
+
+        :param qc_id: ID of the parent quality check scenario (not used, for API compatibility)
+        :param umap_scenario: Medium UMAP scenario to add
+        """
+        # Get existing analyses scenarios (medium_umap scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [umap_scenario] + existing_analyses_scenarios
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
     def get_feature_extraction_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
         """
         Get Feature Extraction scenarios for a specific quality check

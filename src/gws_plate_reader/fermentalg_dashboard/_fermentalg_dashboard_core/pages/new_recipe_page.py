@@ -383,6 +383,12 @@ def render_new_recipe_page(fermentalg_state: FermentalgState) -> None:
                     flag_resource=False
                 )
 
+                # Add medium table output (optional)
+                protocol.add_output(
+                    'medium_table',
+                    fermentalg_load_process >> 'medium_table',
+                    flag_resource=False
+                )
                 # Add tags for identification
                 analysis_name_parsed = Tag.parse_tag(analysis_name)
                 pipeline_id = StringHelper.generate_uuid()
@@ -394,7 +400,7 @@ def render_new_recipe_page(fermentalg_state: FermentalgState) -> None:
                 scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_RECIPE_NAME,
                                      analysis_name_parsed,
                                      is_propagable=False))
-                scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_FERMENTALG_PIPELINE_ID,
+                scenario.add_tag(Tag(fermentalg_state.TAG_FERMENTOR_PIPELINE_ID,
                                      pipeline_id,
                                      is_propagable=False))
 

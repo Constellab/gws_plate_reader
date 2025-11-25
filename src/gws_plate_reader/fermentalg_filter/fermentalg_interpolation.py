@@ -456,6 +456,13 @@ class FermentalgInterpolation(Task):
             short_description="Index of resource to use as reference for grid (when grid_strategy='reference')",
             default_value=0,
             min_value=0
+        ),
+        'min_values_threshold': IntParam(
+            human_name="Minimum values threshold",
+            short_description="Interpolate only columns with at least this many non-NaN values. If None, interpolate all columns.",
+            default_value=None,
+            min_value=1,
+            optional=True
         )
     })
 
@@ -609,20 +616,29 @@ class FermentalgInterpolation(Task):
         self,
         df: pd.DataFrame,
         t_new: np.ndarray,
-        method: str = "linear",
+        method: str = "makima",
         spline_order: int = 3,
         edge_strategy: str = "nearest",
+        min_values_threshold: int = None,
     ) -> pd.DataFrame:
         """Interpolate a single DataFrame"""
         t = df[self.TIME_COL].to_numpy()
         numeric_cols = [c for c in df.columns if c != self.TIME_COL and pd.api.types.is_numeric_dtype(df[c])]
 
         out = pd.DataFrame(index=pd.Index(t_new, name=self.TIME_COL))
+        interpolated_columns = []  # Track which columns were actually interpolated
 
         for col in numeric_cols:
             y = df[col].to_numpy()
             mask = np.isfinite(t) & np.isfinite(y)
             t_valid, y_valid = t[mask], y[mask]
+
+            # Check if column has enough non-NaN values for interpolation
+            if min_values_threshold is not None:
+                if t_valid.size < min_values_threshold:
+                    # Skip interpolation for this column - leave it empty (NaN)
+                    out[col] = np.nan
+                    continue
 
             if t_valid.size < 2:
                 if t_valid.size == 1:
@@ -659,7 +675,10 @@ class FermentalgInterpolation(Task):
                     y_core[right_mask] = np.nan
 
             out[col] = y_core
+            interpolated_columns.append(col)  # Mark as interpolated
 
+        # Store interpolated columns info in DataFrame metadata
+        out.attrs['interpolated_columns'] = interpolated_columns
         return out
 
     def run(self, params: ConfigParams, inputs) -> Dict[str, Any]:
@@ -672,8 +691,11 @@ class FermentalgInterpolation(Task):
         spline_order = params.get_value('spline_order')
         edge_strategy = params.get_value('edge_strategy')
         reference_index = params.get_value('reference_index')
+        min_values_threshold = params.get_value('min_values_threshold')
 
         self.log_info_message(f"Starting interpolation with method: {method}, grid strategy: {grid_strategy}")
+        if min_values_threshold is not None:
+            self.log_info_message(f"Only interpolating columns with at least {min_values_threshold} non-NaN values")
 
         # Prepare data
         resources = resource_set.get_resources()
@@ -708,7 +730,8 @@ class FermentalgInterpolation(Task):
                 local_n = self.auto_n_points_from_time_list([t_array])
                 t_new_local = np.linspace(float(np.nanmin(t_array)), float(np.nanmax(t_array)), int(local_n))
                 results[name] = self.interpolate_one(df, t_new_local, method=method,
-                                                     spline_order=spline_order, edge_strategy=edge_strategy)
+                                                     spline_order=spline_order, edge_strategy=edge_strategy,
+                                                     min_values_threshold=min_values_threshold)
                 results[name].index.name = self.TIME_COL
         elif grid_strategy == "reference":
             # Use reference file's time range
@@ -720,14 +743,16 @@ class FermentalgInterpolation(Task):
             results = {}
             for name, df in raw_dfs.items():
                 results[name] = self.interpolate_one(
-                    df, t_new, method=method, spline_order=spline_order, edge_strategy=edge_strategy)
+                    df, t_new, method=method, spline_order=spline_order, edge_strategy=edge_strategy,
+                    min_values_threshold=min_values_threshold)
         else:  # global_auto
             # Use global time range
             t_new = self.build_global_grid(dfs, n_points)
             results = {}
             for name, df in raw_dfs.items():
                 results[name] = self.interpolate_one(
-                    df, t_new, method=method, spline_order=spline_order, edge_strategy=edge_strategy)
+                    df, t_new, method=method, spline_order=spline_order, edge_strategy=edge_strategy,
+                    min_values_threshold=min_values_threshold)
 
         # Create output ResourceSet
         interpolated_res = ResourceSet()
@@ -757,6 +782,12 @@ class FermentalgInterpolation(Task):
                     col_tags = original_meta['column_tags'][col]
                     for tag_key, tag_value in col_tags.items():
                         interpolated_table.add_column_tag_by_name(col, tag_key, tag_value)
+
+            # Add tag to columns that were interpolated
+            interpolated_columns = interpolated_df.attrs.get('interpolated_columns', [])
+            for col in interpolated_columns:
+                if col in interpolated_df_with_time.columns:
+                    interpolated_table.add_column_tag_by_name(col, "is_interpolated", "true")
 
             interpolated_res.add_resource(interpolated_table, resource_name)
 

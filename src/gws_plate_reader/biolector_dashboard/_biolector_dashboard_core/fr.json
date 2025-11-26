@@ -215,7 +215,7 @@
     "file_not_found": "Non trouvé",
     "medium_composition": "Composition des milieux",
     "no_medium_data": "Aucune donnée de composition des milieux trouvée",
-    "medium_composition_table": "Tableau de composition des milieux",
+    "experiments_medium_composition": "Composition des milieux des expériences",
     "composition_components": "Composants",
     "download_medium_data": "Télécharger les données des milieux",
     "analysis": "Analyses",

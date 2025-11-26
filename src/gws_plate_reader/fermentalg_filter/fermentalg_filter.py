@@ -206,7 +206,7 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     - Designed specifically for Fermentalg workflow (follows FermentalgLoadData)
     - Preserves complete data integrity (no data modification)
     - Tag keys ('batch', 'sample') are hardcoded constants for consistency
-    - Output can be used directly with FermentalgInterpolation task
+    - Output can be used directly with FermentalgSubsampling task
     - Compatible with Streamlit dashboard for interactive use
     """
 

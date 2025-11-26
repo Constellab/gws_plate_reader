@@ -39,6 +39,11 @@ class CellCultureState(ABC):
     TAG_FERMENTOR_PIPELINE_ID = "fermentor_pipeline_id"
     TAG_DATA_PROCESSING = "data_processing"
     TAG_SELECTION_PROCESSING = "selection_processing"
+
+    # Column name constants (to be overridden by subclasses)
+    BASE_TIME_COLUMN_NAME = None
+    BATCH_COLUMN_NAME = None
+    SAMPLE_COLUMN_NAME = None
     TAG_QUALITY_CHECK_PROCESSING = "quality_check_processing"
     TAG_ANALYSES_PROCESSING = "analyses_processing"
     TAG_MICROPLATE_ANALYSIS = "microplate_analysis"

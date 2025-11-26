@@ -43,6 +43,11 @@ class FermentalgState(CellCultureState):
     # Process names (Fermentalg-specific)
     PROCESS_NAME_DATA_PROCESSING = 'fermentalg_data_processing'
 
+    # Column name constants (Fermentalg-specific)
+    BASE_TIME_COLUMN_NAME = "Temps de culture (h)"
+    BATCH_COLUMN_NAME = "ESSAI"
+    SAMPLE_COLUMN_NAME = "FERMENTEUR"
+
     # Additional Fermentalg session state keys
     LOAD_SCENARIO_KEY = "load_scenario"
     SELECTION_SCENARIOS_KEY = "selection_scenarios"
@@ -57,7 +62,6 @@ class FermentalgState(CellCultureState):
 
     # Scenario output names
     LOAD_SCENARIO_OUTPUT_NAME = 'load_scenario_output'
-    SELECTION_SCENARIO_OUTPUT_NAME = 'selection_scenario_output'
     INTERPOLATION_SCENARIO_OUTPUT_NAME = 'interpolation_scenario_output'
     QUALITY_CHECK_SCENARIO_OUTPUT_NAME = 'quality_check_scenario_output'
     QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME = 'quality_check_scenario_interpolated_output'
@@ -108,18 +112,17 @@ class FermentalgState(CellCultureState):
         except Exception:
             return None
 
-    def get_selection_scenario_output(self, selection_scenario: Scenario) -> Optional[ResourceSet]:
-        """Get the filtered ResourceSet from a selection scenario"""
-        try:
-            scenario_proxy = ScenarioProxy.from_existing_scenario(selection_scenario.id)
-            protocol_proxy = scenario_proxy.get_protocol()
-
-            return protocol_proxy.get_output(self.SELECTION_SCENARIO_OUTPUT_NAME)
-        except Exception:
+    def get_quality_check_scenario_output_resource_model(
+            self, quality_check_scenario: Scenario) -> Optional[ResourceModel]:
+        """Get the filtered real data ResourceSet from a quality check scenario (for analyses)"""
+        protocol_proxy = self.get_quality_check_protocol_proxy(quality_check_scenario)
+        if not protocol_proxy:
             return None
 
+        return protocol_proxy.get_output_resource_model(self.QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
+
     def get_interpolation_scenario_output(self, selection_scenario: Scenario) -> Optional[ResourceSet]:
-        """Get the interpolated ResourceSet from a selection scenario"""
+        """Get the subsampled ResourceSet from a selection scenario"""
         try:
             scenario_proxy = ScenarioProxy.from_existing_scenario(selection_scenario.id)
             protocol_proxy = scenario_proxy.get_protocol()
@@ -138,18 +141,9 @@ class FermentalgState(CellCultureState):
         except Exception:
             return None
 
-    def get_quality_check_scenario_output_resource_model(
-            self, quality_check_scenario: Scenario) -> Optional[ResourceModel]:
-        """Get the filtered ResourceSet from a quality check scenario (non-interpolated data)"""
-        protocol_proxy = self.get_quality_check_protocol_proxy(quality_check_scenario)
-        if not protocol_proxy:
-            return None
-
-        return protocol_proxy.get_output_resource_model(self.QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
-
     def get_quality_check_scenario_interpolated_output_resource_model(
             self, quality_check_scenario: Scenario) -> Optional[ResourceModel]:
-        """Get the filtered interpolated ResourceSet from a quality check scenario"""
+        """Get the filtered subsampled ResourceSet from a quality check scenario"""
         protocol_proxy = self.get_quality_check_protocol_proxy(quality_check_scenario)
         if not protocol_proxy:
             return None

@@ -160,7 +160,7 @@ def render_medium_view_step(recipe: CellCultureRecipe, cell_culture_state: CellC
         st.markdown("---")
 
         # Display the dataframe
-        st.markdown(f"##### {translate_service.translate('medium_composition_table')}")
+        st.markdown(f"##### {translate_service.translate('experiments_medium_composition')}")
 
         # Configure column display
         column_config = {

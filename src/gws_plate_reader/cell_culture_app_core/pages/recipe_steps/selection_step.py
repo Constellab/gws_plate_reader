@@ -14,7 +14,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_filter import FilterFermentorAnalyseLoadedResourceSetBySelection, FermentalgInterpolation
+from gws_plate_reader.fermentalg_filter import FilterFermentorAnalyseLoadedResourceSetBySelection, FermentalgSubsampling
 
 
 def launch_selection_scenario(
@@ -65,10 +65,10 @@ def launch_selection_scenario(
                 'filter_selection_task'
             )
 
-            # Add the interpolation task
-            interpolation_task = protocol_proxy.add_process(
-                FermentalgInterpolation,
-                'interpolation_task'
+            # Add the subsampling task
+            subsampling_task = protocol_proxy.add_process(
+                FermentalgSubsampling,
+                'subsampling_task'
             )
 
             # Connect the ResourceSet to the filter task
@@ -77,10 +77,10 @@ def launch_selection_scenario(
                 in_port=filter_task << 'resource_set'
             )
 
-            # Connect the filter task to the interpolation task
+            # Connect the filter task to the subsampling task
             protocol_proxy.add_connector(
                 out_port=filter_task >> 'filtered_resource_set',
-                in_port=interpolation_task << 'resource_set'
+                in_port=subsampling_task << 'resource_set'
             )
 
             # Convert selection to the format the task expects
@@ -94,30 +94,30 @@ def launch_selection_scenario(
             # Set the selection criteria as a parameter
             filter_task.set_param('selection_criteria', selection_criteria)
 
-            # Set interpolation parameters from configuration (or use defaults)
+            # Set subsampling parameters from configuration (or use defaults)
             if interpolation_config is None:
                 # Use default configuration if none provided
-                interpolation_config = FermentalgInterpolation.config_specs.get_default_values()
+                interpolation_config = FermentalgSubsampling.config_specs.get_default_values()
 
-            # Override min_values_threshold to 500 (only interpolate columns with at least 500 values)
+            # Override min_values_threshold to 500 (only subsample columns with at least 500 values)
             interpolation_config['min_values_threshold'] = 500
 
-            # Apply all configuration parameters to the interpolation task
-            for param_name, param_value in interpolation_config.items():
-                interpolation_task.set_param(param_name, param_value)
+            # Set column names from state constants if available
+            if hasattr(cell_culture_state, 'BASE_TIME_COLUMN_NAME') and cell_culture_state.BASE_TIME_COLUMN_NAME:
+                interpolation_config['time_column'] = cell_culture_state.BASE_TIME_COLUMN_NAME
+            if hasattr(cell_culture_state, 'BATCH_COLUMN_NAME') and cell_culture_state.BATCH_COLUMN_NAME:
+                interpolation_config['batch_column'] = cell_culture_state.BATCH_COLUMN_NAME
+            if hasattr(cell_culture_state, 'SAMPLE_COLUMN_NAME') and cell_culture_state.SAMPLE_COLUMN_NAME:
+                interpolation_config['sample_column'] = cell_culture_state.SAMPLE_COLUMN_NAME
 
-            # Add output to make the interpolated result visible
+            # Apply all configuration parameters to the subsampling task
+            for param_name, param_value in interpolation_config.items():
+                subsampling_task.set_param(param_name, param_value)
+
+            # Add output to make the subsampled result visible
             protocol_proxy.add_output(
                 cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME,
-                interpolation_task >> 'interpolated_resource_set',
-                flag_resource=True
-            )
-
-            # Add output for the filtered (non-interpolated) ResourceSet
-            # This allows visualization steps to access the original filtered data
-            protocol_proxy.add_output(
-                'filtered_resource_set',
-                filter_task >> 'filtered_resource_set',
+                subsampling_task >> 'subsampled_resource_set',
                 flag_resource=True
             )
 

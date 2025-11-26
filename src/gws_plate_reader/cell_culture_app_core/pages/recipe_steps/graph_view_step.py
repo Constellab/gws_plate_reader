@@ -20,7 +20,7 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
     :param recipe: The Recipe instance
     :param cell_culture_state: The cell culture state
     :param scenario: The scenario to display (selection or quality check)
-    :param output_name: The output name to retrieve from the scenario (e.g., INTERPOLATION_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
+    :param output_name: The output name to retrieve from the scenario (e.g., INTERPOLATION_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME)
     """
 
     translate_service = cell_culture_state.get_translate_service()
@@ -49,12 +49,6 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                     st.error(translate_service.translate('cannot_retrieve_data'))
                     return
 
-                # Get the filtered (non-interpolated) resource set from scenario output
-                try:
-                    filtered_non_interpolated_resource_set = protocol_proxy.get_output('filtered_resource_set')
-                except:
-                    filtered_non_interpolated_resource_set = None
-
             except Exception as e:
                 st.error(f"Erreur lors de la récupération des données: {str(e)}")
                 return
@@ -77,14 +71,6 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 st.error(translate_service.translate('cannot_retrieve_filtered_data'))
                 return
 
-            # Get the filtered (non-interpolated) resource set from scenario output
-            try:
-                scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
-                protocol_proxy = scenario_proxy.get_protocol()
-                filtered_non_interpolated_resource_set = protocol_proxy.get_output('filtered_resource_set')
-            except:
-                filtered_non_interpolated_resource_set = None
-
         # Extract data for visualization using State method
         visualization_data = cell_culture_state.prepare_data_for_visualization(filtered_resource_set)
 
@@ -100,11 +86,6 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
         from gws_core import Table
         all_data_rows = []
         resources = filtered_resource_set.get_resources()
-
-        # Get non-interpolated resources if available
-        non_interpolated_resources = {}
-        if filtered_non_interpolated_resource_set:
-            non_interpolated_resources = filtered_non_interpolated_resource_set.get_resources()
 
         for resource_name, resource in resources.items():
             if isinstance(resource, Table):
@@ -279,23 +260,10 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                     # Assign a unique marker symbol for this column
                     marker_symbol = marker_symbols[column_idx % len(marker_symbols)]
 
-                    # Check if this column is interpolated by checking tags in any resource
-                    is_column_interpolated = False
-                    for resource in resources.values():
-                        if isinstance(resource, Table):
-                            col_tags = resource.get_column_tags_by_name(column_name)
-                            if col_tags and col_tags.get('is_interpolated') == 'true':
-                                is_column_interpolated = True
-                                break
-
-                    # Choose the right ResourceSet: interpolated if column is interpolated, otherwise original
-                    source_resource_set = filtered_resource_set if is_column_interpolated else (
-                        filtered_non_interpolated_resource_set
-                        if filtered_non_interpolated_resource_set else filtered_resource_set)
-
                     # Use the optimized function to build the DataFrame for this column
+                    # The subsampling task already combined real and interpolated data
                     column_df = cell_culture_state.build_selected_column_df_from_resource_set(
-                        source_resource_set, selected_index, column_name
+                        filtered_resource_set, selected_index, column_name
                     )
 
                     if not column_df.empty:
@@ -362,23 +330,10 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 for i, column_name in enumerate(selected_columns):
                     st.markdown(f"##### 📈 {column_name}")
 
-                    # Check if this column is interpolated by checking tags in any resource
-                    is_column_interpolated = False
-                    for resource in resources.values():
-                        if isinstance(resource, Table):
-                            col_tags = resource.get_column_tags_by_name(column_name)
-                            if col_tags and col_tags.get('is_interpolated') == 'true':
-                                is_column_interpolated = True
-                                break
-
-                    # Choose the right ResourceSet: interpolated if column is interpolated, otherwise original
-                    source_resource_set = filtered_resource_set if is_column_interpolated else (
-                        filtered_non_interpolated_resource_set
-                        if filtered_non_interpolated_resource_set else filtered_resource_set)
-
                     # Use the optimized function to build the DataFrame for this column
+                    # The subsampling task already combined real and interpolated data
                     column_df = cell_culture_state.build_selected_column_df_from_resource_set(
-                        source_resource_set, selected_index, column_name
+                        filtered_resource_set, selected_index, column_name
                     )
 
                     if not column_df.empty:

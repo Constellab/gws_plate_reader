@@ -17,7 +17,7 @@ class FermentalgQualityCheck(Task):
 
     ## Overview
     This task performs data quality validation and filtering on fermentation ResourceSets.
-    It performs quality checks on the raw data ResourceSet and filters both raw and interpolated
+    It performs quality checks on the raw data ResourceSet and filters both raw and subsampled
     data based on which samples pass the quality checks. Designed to work with output from
     FermentalgLoadData or FilterFermentorAnalyseLoadedResourceSetBySelection.
 
@@ -26,7 +26,7 @@ class FermentalgQualityCheck(Task):
     - **Range Validation**: Ensure values fall within acceptable biological ranges
     - **Missing Data**: Filter samples based on data completeness
     - **Column Validation**: Verify required columns exist with valid data
-    - **Synchronized Filtering**: Apply quality checks to raw data and automatically filter interpolated data
+    - **Synchronized Filtering**: Apply quality checks to raw data and automatically filter subsampled data
     - **Quality Tags**: Mark samples with quality issues for downstream analysis
 
     ## Quality Check Types
@@ -211,8 +211,8 @@ class FermentalgQualityCheck(Task):
       - `batch`, `sample`, `medium` (preserved in output)
     - **Purpose**: Quality checks are performed on this ResourceSet
 
-    ### interpolated_data (ResourceSet)
-    - **Source**: Interpolation task output (interpolated time series data)
+    ### subsampled_data (ResourceSet)
+    - **Source**: Interpolation task output (subsampled time series data)
     - **Requirements**:
       - Must contain Table resources matching data ResourceSet
       - Resource names should match those in data ResourceSet
@@ -239,11 +239,11 @@ class FermentalgQualityCheck(Task):
       - `missing_data_percentage`: % of NaN values
       - `range_violations`: Number of range violations
 
-    ### filtered_interpolated_data (ResourceSet)
-    Contains interpolated data Tables for samples that passed quality checks:
+    ### filtered_subsampled_data (ResourceSet)
+    Contains subsampled data Tables for samples that passed quality checks:
 
     #### Data
-    - **Rows**: Same as input interpolated data (not modified)
+    - **Rows**: Same as input subsampled data (not modified)
     - **Columns**: Same as input
     - **Values**: Unchanged (filtering is sample-level, not value-level)
 
@@ -268,7 +268,7 @@ class FermentalgQualityCheck(Task):
     ### Execution Flow
     1. **Input Validation**: Check both ResourceSets contain Tables
     2. **Selection Filtering**:
-       a. Extract all (batch, sample) couples from `interpolated_data` ResourceSet
+       a. Extract all (batch, sample) couples from `subsampled_data` ResourceSet
        b. Filter `data` ResourceSet to only process samples matching these couples
        c. This ensures only selected samples are quality-checked
     3. **Quality Check on Raw Data** (per-sample):
@@ -282,8 +282,8 @@ class FermentalgQualityCheck(Task):
        h. Calculate quality metrics
        i. Add quality tags if enabled
        j. Track which samples passed
-    4. **Filter Interpolated Data**:
-       a. For each sample in `interpolated_data` ResourceSet
+    4. **Filter subsampled Data**:
+       a. For each sample in `subsampled_data` ResourceSet
        b. Include only if corresponding sample in `data` passed checks
        c. Copy all tags and add quality_check_passed=true
     5. **Output Assembly**: Create filtered versions of both ResourceSets
@@ -291,7 +291,7 @@ class FermentalgQualityCheck(Task):
 
     ### Decision Rules
     - **Sample Pre-Filtered If**:
-      - (batch, sample) couple not present in `interpolated_data` ResourceSet
+      - (batch, sample) couple not present in `subsampled_data` ResourceSet
       - This ensures only selected samples are quality-checked
     - **Sample Excluded If** (from both outputs):
       - Missing data > max_missing_percentage (in raw data)
@@ -301,7 +301,7 @@ class FermentalgQualityCheck(Task):
     - **Rows Removed From Raw Data If**:
       - Contains outlier (when action="remove_rows")
       - Value outside range (when action="remove_rows")
-    - **Interpolated Data**:
+    - **subsampled Data**:
       - Sample-level filtering only (no row removal)
       - Kept unchanged if corresponding raw data sample passed
     - **Sample Marked If**:
@@ -318,9 +318,9 @@ class FermentalgQualityCheck(Task):
       ↓
     Interpolation
       ↓
-    QualityCheck (remove outliers, validate ranges on raw data, filter interpolated)
+    QualityCheck (remove outliers, validate ranges on raw data, filter subsampled)
       ↓
-    Analysis (use filtered_interpolated_data)
+    Analysis (use filtered_subsampled_data)
     ```
       ↓
     Analysis
@@ -462,19 +462,19 @@ class FermentalgQualityCheck(Task):
                           human_name="Input Data ResourceSet to check",
                           short_description="ResourceSet containing fermentalg time series data to validate",
                           optional=False),
-        'interpolated_data': InputSpec(ResourceSet,
-                                       human_name="Input Interpolated data ResourceSet to check",
-                                       short_description="ResourceSet containing fermentalg time series interpolated data",
-                                       optional=False),
+        'subsampled_data': InputSpec(ResourceSet,
+                                     human_name="Input subsampled data ResourceSet to check",
+                                     short_description="ResourceSet containing fermentalg time series subsampled data",
+                                     optional=False),
     })
 
     output_specs: OutputSpecs = OutputSpecs({
         'filtered_data': OutputSpec(ResourceSet,
                                             human_name="Quality-checked ResourceSet",
                                             short_description="ResourceSet containing only samples that passed quality checks"),
-        'filtered_interpolated_data': OutputSpec(ResourceSet,
-                                                 human_name="Quality-checked Interpolated ResourceSet",
-                                                 short_description="ResourceSet containing only samples that passed quality checks for interpolated data")
+        'filtered_subsampled_data': OutputSpec(ResourceSet,
+                                               human_name="Quality-checked subsampled ResourceSet",
+                                               short_description="ResourceSet containing only samples that passed quality checks for subsampled data")
     })
 
     config_specs = ConfigSpecs({
@@ -882,18 +882,18 @@ class FermentalgQualityCheck(Task):
     def run(self, params: ConfigParams, inputs) -> Dict[str, Any]:
         # Get input ResourceSets
         data_resource_set: ResourceSet = inputs['data']
-        interpolated_data_resource_set: ResourceSet = inputs['interpolated_data']
+        subsampled_data_resource_set: ResourceSet = inputs['subsampled_data']
         add_quality_tags = params.get_value('add_quality_tags')
 
         self.log_info_message("Starting quality check on data ResourceSet")
 
-        # First, extract all (batch, sample) couples from interpolated_data
+        # First, extract all (batch, sample) couples from subsampled_data
         # This ResourceSet comes from the selection, so we only want to check data for these couples
-        interpolated_resources = interpolated_data_resource_set.get_resources()
+        subsampled_resources = subsampled_data_resource_set.get_resources()
         selected_couples = set()
 
-        self.log_info_message("Extracting selected (batch, sample) couples from interpolated data...")
-        for resource_name, resource in interpolated_resources.items():
+        self.log_info_message("Extracting selected (batch, sample) couples from subsampled data...")
+        for resource_name, resource in subsampled_resources.items():
             if isinstance(resource, Table):
                 batch = None
                 sample = None
@@ -913,7 +913,7 @@ class FermentalgQualityCheck(Task):
 
         # Create output ResourceSets
         filtered_data_res = ResourceSet()
-        filtered_interpolated_data_res = ResourceSet()
+        filtered_subsampled_data_res = ResourceSet()
 
         # Track which resource names passed the quality checks
         passed_resource_names = set()
@@ -949,12 +949,12 @@ class FermentalgQualityCheck(Task):
             else:
                 self.log_warning_message(f"  No tags found on resource {resource_name}")
 
-            # Check if this (batch, sample) couple is in the selected couples from interpolated data
+            # Check if this (batch, sample) couple is in the selected couples from subsampled data
             if (batch, sample) not in selected_couples:
                 filtered_out_by_selection += 1
                 self.log_info_message(
                     f"  Skipping resource '{resource_name}' - (batch={batch}, sample={sample}) "
-                    f"not in selected couples from interpolated data"
+                    f"not in selected couples from subsampled data"
                 )
                 continue
 
@@ -1028,40 +1028,40 @@ class FermentalgQualityCheck(Task):
             # Track that this resource passed quality checks
             passed_resource_names.add(resource_name)
 
-        # Now filter interpolated_data ResourceSet based on passed resource names
-        self.log_info_message(f"Filtering interpolated data based on {len(passed_resource_names)} passed samples")
+        # Now filter subsampled_data ResourceSet based on passed resource names
+        self.log_info_message(f"Filtering subsampled data based on {len(passed_resource_names)} passed samples")
 
-        for resource_name, resource in interpolated_resources.items():
-            # Only include interpolated data for samples that passed quality checks
+        for resource_name, resource in subsampled_resources.items():
+            # Only include subsampled data for samples that passed quality checks
             if resource_name in passed_resource_names:
                 if not isinstance(resource, Table):
-                    self.log_warning_message(f"Skipping non-Table interpolated resource: {resource_name}")
+                    self.log_warning_message(f"Skipping non-Table subsampled resource: {resource_name}")
                     continue
 
-                # Create new Table instance for interpolated data
-                interpolated_output_table = Table(resource.get_data().copy())
-                interpolated_output_table.name = f"{resource_name}_qc"
+                # Create new Table instance for subsampled data
+                subsampled_output_table = Table(resource.get_data().copy())
+                subsampled_output_table.name = f"{resource_name}_qc"
 
-                # Copy tags from original interpolated resource
+                # Copy tags from original subsampled resource
                 if resource.tags:
                     for tag in resource.tags.get_tags():
-                        interpolated_output_table.tags.add_tag(Tag(key=tag.key, value=tag.value))
+                        subsampled_output_table.tags.add_tag(Tag(key=tag.key, value=tag.value))
 
                 # Copy column tags
-                for col in interpolated_output_table.get_column_names():
+                for col in subsampled_output_table.get_column_names():
                     if col in resource.get_column_names():
                         col_tags = resource.get_column_tags_by_name(col)
                         for tag_key, tag_value in col_tags.items():
-                            interpolated_output_table.add_column_tag_by_name(col, tag_key, tag_value)
+                            subsampled_output_table.add_column_tag_by_name(col, tag_key, tag_value)
 
                 # Add quality tags (same as data output)
                 if add_quality_tags:
-                    interpolated_output_table.tags.add_tag(Tag(
+                    subsampled_output_table.tags.add_tag(Tag(
                         key="quality_check_passed",
                         value="true"
                     ))
 
-                filtered_interpolated_data_res.add_resource(interpolated_output_table, resource_name)
+                filtered_subsampled_data_res.add_resource(subsampled_output_table, resource_name)
 
         # Summary logging
         self.log_success_message(
@@ -1072,8 +1072,8 @@ class FermentalgQualityCheck(Task):
         )
 
         self.log_info_message(
-            f"Filtered interpolated data: {len(filtered_interpolated_data_res.get_resources())} "
-            f"samples kept (out of {len(interpolated_resources)} total)"
+            f"Filtered subsampled data: {len(filtered_subsampled_data_res.get_resources())} "
+            f"samples kept (out of {len(subsampled_resources)} total)"
         )
 
         if excluded_samples == total_samples:
@@ -1083,5 +1083,5 @@ class FermentalgQualityCheck(Task):
 
         return {
             'filtered_data': filtered_data_res,
-            'filtered_interpolated_data': filtered_interpolated_data_res
+            'filtered_subsampled_data': filtered_subsampled_data_res
         }

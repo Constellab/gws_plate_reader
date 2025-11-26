@@ -22,8 +22,6 @@ These translations are used in all cell culture analysis dashboards:
 - Quality check
 - PCA analysis
 - Feature extraction
-- Logistic growth analysis
-- Spline growth analysis
 
 ### Data Visualization
 - Chart labels

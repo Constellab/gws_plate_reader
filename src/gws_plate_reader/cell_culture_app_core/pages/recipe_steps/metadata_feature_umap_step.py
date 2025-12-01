@@ -26,7 +26,9 @@ def launch_metadata_feature_umap_scenario(
         min_dist: float,
         metric: str,
         scale_data: bool,
-        n_clusters: Optional[int]) -> Optional[Scenario]:
+        n_clusters: Optional[int],
+        columns_to_exclude: Optional[List[str]] = None,
+        hover_data_columns: Optional[List[str]] = None) -> Optional[Scenario]:
     """
     Launch a Metadata Feature UMAP analysis scenario
 
@@ -40,6 +42,8 @@ def launch_metadata_feature_umap_scenario(
     :param metric: Distance metric for UMAP
     :param scale_data: Whether to scale data before UMAP
     :param n_clusters: Number of clusters for K-Means (optional)
+    :param columns_to_exclude: List of column names to exclude from UMAP analysis
+    :param hover_data_columns: List of column names to display as hover metadata
     :return: The created scenario or None if error
     """
     try:
@@ -140,6 +144,10 @@ def launch_metadata_feature_umap_scenario(
             umap_task.set_param('color_by', medium_name_column)
             if n_clusters is not None:
                 umap_task.set_param('n_clusters', n_clusters)
+            if columns_to_exclude:
+                umap_task.set_param('columns_to_exclude', columns_to_exclude)
+            if hover_data_columns:
+                umap_task.set_param('hover_data_columns', hover_data_columns)
 
             # Add outputs
             protocol_proxy.add_output(
@@ -318,6 +326,20 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         # Get available columns for medium name
         available_columns = sorted(metadata_df.columns.tolist())
 
+        # Get feature extraction results to know all columns that will be in merged table
+        fe_scenario_proxy = ScenarioProxy.from_existing_scenario(selected_fe_scenario.id)
+        fe_protocol_proxy = fe_scenario_proxy.get_protocol()
+        results_table_resource_model = fe_protocol_proxy.get_output_resource_model('results_table')
+
+        if results_table_resource_model:
+            results_table = results_table_resource_model.get_resource()
+            results_df = results_table.get_data()
+            # Get all columns from both tables (excluding 'Series' which is the merge key)
+            all_merged_columns = sorted(list(set(metadata_df.columns.tolist() + results_df.columns.tolist())))
+        else:
+            # Fallback to metadata columns only
+            all_merged_columns = available_columns
+
         # Default to 'Medium' if exists, otherwise first non-Series column
         default_medium_column = 'Medium' if 'Medium' in available_columns else (
             [col for col in available_columns if col != 'Series'][0] if len(available_columns) > 1 else 'Medium'
@@ -407,6 +429,30 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
                 help="Nombre de groupes à identifier"
             )
 
+        st.markdown("**Options avancées**")
+
+        # Columns to exclude
+        columns_to_exclude = st.multiselect(
+            "Colonnes à exclure de l'analyse UMAP",
+            options=all_merged_columns,
+            default=[],
+            help="Sélectionnez les colonnes à exclure de l'analyse UMAP (colonnes non informatives comme ID, dates, etc.)"
+        )
+        # Convert empty list to None
+        if not columns_to_exclude:
+            columns_to_exclude = None
+
+        # Hover data columns
+        hover_data_columns = st.multiselect(
+            "Colonnes à afficher au survol des points",
+            options=all_merged_columns,
+            default=[],
+            help="Sélectionnez les colonnes à afficher comme métadonnées au survol des points (Batch, Essai, Date, etc.)"
+        )
+        # Convert empty list to None
+        if not hover_data_columns:
+            hover_data_columns = None
+
         # Submit button
         submit_button = st.form_submit_button(
             f"🚀 Lancer l'analyse UMAP",
@@ -426,7 +472,9 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
                 min_dist,
                 metric,
                 scale_data,
-                n_clusters
+                n_clusters,
+                columns_to_exclude,
+                hover_data_columns
             )
 
             if umap_scenario:
@@ -479,4 +527,16 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
 - Utile pour segmenter vos expériences en catégories
 - Le nombre optimal de clusters dépend de vos données
 - Comparez avec votre connaissance du domaine pour valider
+
+### Options avancées
+
+**Colonnes à exclure** :
+- Permet d'exclure certaines colonnes de l'analyse UMAP
+- Utile pour retirer des colonnes non informatives (ID, dates, etc.)
+- Ces colonnes seront complètement ignorées dans le calcul UMAP
+
+**Colonnes à afficher au survol** :
+- Permet d'afficher des informations supplémentaires au survol des points
+- Utile pour identifier rapidement les échantillons (Batch, Essai, Date, etc.)
+- Ces colonnes ne sont pas utilisées dans le calcul UMAP, uniquement pour l'affichage
 """)

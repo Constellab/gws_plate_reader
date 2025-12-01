@@ -248,6 +248,10 @@ def launch_quality_check_scenario(
 
             subsampled_resource_id = subsampled_resource.get_model_id()
 
+            metadata_resource_model = cell_culture_state.get_load_scenario_output_resource_model(
+                cell_culture_state.LOAD_SCENARIO_METADATA_OUTPUT_NAME
+            )
+
             # 3. Create a new scenario for quality check with timestamp
             timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             scenario_proxy = ScenarioProxy(
@@ -272,6 +276,13 @@ def launch_quality_check_scenario(
                 {InputTask.config_name: subsampled_resource_id}
             )
 
+            metadata_table_input_task = None
+            if metadata_resource_model:
+                metadata_table_input_task = protocol_proxy.add_process(
+                    InputTask, 'metadata_table_input',
+                    {InputTask.config_name: metadata_resource_model.id}
+                )
+
             # Add the quality check task
             quality_check_task = protocol_proxy.add_process(
                 FermentalgQualityCheck,
@@ -289,6 +300,13 @@ def launch_quality_check_scenario(
                 out_port=subsampled_input_task >> 'resource',
                 in_port=quality_check_task << 'subsampled_data'
             )
+
+            # Connect the metadata table if available
+            if metadata_table_input_task:
+                protocol_proxy.add_connector(
+                    out_port=metadata_table_input_task >> 'resource',
+                    in_port=quality_check_task << 'metadata_table'
+                )
 
             # Set quality check parameters from configuration (or use defaults)
             if quality_check_config is None:
@@ -313,6 +331,14 @@ def launch_quality_check_scenario(
                 quality_check_task >> 'filtered_subsampled_data',
                 flag_resource=True
             )
+
+            # Output 3: Filtered metadata table (if applicable)
+            if metadata_resource_model:
+                protocol_proxy.add_output(
+                    cell_culture_state.QUALITY_CHECK_SCENARIO_METADATA_OUTPUT_NAME,
+                    quality_check_task >> 'filtered_metadata_table',
+                    flag_resource=True
+                )
 
             # Inherit tags from parent selection scenario
             parent_entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, selection_scenario.id)

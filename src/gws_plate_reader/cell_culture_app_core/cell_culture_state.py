@@ -48,6 +48,8 @@ class CellCultureState(ABC):
     TAG_ANALYSES_PROCESSING = "analyses_processing"
     TAG_MICROPLATE_ANALYSIS = "microplate_analysis"
 
+    LOAD_SCENARIO_METADATA_OUTPUT_NAME = "metadata_table"
+
     # Process names (subclasses must override)
     PROCESS_NAME_DATA_PROCESSING = None  # Must be set by subclasses
 
@@ -55,6 +57,10 @@ class CellCultureState(ABC):
         "medium_pca": {"title": "medium_pca_analysis", "icon": "scatter_plot", "children": []},
         "medium_umap": {"title": "medium_umap_analysis", "icon": "bubble_chart", "children": []},
         "feature_extraction": {"title": "feature_extraction_analysis", "icon": "functions", "children": []}
+    }
+
+    POST_FEATURE_EXTRACTION_ANALYSIS_TREE: Dict[str, Any] = {
+        "metadata_feature_umap": {"title": "metadata_feature_umap_analysis", "icon": "bubble_chart", "children": []},
     }
 
     def __init__(self, lang_translation_folder_path: str):
@@ -195,15 +201,60 @@ class CellCultureState(ABC):
             scenario_proxy = ScenarioProxy.from_existing_scenario(load_scenario.id)
             protocol_proxy = scenario_proxy.get_protocol()
 
-            print('LOAD SCENARIO:', load_scenario)
             if not protocol_proxy:
                 return FileNotFoundError
 
-            print('NAME:', name)
             return protocol_proxy.get_input_resource_model(name)
 
         except Exception as e:
             # Return empty dict if there's an error accessing inputs
+            return None
+
+    def get_load_scenario_output_resource_model(self, name: str) -> ResourceModel:
+        """
+        Get the output resource from the load scenario of the current recipe.
+
+        :return: The output resource or None if not found
+        """
+        load_scenario = self.get_main_scenario()
+        if not load_scenario:
+            return None
+
+        try:
+            scenario_proxy = ScenarioProxy.from_existing_scenario(load_scenario.id)
+            protocol_proxy = scenario_proxy.get_protocol()
+
+            if not protocol_proxy:
+                return FileNotFoundError
+
+            return protocol_proxy.get_output_resource_model(name)
+
+        except Exception as e:
+            # Return empty dict if there's an error accessing outputs
+            return None
+
+    def get_scenario_output_resource_model(self, scenario: Scenario, name: str) -> ResourceModel:
+        """
+        Get the output resource from a given scenario.
+
+        :param scenario: The scenario to get the output from
+        :param name: The name of the output resource
+        :return: The output resource model or None if not found
+        """
+        if not scenario:
+            return None
+
+        try:
+            scenario_proxy = ScenarioProxy.from_existing_scenario(scenario.id)
+            protocol_proxy = scenario_proxy.get_protocol()
+
+            if not protocol_proxy:
+                return FileNotFoundError
+
+            return protocol_proxy.get_output_resource_model(name)
+
+        except Exception as e:
+            # Return empty dict if there's an error accessing outputs
             return None
 
     def get_medium_csv_input_resource_model(self) -> Optional[ResourceModel]:

@@ -221,6 +221,7 @@
     "analysis": "Analyses",
     "medium_pca_analysis": "Analyse PCA des milieux",
     "medium_umap_analysis": "Analyse UMAP des milieux",
+    "metadata_feature_umap_analysis": "Analyse UMAP des caractéristiques des métadonnées",
     "feature_extraction_analysis": "Analyse d'extraction de caractéristiques",
     "combine_columns_in_same_graph": "Afficher toutes les colonnes dans le même graphique",
     "combine_columns_help": "Cochez pour afficher toutes les colonnes sélectionnées dans une seule figure au lieu de graphiques séparés",

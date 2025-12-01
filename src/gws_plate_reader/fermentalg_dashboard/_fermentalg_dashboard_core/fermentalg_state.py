@@ -65,6 +65,7 @@ class FermentalgState(CellCultureState):
     INTERPOLATION_SCENARIO_OUTPUT_NAME = 'interpolation_scenario_output'
     QUALITY_CHECK_SCENARIO_OUTPUT_NAME = 'quality_check_scenario_output'
     QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME = 'quality_check_scenario_interpolated_output'
+    QUALITY_CHECK_SCENARIO_METADATA_OUTPUT_NAME = 'quality_check_scenario_metadata_output'
 
     def __init__(self, lang_translation_folder_path: str = None):
         """Initialize the Fermentalg state manager with translation service."""

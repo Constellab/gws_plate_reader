@@ -6,6 +6,8 @@ import streamlit as st
 from typing import Dict, List, Optional, Tuple
 
 from gws_core import Scenario, ScenarioStatus
+from gws_core.tag.tag_entity_type import TagEntityType
+from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitContainers, StreamlitTreeMenu, StreamlitTreeMenuItem, StreamlitRouter
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from .recipe_steps import (
@@ -21,6 +23,8 @@ from .recipe_steps import (
     render_medium_umap_results,
     render_feature_extraction_step,
     render_feature_extraction_results,
+    render_metadata_feature_umap_step,
+    render_metadata_feature_umap_results,
 )
 
 
@@ -182,6 +186,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                         key=f'pca_result_{pca_scenario.id}',
                                         material_icon='assessment'
                                     )
+
                                     analysis_item.add_child(pca_result_item)
 
                         # For Medium UMAP, add existing scenarios as sub-folders
@@ -216,6 +221,36 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                         key=f'fe_result_{fe_scenario.id}',
                                         material_icon='auto_graph'
                                     )
+
+                                    for post_feature_extraction_analysis_type, post_feature_extraction_analysis_info in cell_culture_state.POST_FEATURE_EXTRACTION_ANALYSIS_TREE.items():
+                                        if post_feature_extraction_analysis_type == 'metadata_feature_umap':
+                                            # Create sub-item for launching new metadata feature UMAP analysis
+                                            fe_umap_launch_item = StreamlitTreeMenuItem(
+                                                label=translate_service.translate(
+                                                    post_feature_extraction_analysis_info['title']),
+                                                key=f'analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}',
+                                                material_icon=post_feature_extraction_analysis_info['icon'])
+                                            fe_result_item.add_child(fe_umap_launch_item)
+
+                                            # Add existing metadata feature UMAP scenarios as sub-items
+                                            metadata_umap_scenarios = recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
+                                                fe_scenario.id)
+                                            if metadata_umap_scenarios:
+                                                for metadata_umap_scenario in metadata_umap_scenarios:
+                                                    metadata_umap_timestamp = metadata_umap_scenario.title
+                                                    if "Metadata Feature UMAP - " in metadata_umap_scenario.title:
+                                                        metadata_umap_timestamp = metadata_umap_scenario.title.replace(
+                                                            "Metadata Feature UMAP - ",
+                                                            "")
+
+                                                    # Create sub-sub-item for this metadata feature UMAP result
+                                                    metadata_umap_result_item = StreamlitTreeMenuItem(
+                                                        label=metadata_umap_timestamp,
+                                                        key=f'metadata_feature_umap_result_{metadata_umap_scenario.id}',
+                                                        material_icon='scatter_plot'
+                                                    )
+                                                    fe_umap_launch_item.add_child(metadata_umap_result_item)
+
                                     analysis_item.add_child(fe_result_item)
 
                         analysis_folder.add_child(analysis_item)
@@ -455,5 +490,43 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     render_feature_extraction_results(recipe, cell_culture_state, target_fe_scenario)
                 else:
                     st.error("Feature Extraction scenario not found")
+            elif selected_key.startswith('analysis_metadata_feature_umap_fe_'):
+                # Extract Feature Extraction scenario ID from key (analysis_metadata_feature_umap_fe_{fe_scenario_id})
+                fe_scenario_id = selected_key.replace('analysis_metadata_feature_umap_fe_', '')
+                # Find the corresponding FE scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_fe_scenario = next((s for s in all_analyses_scenarios if s.id == fe_scenario_id), None)
+                if target_fe_scenario:
+                    # Find the quality check scenario (parent of the FE scenario)
+                    entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, fe_scenario_id)
+                    parent_qc_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_quality_check")
+
+                    if parent_qc_tags:
+                        qc_scenario_id = parent_qc_tags[0].tag_value
+                        all_qc_scenarios = recipe.get_quality_check_scenarios()
+                        target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+
+                        if target_qc_scenario:
+                            st.title(f"{recipe.name} - Metadata Feature UMAP Analysis")
+                            # Render the step page to launch new analyses or view existing ones
+                            render_metadata_feature_umap_step(
+                                recipe, cell_culture_state, quality_check_scenario=target_qc_scenario)
+                        else:
+                            st.error("Quality Check scenario not found")
+                    else:
+                        st.error("Parent Quality Check scenario not found for this Feature Extraction")
+                else:
+                    st.error("Feature Extraction scenario not found")
+            elif selected_key.startswith('metadata_feature_umap_result_'):
+                # Extract UMAP scenario ID from key (metadata_feature_umap_result_{umap_scenario_id})
+                umap_scenario_id = selected_key.replace('metadata_feature_umap_result_', '')
+                # Find the corresponding UMAP scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_umap_scenario = next((s for s in all_analyses_scenarios if s.id == umap_scenario_id), None)
+                if target_umap_scenario:
+                    # Use the render function from metadata_feature_umap_results.py
+                    render_metadata_feature_umap_results(recipe, cell_culture_state, target_umap_scenario)
+                else:
+                    st.error("UMAP Metadata+Features scenario not found")
             else:
                 st.info(translate_service.translate('select_step_in_menu'))

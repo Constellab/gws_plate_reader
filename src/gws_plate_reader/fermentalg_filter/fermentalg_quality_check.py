@@ -1,7 +1,7 @@
 from gws_core import (InputSpec, OutputSpec, InputSpecs, OutputSpecs, Table,
                       TypingStyle, ResourceSet, Task, task_decorator, ConfigSpecs, ConfigParams,
                       StrParam, FloatParam, ParamSet, BoolParam, Tag)
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import pandas as pd
 import numpy as np
 
@@ -466,6 +466,10 @@ class FermentalgQualityCheck(Task):
                                      human_name="Input subsampled data ResourceSet to check",
                                      short_description="ResourceSet containing fermentalg time series subsampled data",
                                      optional=False),
+        'metadata_table': InputSpec(Table,
+                                    human_name="Metadata Table",
+                                    short_description="Table containing metadata information",
+                                    optional=True)
     })
 
     output_specs: OutputSpecs = OutputSpecs({
@@ -474,7 +478,11 @@ class FermentalgQualityCheck(Task):
                                             short_description="ResourceSet containing only samples that passed quality checks"),
         'filtered_subsampled_data': OutputSpec(ResourceSet,
                                                human_name="Quality-checked subsampled ResourceSet",
-                                               short_description="ResourceSet containing only samples that passed quality checks for subsampled data")
+                                               short_description="ResourceSet containing only samples that passed quality checks for subsampled data"),
+        'filtered_metadata_table': OutputSpec(Table,
+                                              human_name="Filtered Metadata Table",
+                                              short_description="Metadata Table corresponding to filtered samples",
+                                              optional=True)
     })
 
     config_specs = ConfigSpecs({
@@ -883,6 +891,8 @@ class FermentalgQualityCheck(Task):
         # Get input ResourceSets
         data_resource_set: ResourceSet = inputs['data']
         subsampled_data_resource_set: ResourceSet = inputs['subsampled_data']
+        metadata_table: Optional[Table] = inputs.get('metadata_table', None)
+
         add_quality_tags = params.get_value('add_quality_tags')
 
         self.log_info_message("Starting quality check on data ResourceSet")
@@ -1081,7 +1091,22 @@ class FermentalgQualityCheck(Task):
                 "All samples were excluded! Consider relaxing quality check parameters."
             )
 
+        # Filter metadata table if provided
+        if metadata_table is not None:
+
+            metadata_df = metadata_table.get_data()
+
+            # filter df, remove rows where index (first column : by default 'Series' but not necessarily) not in passed_resource_names
+            filtered_metadata_df = metadata_df[metadata_df[metadata_df.columns[0]].isin(passed_resource_names)]
+
+            filtered_metadata_table = Table(filtered_metadata_df.copy())
+            filtered_metadata_table.name = f"{metadata_table.name}_qc"
+
+        else:
+            filtered_metadata_table = None
+
         return {
             'filtered_data': filtered_data_res,
-            'filtered_subsampled_data': filtered_subsampled_data_res
+            'filtered_subsampled_data': filtered_subsampled_data_res,
+            'filtered_metadata_table': filtered_metadata_table
         }

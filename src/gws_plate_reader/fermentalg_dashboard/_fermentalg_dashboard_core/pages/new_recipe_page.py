@@ -389,6 +389,14 @@ def render_new_recipe_page(fermentalg_state: FermentalgState) -> None:
                     fermentalg_load_process >> 'medium_table',
                     flag_resource=False
                 )
+
+                # Add metadata table output (optional)
+                protocol.add_output(
+                    'metadata_table',
+                    fermentalg_load_process >> 'metadata_table',
+                    flag_resource=False
+                )
+
                 # Add tags for identification
                 analysis_name_parsed = Tag.parse_tag(analysis_name)
                 pipeline_id = StringHelper.generate_uuid()

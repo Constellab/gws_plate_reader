@@ -15,6 +15,8 @@ from .medium_umap_step import render_medium_umap_step
 from .medium_umap_results import render_medium_umap_results
 from .feature_extraction_step import render_feature_extraction_step
 from .feature_extraction_results import render_feature_extraction_results
+from .metadata_feature_umap_step import render_metadata_feature_umap_step
+from .metadata_feature_umap_results import render_metadata_feature_umap_results
 
 __all__ = [
     "render_overview_step",
@@ -28,5 +30,7 @@ __all__ = [
     "render_medium_umap_step",
     "render_medium_umap_results",
     "render_feature_extraction_step",
-    "render_feature_extraction_results"
+    "render_feature_extraction_results",
+    "render_metadata_feature_umap_step",
+    "render_metadata_feature_umap_results",
 ]

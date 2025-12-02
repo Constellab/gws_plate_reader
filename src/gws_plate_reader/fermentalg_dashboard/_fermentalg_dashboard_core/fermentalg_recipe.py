@@ -527,3 +527,86 @@ class FermentalgRecipe(CellCultureRecipe):
 
         # Update the scenarios dict
         self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_causal_effect_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get Causal Effect scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of Causal Effect scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (causal effect scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a causal_effect analysis for the specified feature extraction
+            is_causal_effect = analysis_type_tags and analysis_type_tags[0].tag_value == "causal_effect"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_causal_effect and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_causal_effect_scenario(self, fe_id: str, causal_scenario: Scenario) -> None:
+        """
+        Add a Causal Effect scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param causal_scenario: Causal Effect scenario to add
+        """
+        # Get existing analyses scenarios (causal effect scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [causal_scenario] + existing_analyses_scenarios
+
+        # Update the scenarios dict
+
+    def get_optimization_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get Optimization scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of Optimization scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (optimization scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is an optimization analysis for the specified feature extraction
+            is_optimization = analysis_type_tags and analysis_type_tags[0].tag_value == "optimization"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_optimization and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_optimization_scenario(self, fe_id: str, opt_scenario: Scenario) -> None:
+        """
+        Add an Optimization scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param opt_scenario: Optimization scenario to add
+        """
+        # Get existing analyses scenarios (optimization scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [opt_scenario] + existing_analyses_scenarios
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)

@@ -21,6 +21,10 @@ from .pls_regression_step import render_pls_regression_step
 from .pls_regression_results import render_pls_regression_results
 from .random_forest_step import render_random_forest_step
 from .random_forest_results import render_random_forest_results
+from .causal_effect_step import render_causal_effect_step
+from .causal_effect_results import render_causal_effect_results
+from .optimization_step import render_optimization_step
+from .optimization_results import render_optimization_results
 
 __all__ = [
     "render_overview_step",
@@ -41,4 +45,8 @@ __all__ = [
     "render_pls_regression_results",
     "render_random_forest_step",
     "render_random_forest_results",
+    "render_causal_effect_step",
+    "render_causal_effect_results",
+    "render_optimization_step",
+    "render_optimization_results",
 ]

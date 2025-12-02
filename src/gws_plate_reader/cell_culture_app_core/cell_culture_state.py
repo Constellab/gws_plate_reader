@@ -87,6 +87,8 @@ class CellCultureState(ABC):
         "metadata_feature_umap": {"title": "metadata_feature_umap_analysis", "icon": "bubble_chart", "children": []},
         "pls_regression": {"title": "pls_regression_analysis", "icon": "insights", "children": []},
         "random_forest_regression": {"title": "random_forest_regression_analysis", "icon": "account_tree", "children": []},
+        "causal_effect": {"title": "causal_effect_analysis", "icon": "link", "children": []},
+        "optimization": {"title": "optimization_analysis", "icon": "auto_mode", "children": []},
     }
 
     def __init__(self, lang_translation_folder_path: str):

@@ -320,42 +320,42 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
 
         with col2:
             min_dist = st.slider(
-                "Distance minimale",
+                translate_service.translate('min_dist_label'),
                 min_value=0.0,
                 max_value=0.99,
                 value=0.1,
                 step=0.05,
-                help="Distance minimale entre points dans l'espace réduit (plus faible = points plus groupés)"
+                help=translate_service.translate('min_dist_help')
             )
 
             scale_data = st.checkbox(
-                "Normaliser les données",
+                translate_service.translate('normalize_data_label'),
                 value=True,
-                help="Standardiser les données avant UMAP (recommandé)"
+                help=translate_service.translate('normalize_data_help')
             )
 
-        st.markdown("**Clustering (optionnel)**")
+        st.markdown(f"**{translate_service.translate('optional_clustering')}**")
         enable_clustering = st.checkbox("Activer le clustering K-Means", value=False)
         n_clusters = None
         if enable_clustering:
             n_clusters = st.slider(
-                "Nombre de clusters",
+                translate_service.translate('n_clusters_label'),
                 min_value=2,
                 max_value=10,
                 value=3,
-                help="Nombre de groupes à identifier"
+                help=translate_service.translate('n_clusters_help')
             )
 
         # Submit button
         submit_button = st.form_submit_button(
-            f"🚀 Lancer l'analyse UMAP",
+            translate_service.translate('launch_analysis_button_with_type').format(analysis_type='UMAP'),
             type="primary",
             use_container_width=True
         )
 
         if submit_button:
             if not selected_media:
-                st.error("⚠️ Veuillez sélectionner au moins un milieu")
+                st.error(translate_service.translate('select_target_first'))
             else:
                 # Launch UMAP scenario
                 umap_scenario = launch_medium_umap_scenario(
@@ -371,18 +371,18 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
                 )
 
                 if umap_scenario:
-                    st.success(f"✅ Analyse UMAP lancée avec succès ! ID : {umap_scenario.id}")
-                    st.info("⏳ L'analyse est en cours d'exécution...")
+                    st.success(translate_service.translate('umap_launched_success').format(id=umap_scenario.id))
+                    st.info(translate_service.translate('analysis_running'))
 
                     # Add to recipe
                     recipe.add_medium_umap_scenario(quality_check_scenario.id, umap_scenario)
 
                     st.rerun()
                 else:
-                    st.error("❌ Erreur lors du lancement de l'analyse UMAP")
+                    st.error(translate_service.translate('umap_launch_error'))
 
     # Info box with UMAP explanation
-    with st.expander(f"💡 Aide sur l'analyse UMAP"):
+    with st.expander(translate_service.translate('help_title').format(analysis_type='UMAP')):
         st.markdown(f"### Qu'est-ce que UMAP ?")
         st.markdown("""
 UMAP (Uniform Manifold Approximation and Projection) est une technique de réduction de dimensionnalité qui permet de visualiser des données complexes en 2D ou 3D.

@@ -1,6 +1,6 @@
 """
-PLS Regression Analysis Step for Cell Culture Dashboard
-Allows users to run PLS regression analysis on combined metadata and feature extraction data
+Causal Effect Analysis Step for Cell Culture Dashboard
+Allows users to run causal effect analysis on combined metadata and feature extraction data
 """
 import streamlit as st
 from typing import List, Optional
@@ -13,39 +13,33 @@ from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.fermentalg_filter import CellCultureMergeFeatureMetadata
-from gws_design_of_experiments.pls.pls_regression_task import PLSRegressorTask
+from gws_design_of_experiments import (CausalEffect, GenerateCausalEffectDashboard)
 
 
-def launch_pls_regression_scenario(
+def launch_causal_effect_scenario(
         quality_check_scenario: Scenario,
         cell_culture_state: CellCultureState,
-        load_scenario: Scenario,
         feature_extraction_scenario: Scenario,
         target_columns: List[str],
-        columns_to_exclude: Optional[List[str]],
-        scale_data: bool,
-        test_size: float) -> Optional[Scenario]:
+        columns_to_exclude: Optional[List[str]] = None) -> Optional[Scenario]:
     """
-    Launch a PLS Regression analysis scenario
+    Launch a Causal Effect analysis scenario
 
     :param quality_check_scenario: The parent quality check scenario
     :param cell_culture_state: The cell culture state
-    :param load_scenario: The load scenario containing metadata_table output
     :param feature_extraction_scenario: The feature extraction scenario containing results_table
-    :param target_columns: List of target column names to predict
-    :param columns_to_exclude: List of column names to exclude from PLS analysis
-    :param scale_data: Whether to scale data before PLS
-    :param test_size: Proportion of data for testing (0.0 to 1.0)
+    :param target_columns: List of target column names
+    :param columns_to_exclude: List of column names to exclude from analysis
     :return: The created scenario or None if error
     """
     try:
         with StreamlitAuthenticateUser():
-            # Create a new scenario for PLS Regression
+            # Create a new scenario for Causal Effect
             timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             scenario_proxy = ScenarioProxy(
                 None,
                 folder=quality_check_scenario.folder,
-                title=f"PLS Regression - {timestamp}",
+                title=f"Causal Effect - {timestamp}",
                 creation_type=ScenarioCreationType.MANUAL,
             )
 
@@ -101,59 +95,39 @@ def launch_pls_regression_scenario(
                 in_port=merge_task << 'metadata_table'
             )
 
-            # Add the PLS Regression task
-            pls_task = protocol_proxy.add_process(
-                PLSRegressorTask,
-                'pls_regression_task'
+            # Add the Causal Effect task
+            causal_effect_task = protocol_proxy.add_process(
+                CausalEffect,
+                'causal_effect_task'
             )
 
-            # Connect the merged table to the PLS task
+            # Connect the merged table to the Causal Effect task
             protocol_proxy.add_connector(
                 out_port=merge_task >> 'metadata_feature_table',
-                in_port=pls_task << 'data'
+                in_port=causal_effect_task << 'data'
             )
 
-            # Set PLS parameters
-            pls_task.set_param('target', target_columns)
-            pls_task.set_param('scale_data', scale_data)
-            pls_task.set_param('test_size', test_size)
+            # Set Causal Effect parameters
+            causal_effect_task.set_param('targets', target_columns)
             if columns_to_exclude:
-                pls_task.set_param('columns_to_exclude', columns_to_exclude)
+                causal_effect_task.set_param('columns_to_exclude', columns_to_exclude)
 
-            # Add outputs
-            protocol_proxy.add_output(
-                'summary_table',
-                pls_task >> 'summary_table',
-                flag_resource=True
+            # Add the GenerateCausalEffectDashboard task
+            dashboard_task = protocol_proxy.add_process(
+                GenerateCausalEffectDashboard,
+                'generate_dashboard_task'
             )
-            protocol_proxy.add_output(
-                'vip_table',
-                pls_task >> 'vip_table',
-                flag_resource=True
+
+            # Connect the results folder to the dashboard task
+            protocol_proxy.add_connector(
+                out_port=causal_effect_task >> 'results_folder',
+                in_port=dashboard_task << 'folder'
             )
+
+            # Add output for the Streamlit app
             protocol_proxy.add_output(
-                'plot_components',
-                pls_task >> 'plot_components',
-                flag_resource=True
-            )
-            protocol_proxy.add_output(
-                'vip_plot',
-                pls_task >> 'vip_plot',
-                flag_resource=True
-            )
-            protocol_proxy.add_output(
-                'plot_train_set',
-                pls_task >> 'plot_train_set',
-                flag_resource=True
-            )
-            protocol_proxy.add_output(
-                'plot_test_set',
-                pls_task >> 'plot_test_set',
-                flag_resource=True
-            )
-            protocol_proxy.add_output(
-                'merged_table',
-                merge_task >> 'metadata_feature_table',
+                'streamlit_app',
+                dashboard_task >> 'streamlit_app',
                 flag_resource=True
             )
 
@@ -196,7 +170,7 @@ def launch_pls_regression_scenario(
 
             # Add timestamp and analysis type tags
             scenario_proxy.add_tag(Tag("analysis_timestamp", timestamp, is_propagable=False))
-            scenario_proxy.add_tag(Tag("analysis_type", "pls_regression", is_propagable=False))
+            scenario_proxy.add_tag(Tag("analysis_type", "causal_effect", is_propagable=False))
 
             # Add to queue
             scenario_proxy.add_to_queue()
@@ -206,17 +180,17 @@ def launch_pls_regression_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"{translate_service.translate('error_launching_scenario').format(analysis_type='PLS Regression')}: {str(e)}")
+        st.error(f"Erreur lors du lancement du scénario Causal Effect: {str(e)}")
         import traceback
         st.code(traceback.format_exc())
         return None
 
 
-def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
-                               quality_check_scenario: Scenario,
-                               feature_extraction_scenario: Scenario) -> None:
+def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
+                              quality_check_scenario: Scenario,
+                              feature_extraction_scenario: Scenario) -> None:
     """
-    Render the PLS Regression analysis step
+    Render the Causal Effect analysis step
 
     :param recipe: The Recipe instance
     :param cell_culture_state: The cell culture state
@@ -225,45 +199,33 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 📊 {translate_service.translate('pls_regression_title')}")
+    st.markdown(f"### 🔗 Analyse Causal Effect")
 
-    st.info(translate_service.translate('pls_regression_info'))
+    st.info("L'analyse Causal Effect identifie les relations de cause à effet entre les variables de composition des milieux et les caractéristiques biologiques extraites des courbes de croissance.")
 
     # Display selected feature extraction scenario
-    st.info(f"📊 {translate_service.translate('feature_extraction_scenario_label')} : **{feature_extraction_scenario.title}**")
-
-    # Get the load scenario to check for metadata_table output
-    load_scenario = recipe.get_load_scenario()
-
-    if not load_scenario:
-        st.warning(translate_service.translate('no_load_scenario'))
-        return
-
-    # Check if load scenario has metadata_table output
-    try:
-        load_scenario_proxy = ScenarioProxy.from_existing_scenario(load_scenario.id)
-        load_protocol_proxy = load_scenario_proxy.get_protocol()
-
-        metadata_table_resource_model = load_protocol_proxy.get_process(
-            cell_culture_state.PROCESS_NAME_DATA_PROCESSING
-        ).get_output_resource_model('metadata_table')
-
-        if not metadata_table_resource_model:
-            st.warning(translate_service.translate('metadata_table_unavailable'))
-            return
-
-        st.success(f"{translate_service.translate('metadata_table_available')} : {metadata_table_resource_model.name}")
-    except Exception as e:
-        st.warning(f"{translate_service.translate('cannot_verify_metadata')} : {str(e)}")
-        return
+    st.info(f"📊 Scénario d'extraction de caractéristiques : **{feature_extraction_scenario.title}**")
 
     # Get available columns from merged table (metadata + features)
     try:
+        # Get metadata table from quality check
+        qc_scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
+        qc_protocol_proxy = qc_scenario_proxy.get_protocol()
+
+        metadata_table_resource_model = qc_protocol_proxy.get_output_resource_model(
+            cell_culture_state.QUALITY_CHECK_SCENARIO_METADATA_OUTPUT_NAME
+        )
+
+        if not metadata_table_resource_model:
+            st.warning(
+                "⚠️ La table des métadonnées (metadata_table) n'est pas disponible dans le scénario de quality check.")
+            return
+
         metadata_table = metadata_table_resource_model.get_resource()
         metadata_df = metadata_table.get_data()
 
         if 'Series' not in metadata_df.columns:
-            st.error(translate_service.translate('series_column_missing'))
+            st.error("⚠️ La colonne 'Series' est manquante dans la table des métadonnées.")
             return
 
         # Get feature extraction results to know all columns that will be in merged table
@@ -296,68 +258,44 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
             # Calculate non-numeric columns to exclude by default
             all_non_numeric_columns = sorted(list(set(all_merged_columns) - set(all_numeric_columns)))
 
-        st.markdown(f"**{translate_service.translate('numeric_columns_available')}** : {len(all_numeric_columns)}")
+        st.markdown(f"**Colonnes numériques disponibles** : {len(all_numeric_columns)}")
         cols_preview = ', '.join(all_numeric_columns[:10])
         if len(all_numeric_columns) > 10:
-            st.markdown(
-                f"**{translate_service.translate('preview')}** : {cols_preview}, ... (+{len(all_numeric_columns)-10} autres)")
+            st.markdown(f"**Aperçu** : {cols_preview}, ... (+{len(all_numeric_columns)-10} autres)")
         else:
-            st.markdown(f"**{translate_service.translate('preview')}** : {cols_preview}")
+            st.markdown(f"**Aperçu** : {cols_preview}")
 
     except Exception as e:
-        st.error(f"{translate_service.translate('error_reading_tables')} : {str(e)}")
+        st.error(f"Erreur lors de la lecture des tables : {str(e)}")
         import traceback
         st.code(traceback.format_exc())
         return
 
-    # Check existing PLS scenarios for this feature extraction
-    existing_pls_scenarios = recipe.get_pls_regression_scenarios_for_feature_extraction(feature_extraction_scenario.id)
+    # Check existing Causal Effect scenarios for this feature extraction
+    existing_causal_scenarios = recipe.get_causal_effect_scenarios_for_feature_extraction(
+        feature_extraction_scenario.id)
 
-    if existing_pls_scenarios:
-        st.markdown(
-            f"**{translate_service.translate('existing_analyses').format(analysis_type='PLS')}** : {len(existing_pls_scenarios)}")
-        with st.expander(f"📊 {translate_service.translate('view_existing_analyses').format(analysis_type='PLS')}"):
-            for idx, pls_scenario in enumerate(existing_pls_scenarios):
+    if existing_causal_scenarios:
+        st.markdown(f"**Analyses Causal Effect existantes** : {len(existing_causal_scenarios)}")
+        with st.expander("📊 Voir les analyses Causal Effect existantes"):
+            for idx, causal_scenario in enumerate(existing_causal_scenarios):
                 st.write(
-                    f"{idx + 1}. {pls_scenario.title} - Statut: {pls_scenario.status.name}")
+                    f"{idx + 1}. {causal_scenario.title} - Statut: {causal_scenario.status.name}")
 
-    # Configuration form for new PLS
+    # Configuration form for new Causal Effect
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('create_new_analysis').format(analysis_type='PLS')}")
+    st.markdown("### ➕ Lancer une nouvelle analyse Causal Effect")
 
-    st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
+    st.markdown("**Configuration de l'analyse**")
 
     # Target columns selection (must select at least one)
     target_columns = st.multiselect(
         translate_service.translate('target_variables_label'),
         options=all_numeric_columns,
         default=[],
-        key=f"pls_target_columns_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
+        key=f"causal_target_columns_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
         help=translate_service.translate('target_variables_help')
     )
-
-    st.markdown(f"**{translate_service.translate('model_parameters')}**")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        scale_data = st.checkbox(
-            translate_service.translate('normalize_data_label'),
-            value=True,
-            key=f"pls_scale_data_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-            help=translate_service.translate('normalize_data_help')
-        )
-
-    with col2:
-        test_size = st.slider(
-            translate_service.translate('test_size_label'),
-            min_value=0.1,
-            max_value=0.5,
-            value=0.2,
-            step=0.05,
-            key=f"pls_test_size_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-            help=translate_service.translate('test_size_help')
-        )
 
     st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
@@ -374,7 +312,7 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
         translate_service.translate('columns_to_exclude_label'),
         options=[col for col in all_merged_columns if col not in target_columns],
         default=default_excluded,
-        key=f"pls_columns_exclude_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
+        key=f"causal_columns_exclude_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
         help=translate_service.translate('columns_to_exclude_help')
     )
     # Convert empty list to None
@@ -383,81 +321,81 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
 
     # Submit button
     if st.button(
-        translate_service.translate('launch_analysis_button_with_type').format(analysis_type='PLS'),
+        translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Causal Effect'),
         type="primary",
-        key=f"pls_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
+        key=f"causal_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
         use_container_width=True
     ):
         if len(target_columns) == 0:
             st.error(translate_service.translate('select_target_first'))
         else:
-            # Launch PLS scenario
-            pls_scenario = launch_pls_regression_scenario(
+            # Launch Causal Effect scenario
+            causal_scenario = launch_causal_effect_scenario(
                 quality_check_scenario,
                 cell_culture_state,
-                load_scenario,
                 feature_extraction_scenario,
                 target_columns,
-                columns_to_exclude,
-                scale_data,
-                test_size
+                columns_to_exclude
             )
 
-            if pls_scenario:
+            if causal_scenario:
                 st.success(translate_service.translate('analysis_launched_success').format(
-                    analysis_type='PLS', id=pls_scenario.id))
+                    analysis_type='Causal Effect', id=causal_scenario.id))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe
-                recipe.add_pls_regression_scenario(feature_extraction_scenario.id, pls_scenario)
+                recipe.add_causal_effect_scenario(feature_extraction_scenario.id, causal_scenario)
 
                 st.rerun()
             else:
-                st.error(translate_service.translate('analysis_launch_error').format(analysis_type='PLS'))
+                st.error(translate_service.translate('analysis_launch_error').format(analysis_type='Causal Effect'))
 
     # Info box with explanation
-    with st.expander(translate_service.translate('help_title').format(analysis_type='PLS Regression')):
+    with st.expander(translate_service.translate('help_title').format(analysis_type='Causal Effect')):
         st.markdown("""
-### Qu'est-ce que la régression PLS ?
+### Qu'est-ce que l'analyse Causal Effect ?
 
-La régression PLS (Partial Least Squares) est une méthode statistique qui :
+L'analyse Causal Effect utilise des méthodes d'inférence causale pour identifier les relations de cause à effet entre :
+- **Variables de traitement** : Composition des milieux de culture (métadonnées)
+- **Variables cibles** : Caractéristiques biologiques extraites des courbes de croissance
 
-1. **Combine deux types de données** :
-   - **Métadonnées (X)** : Composition des milieux de culture
-   - **Features biologiques (Y)** : Paramètres extraits des courbes de croissance
+### Méthodes utilisées
 
-2. **Identifie les relations** entre composition et performances biologiques
+L'analyse utilise des modèles de machine learning sophistiqués :
+- **LinearDML** : Pour les traitements discrets
+- **CausalForestDML** : Pour les traitements continus
 
-3. **Gère la multicolinéarité** : Contrairement à la régression classique, PLS fonctionne bien même quand les variables sont corrélées
+Ces méthodes permettent d'estimer l'effet causal moyen (Average Treatment Effect - ATE) en contrôlant les variables confondantes.
 
 ### Résultats fournis
 
-**Tableaux** :
-- **Summary Table** : Performances du modèle (R², RMSE) pour train et test
-- **VIP Table** : Importance des variables (scores VIP > 1 sont significatives)
+**Dashboard interactif Streamlit** avec :
+- **Heatmaps** : Visualisation matricielle des effets causaux
+- **Barplots** : Comparaison des effets par traitement et cible
+- **Clustermaps** : Analyse hiérarchique des patterns causaux
 
-**Graphiques** :
-- **Components Plot** : Nombre optimal de composantes (validation croisée)
-- **VIP Plot** : Importance relative des variables
-- **Train/Test Predictions** : Valeurs prédites vs observées
+**Fichiers CSV** :
+- Effets causaux estimés pour chaque paire traitement-cible
+- Statistiques de performance des modèles
+- Progression de l'optimisation
 
 ### Applications
 
-- Identifier quels nutriments influencent le plus la croissance
-- Prédire les performances à partir de la composition
-- Optimiser la formulation des milieux
-- Comprendre les relations composition-performance
+- Identifier quels nutriments ont un effet causal sur la croissance
+- Comprendre les mécanismes biologiques sous-jacents
+- Optimiser la composition des milieux de culture
+- Prédire l'impact de modifications de formulation
 
-### Paramètres recommandés
+### Interprétation
 
-- **Normalisation** : Activée (recommandé car échelles différentes)
-- **Test size** : 0.2 (20% pour validation)
-- **Variables cibles** : Paramètres biologiques d'intérêt (taux de croissance, rendement, etc.)
+**Effet causal positif** : Augmenter le traitement augmente la cible
+**Effet causal négatif** : Augmenter le traitement diminue la cible
+**Effet proche de zéro** : Pas d'effet causal significatif
 
-### Interprétation VIP
+### Avantages vs régression classique
 
-**VIP (Variable Importance in Projection)** :
-- **VIP > 1** : Variable importante pour le modèle
-- **VIP < 0.5** : Variable peu importante
-- Plus le VIP est élevé, plus la variable contribue à la prédiction
-""")
+- Distingue corrélation et causalité
+- Contrôle automatique des variables confondantes
+- Estime l'effet d'interventions (pas seulement des associations)
+- Plus robuste aux biais de sélection
+        """)

@@ -243,3 +243,43 @@ class GreencellFermentorRecipe(CellCultureRecipe):
         existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
         updated_analyses_scenarios = [rf_scenario] + existing_analyses_scenarios
         self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_causal_effect_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """Get Causal Effect scenarios for a specific feature extraction scenario"""
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+            is_causal_effect = analysis_type_tags and analysis_type_tags[0].tag_value == "causal_effect"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+            if is_causal_effect and is_for_fe:
+                filtered.append(scenario)
+        return filtered
+
+    def add_causal_effect_scenario(self, fe_id: str, causal_scenario: Scenario) -> None:
+        """Add a Causal Effect scenario to this recipe"""
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+        updated_analyses_scenarios = [causal_scenario] + existing_analyses_scenarios
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_optimization_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """Get Optimization scenarios for a specific feature extraction scenario"""
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+            is_optimization = analysis_type_tags and analysis_type_tags[0].tag_value == "optimization"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+            if is_optimization and is_for_fe:
+                filtered.append(scenario)
+        return filtered
+
+    def add_optimization_scenario(self, fe_id: str, opt_scenario: Scenario) -> None:
+        """Add an Optimization scenario to this recipe"""
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+        updated_analyses_scenarios = [opt_scenario] + existing_analyses_scenarios
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)

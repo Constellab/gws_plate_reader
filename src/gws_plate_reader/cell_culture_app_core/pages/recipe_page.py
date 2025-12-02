@@ -29,6 +29,10 @@ from .recipe_steps import (
     render_pls_regression_results,
     render_random_forest_step,
     render_random_forest_results,
+    render_causal_effect_step,
+    render_causal_effect_results,
+    render_optimization_step,
+    render_optimization_results,
 )
 
 
@@ -310,6 +314,62 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                         material_icon='account_tree'
                                                     )
                                                     fe_rf_launch_item.add_child(rf_result_item)
+
+                                        elif post_feature_extraction_analysis_type == 'causal_effect':
+                                            # Create sub-item for launching new Causal Effect analysis
+                                            fe_causal_launch_item = StreamlitTreeMenuItem(
+                                                label=translate_service.translate(
+                                                    post_feature_extraction_analysis_info['title']),
+                                                key=f'analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}',
+                                                material_icon=post_feature_extraction_analysis_info['icon'])
+                                            fe_result_item.add_child(fe_causal_launch_item)
+
+                                            # Add existing Causal Effect scenarios as sub-items
+                                            causal_scenarios = recipe.get_causal_effect_scenarios_for_feature_extraction(
+                                                fe_scenario.id)
+                                            if causal_scenarios:
+                                                for causal_scenario in causal_scenarios:
+                                                    causal_timestamp = causal_scenario.title
+                                                    if "Causal Effect - " in causal_scenario.title:
+                                                        causal_timestamp = causal_scenario.title.replace(
+                                                            "Causal Effect - ",
+                                                            "")
+
+                                                    # Create sub-sub-item for this Causal Effect result
+                                                    causal_result_item = StreamlitTreeMenuItem(
+                                                        label=causal_timestamp,
+                                                        key=f'causal_effect_result_{causal_scenario.id}',
+                                                        material_icon='link'
+                                                    )
+                                                    fe_causal_launch_item.add_child(causal_result_item)
+
+                                        elif post_feature_extraction_analysis_type == 'optimization':
+                                            # Create sub-item for launching new Optimization analysis
+                                            fe_opt_launch_item = StreamlitTreeMenuItem(
+                                                label=translate_service.translate(
+                                                    post_feature_extraction_analysis_info['title']),
+                                                key=f'analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}',
+                                                material_icon=post_feature_extraction_analysis_info['icon'])
+                                            fe_result_item.add_child(fe_opt_launch_item)
+
+                                            # Add existing Optimization scenarios as sub-items
+                                            opt_scenarios = recipe.get_optimization_scenarios_for_feature_extraction(
+                                                fe_scenario.id)
+                                            if opt_scenarios:
+                                                for opt_scenario in opt_scenarios:
+                                                    opt_timestamp = opt_scenario.title
+                                                    if "Optimization - " in opt_scenario.title:
+                                                        opt_timestamp = opt_scenario.title.replace(
+                                                            "Optimization - ",
+                                                            "")
+
+                                                    # Create sub-sub-item for this Optimization result
+                                                    opt_result_item = StreamlitTreeMenuItem(
+                                                        label=opt_timestamp,
+                                                        key=f'optimization_result_{opt_scenario.id}',
+                                                        material_icon='auto_mode'
+                                                    )
+                                                    fe_opt_launch_item.add_child(opt_result_item)
 
                                     analysis_item.add_child(fe_result_item)
 
@@ -667,5 +727,83 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     render_random_forest_results(recipe, cell_culture_state, target_rf_scenario)
                 else:
                     st.error("Random Forest Regression scenario not found")
+            elif selected_key.startswith('analysis_causal_effect_fe_'):
+                # Extract Feature Extraction scenario ID from key (analysis_causal_effect_fe_{fe_scenario_id})
+                fe_scenario_id = selected_key.replace('analysis_causal_effect_fe_', '')
+                # Find the corresponding FE scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_fe_scenario = next((s for s in all_analyses_scenarios if s.id == fe_scenario_id), None)
+                if target_fe_scenario:
+                    # Find the quality check scenario (parent of the FE scenario)
+                    entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, fe_scenario_id)
+                    parent_qc_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_quality_check")
+
+                    if parent_qc_tags:
+                        qc_scenario_id = parent_qc_tags[0].tag_value
+                        all_qc_scenarios = recipe.get_quality_check_scenarios()
+                        target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+
+                        if target_qc_scenario:
+                            st.title(f"{recipe.name} - Causal Effect Analysis")
+                            # Render the step page to launch new analyses or view existing ones
+                            render_causal_effect_step(
+                                recipe, cell_culture_state, quality_check_scenario=target_qc_scenario,
+                                feature_extraction_scenario=target_fe_scenario)
+                        else:
+                            st.error("Quality Check scenario not found")
+                    else:
+                        st.error("Parent Quality Check scenario not found for this Feature Extraction")
+                else:
+                    st.error("Feature Extraction scenario not found")
+            elif selected_key.startswith('causal_effect_result_'):
+                # Extract Causal Effect scenario ID from key (causal_effect_result_{causal_scenario_id})
+                causal_scenario_id = selected_key.replace('causal_effect_result_', '')
+                # Find the corresponding Causal Effect scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_causal_scenario = next((s for s in all_analyses_scenarios if s.id == causal_scenario_id), None)
+                if target_causal_scenario:
+                    # Use the render function from causal_effect_results.py
+                    render_causal_effect_results(recipe, cell_culture_state, target_causal_scenario)
+                else:
+                    st.error("Causal Effect scenario not found")
+            elif selected_key.startswith('analysis_optimization_fe_'):
+                # Extract Feature Extraction scenario ID from key (analysis_optimization_fe_{fe_scenario_id})
+                fe_scenario_id = selected_key.replace('analysis_optimization_fe_', '')
+                # Find the corresponding FE scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_fe_scenario = next((s for s in all_analyses_scenarios if s.id == fe_scenario_id), None)
+                if target_fe_scenario:
+                    # Find the quality check scenario (parent of the FE scenario)
+                    entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, fe_scenario_id)
+                    parent_qc_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_quality_check")
+
+                    if parent_qc_tags:
+                        qc_scenario_id = parent_qc_tags[0].tag_value
+                        all_qc_scenarios = recipe.get_quality_check_scenarios()
+                        target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+
+                        if target_qc_scenario:
+                            st.title(f"{recipe.name} - Optimization Analysis")
+                            # Render the step page to launch new analyses or view existing ones
+                            render_optimization_step(
+                                recipe, cell_culture_state, quality_check_scenario=target_qc_scenario,
+                                feature_extraction_scenario=target_fe_scenario)
+                        else:
+                            st.error("Quality Check scenario not found")
+                    else:
+                        st.error("Parent Quality Check scenario not found for this Feature Extraction")
+                else:
+                    st.error("Feature Extraction scenario not found")
+            elif selected_key.startswith('optimization_result_'):
+                # Extract Optimization scenario ID from key (optimization_result_{opt_scenario_id})
+                opt_scenario_id = selected_key.replace('optimization_result_', '')
+                # Find the corresponding Optimization scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_opt_scenario = next((s for s in all_analyses_scenarios if s.id == opt_scenario_id), None)
+                if target_opt_scenario:
+                    # Use the render function from optimization_results.py
+                    render_optimization_results(cell_culture_state, target_opt_scenario)
+                else:
+                    st.error("Optimization scenario not found")
             else:
                 st.info(translate_service.translate('select_step_in_menu'))

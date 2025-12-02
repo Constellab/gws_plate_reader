@@ -303,40 +303,41 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
     existing_rf_scenarios = recipe.get_random_forest_scenarios_for_feature_extraction(feature_extraction_scenario.id)
 
     if existing_rf_scenarios:
-        st.markdown(f"**Analyses Random Forest existantes** : {len(existing_rf_scenarios)}")
-        with st.expander("📊 Voir les analyses Random Forest existantes"):
+        st.markdown(
+            f"**{translate_service.translate('existing_analyses').format(analysis_type='Random Forest')}** : {len(existing_rf_scenarios)}")
+        with st.expander(f"📊 {translate_service.translate('view_existing_analyses').format(analysis_type='Random Forest')}"):
             for idx, rf_scenario in enumerate(existing_rf_scenarios):
                 st.write(
                     f"{idx + 1}. {rf_scenario.title} - Statut: {rf_scenario.status.name}")
 
     # Configuration form for new Random Forest
     st.markdown("---")
-    st.markdown("### ➕ Lancer une nouvelle analyse Random Forest")
+    st.markdown(f"### ➕ {translate_service.translate('create_new_analysis').format(analysis_type='Random Forest')}")
 
-    st.markdown("**Configuration de l'analyse**")
+    st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
 
     # Target column selection (must select exactly one)
     target_column = st.selectbox(
-        "Variable cible à prédire (Y) *",
+        translate_service.translate('target_variables_label'),
         options=all_numeric_columns,
         index=None,
         key=f"rf_target_column_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        help="Sélectionnez une variable à prédire (par exemple: taux de croissance, rendement, etc.)"
+        help=translate_service.translate('target_variables_help')
     )
 
-    st.markdown("**Paramètres du modèle**")
+    st.markdown(f"**{translate_service.translate('model_parameters')}**")
 
     test_size = st.slider(
-        "Proportion test set",
+        translate_service.translate('test_size_label'),
         min_value=0.1,
         max_value=0.5,
         value=0.2,
         step=0.05,
         key=f"rf_test_size_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        help="Proportion des données à utiliser pour le test (entre 0.1 et 0.5)"
+        help=translate_service.translate('test_size_help')
     )
 
-    st.markdown("**Options avancées**")
+    st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns
@@ -348,11 +349,11 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
 
     # Columns to exclude
     columns_to_exclude = st.multiselect(
-        "Colonnes à exclure de l'analyse Random Forest",
+        translate_service.translate('columns_to_exclude_label'),
         options=[col for col in all_merged_columns if col != target_column],
         default=default_excluded,
         key=f"rf_columns_exclude_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        help="Sélectionnez les colonnes à exclure de l'analyse. Par défaut : colonnes non-numériques et colonnes de feature extraction (sauf cible)."
+        help=translate_service.translate('columns_to_exclude_help')
     )
     # Convert empty list to None
     if not columns_to_exclude:
@@ -360,13 +361,13 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
 
     # Submit button
     if st.button(
-        "🚀 Lancer l'analyse Random Forest",
+        translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Random Forest'),
         type="primary",
         key=f"rf_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
         use_container_width=True
     ):
         if not target_column:
-            st.error("⚠️ Veuillez sélectionner une variable cible")
+            st.error(translate_service.translate('select_target_first'))
         else:
             # Launch Random Forest scenario
             rf_scenario = launch_random_forest_scenario(
@@ -380,18 +381,19 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
             )
 
             if rf_scenario:
-                st.success(f"✅ Analyse Random Forest lancée avec succès ! ID : {rf_scenario.id}")
-                st.info("⏳ L'analyse est en cours d'exécution...")
+                st.success(translate_service.translate('analysis_launched_success').format(
+                    analysis_type='Random Forest', id=rf_scenario.id))
+                st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe
                 recipe.add_random_forest_scenario(feature_extraction_scenario.id, rf_scenario)
 
                 st.rerun()
             else:
-                st.error("❌ Erreur lors du lancement de l'analyse Random Forest")
+                st.error(translate_service.translate('analysis_launch_error').format(analysis_type='Random Forest'))
 
     # Info box with explanation
-    with st.expander("💡 Aide sur l'analyse Random Forest Regression"):
+    with st.expander(translate_service.translate('help_title').format(analysis_type='Random Forest Regression')):
         st.markdown("""
 ### Qu'est-ce que la régression Random Forest ?
 

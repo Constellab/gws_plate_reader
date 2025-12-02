@@ -17,6 +17,10 @@ from .feature_extraction_step import render_feature_extraction_step
 from .feature_extraction_results import render_feature_extraction_results
 from .metadata_feature_umap_step import render_metadata_feature_umap_step
 from .metadata_feature_umap_results import render_metadata_feature_umap_results
+from .pls_regression_step import render_pls_regression_step
+from .pls_regression_results import render_pls_regression_results
+from .random_forest_step import render_random_forest_step
+from .random_forest_results import render_random_forest_results
 
 __all__ = [
     "render_overview_step",
@@ -33,4 +37,8 @@ __all__ = [
     "render_feature_extraction_results",
     "render_metadata_feature_umap_step",
     "render_metadata_feature_umap_results",
+    "render_pls_regression_step",
+    "render_pls_regression_results",
+    "render_random_forest_step",
+    "render_random_forest_results",
 ]

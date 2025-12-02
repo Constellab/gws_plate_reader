@@ -1,0 +1,441 @@
+"""
+Random Forest Regression Analysis Step for Cell Culture Dashboard
+Allows users to run Random Forest regression analysis on combined metadata and feature extraction data
+"""
+import streamlit as st
+from typing import List, Optional
+from datetime import datetime
+
+from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag, ScenarioStatus
+from gws_core.tag.tag_entity_type import TagEntityType
+from gws_core.tag.entity_tag_list import EntityTagList
+from gws_core.streamlit import StreamlitAuthenticateUser
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
+from gws_plate_reader.fermentalg_filter import CellCultureMergeFeatureMetadata
+from gws_design_of_experiments.random_forest.random_forest_task import RandomForestRegressorTask
+
+
+def launch_random_forest_scenario(
+        quality_check_scenario: Scenario,
+        cell_culture_state: CellCultureState,
+        load_scenario: Scenario,
+        feature_extraction_scenario: Scenario,
+        target_column: str,
+        columns_to_exclude: Optional[List[str]],
+        test_size: float) -> Optional[Scenario]:
+    """
+    Launch a Random Forest Regression analysis scenario
+
+    :param quality_check_scenario: The parent quality check scenario
+    :param cell_culture_state: The cell culture state
+    :param load_scenario: The load scenario containing metadata_table output
+    :param feature_extraction_scenario: The feature extraction scenario containing results_table
+    :param target_column: Target column name to predict
+    :param columns_to_exclude: List of column names to exclude from Random Forest analysis
+    :param test_size: Proportion of data for testing (0.0 to 1.0)
+    :return: The created scenario or None if error
+    """
+    try:
+        with StreamlitAuthenticateUser():
+            # Create a new scenario for Random Forest Regression
+            timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            scenario_proxy = ScenarioProxy(
+                None,
+                folder=quality_check_scenario.folder,
+                title=f"Random Forest Regression - {timestamp}",
+                creation_type=ScenarioCreationType.MANUAL,
+            )
+
+            # Get the protocol
+            protocol_proxy = scenario_proxy.get_protocol()
+
+            # Get the metadata_table resource model from the quality check scenario output
+            qc_scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
+            qc_protocol_proxy = qc_scenario_proxy.get_protocol()
+
+            metadata_table_resource_model = qc_protocol_proxy.get_output_resource_model(
+                cell_culture_state.QUALITY_CHECK_SCENARIO_METADATA_OUTPUT_NAME
+            )
+
+            if not metadata_table_resource_model:
+                raise ValueError("La sortie 'metadata_table' n'est pas disponible dans le scénario de quality check")
+
+            # Get the results_table from feature extraction scenario
+            fe_scenario_proxy = ScenarioProxy.from_existing_scenario(feature_extraction_scenario.id)
+            fe_protocol_proxy = fe_scenario_proxy.get_protocol()
+
+            results_table_resource_model = fe_protocol_proxy.get_output_resource_model('results_table')
+
+            if not results_table_resource_model:
+                raise ValueError(
+                    "La sortie 'results_table' n'est pas disponible dans le scénario d'extraction de caractéristiques")
+
+            # Add input task for metadata_table
+            metadata_input_task = protocol_proxy.add_process(
+                InputTask, 'metadata_table_input',
+                {InputTask.config_name: metadata_table_resource_model.id}
+            )
+
+            # Add input task for results_table (features)
+            features_input_task = protocol_proxy.add_process(
+                InputTask, 'features_table_input',
+                {InputTask.config_name: results_table_resource_model.id}
+            )
+
+            # Add the Merge task (CellCultureMergeFeatureMetadata)
+            merge_task = protocol_proxy.add_process(
+                CellCultureMergeFeatureMetadata,
+                'merge_feature_metadata_task'
+            )
+
+            # Connect inputs to merge task
+            protocol_proxy.add_connector(
+                out_port=features_input_task >> 'resource',
+                in_port=merge_task << 'feature_table'
+            )
+            protocol_proxy.add_connector(
+                out_port=metadata_input_task >> 'resource',
+                in_port=merge_task << 'metadata_table'
+            )
+
+            # Add the Random Forest Regression task
+            rf_task = protocol_proxy.add_process(
+                RandomForestRegressorTask,
+                'random_forest_regression_task'
+            )
+
+            # Connect the merged table to the Random Forest task
+            protocol_proxy.add_connector(
+                out_port=merge_task >> 'metadata_feature_table',
+                in_port=rf_task << 'data'
+            )
+
+            # Set Random Forest parameters
+            rf_task.set_param('target', target_column)
+            rf_task.set_param('test_size', test_size)
+            if columns_to_exclude:
+                rf_task.set_param('columns_to_exclude', columns_to_exclude)
+
+            # Add outputs
+            protocol_proxy.add_output(
+                'summary_table',
+                rf_task >> 'summary_table',
+                flag_resource=True
+            )
+            protocol_proxy.add_output(
+                'vip_table',
+                rf_task >> 'vip_table',
+                flag_resource=True
+            )
+            protocol_proxy.add_output(
+                'plot_estimators',
+                rf_task >> 'plot_estimators',
+                flag_resource=True
+            )
+            protocol_proxy.add_output(
+                'vip_plot',
+                rf_task >> 'vip_plot',
+                flag_resource=True
+            )
+            protocol_proxy.add_output(
+                'plot_train_set',
+                rf_task >> 'plot_train_set',
+                flag_resource=True
+            )
+            protocol_proxy.add_output(
+                'plot_test_set',
+                rf_task >> 'plot_test_set',
+                flag_resource=True
+            )
+            protocol_proxy.add_output(
+                'merged_table',
+                merge_task >> 'metadata_feature_table',
+                flag_resource=True
+            )
+
+            # Inherit tags from parent quality check scenario
+            parent_entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, quality_check_scenario.id)
+
+            # Get recipe name from parent
+            parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
+                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME)
+            original_recipe_name = parent_recipe_name_tags[0].tag_value if parent_recipe_name_tags else quality_check_scenario.title
+
+            # Get pipeline ID from parent
+            parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID)
+            pipeline_id = parent_pipeline_id_tags[0].tag_value if parent_pipeline_id_tags else quality_check_scenario.id
+
+            # Get microplate analysis flag from parent
+            parent_microplate_tags = parent_entity_tag_list.get_tags_by_key(cell_culture_state.TAG_MICROPLATE_ANALYSIS)
+            microplate_analysis = parent_microplate_tags[0].tag_value if parent_microplate_tags else "false"
+
+            # Classification tag - indicate this is an analysis
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR,
+                                   cell_culture_state.TAG_ANALYSES_PROCESSING, is_propagable=False))
+
+            # Inherit core identification tags
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
+                                   original_recipe_name, is_propagable=False))
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID,
+                                   pipeline_id, is_propagable=False))
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_MICROPLATE_ANALYSIS,
+                                   microplate_analysis, is_propagable=False))
+
+            # Link to parent quality check scenario
+            scenario_proxy.add_tag(Tag(cell_culture_state.TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK,
+                                   quality_check_scenario.id, is_propagable=False))
+
+            # Link to parent feature extraction scenario
+            scenario_proxy.add_tag(Tag("parent_feature_extraction_scenario",
+                                   feature_extraction_scenario.id, is_propagable=False))
+
+            # Add timestamp and analysis type tags
+            scenario_proxy.add_tag(Tag("analysis_timestamp", timestamp, is_propagable=False))
+            scenario_proxy.add_tag(Tag("analysis_type", "random_forest_regression", is_propagable=False))
+
+            # Add to queue
+            scenario_proxy.add_to_queue()
+
+            # Return the new scenario
+            new_scenario = scenario_proxy.get_model()
+            return new_scenario
+
+    except Exception as e:
+        st.error(f"Erreur lors du lancement du scénario Random Forest Regression: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
+        return None
+
+
+def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
+                              quality_check_scenario: Scenario,
+                              feature_extraction_scenario: Scenario) -> None:
+    """
+    Render the Random Forest Regression analysis step
+
+    :param recipe: The Recipe instance
+    :param cell_culture_state: The cell culture state
+    :param quality_check_scenario: The quality check scenario to analyze
+    :param feature_extraction_scenario: The feature extraction scenario to use for analysis
+    """
+    st.markdown("## 🌲 Random Forest Regression")
+    st.markdown("""
+    Analysez les relations entre les métadonnées (composition du milieu) et les features biologiques
+    extraites en utilisant un modèle Random Forest avec optimisation automatique des hyperparamètres.
+    """)
+
+    # Get load scenario from recipe
+    load_scenario = recipe.get_load_scenario()
+
+    if not load_scenario:
+        st.error("⚠️ Scénario de chargement introuvable.")
+        return
+
+    # Display selected feature extraction scenario
+    st.info(f"📊 Scénario d'extraction de caractéristiques : **{feature_extraction_scenario.title}**")
+
+    # Get available columns from merged table (metadata + features)
+    try:
+        # Get metadata table from load scenario
+        load_scenario_proxy = ScenarioProxy.from_existing_scenario(load_scenario.id)
+        load_protocol_proxy = load_scenario_proxy.get_protocol()
+        metadata_table_resource_model = load_protocol_proxy.get_process(
+            cell_culture_state.PROCESS_NAME_DATA_PROCESSING
+        ).get_output_resource_model('metadata_table')
+
+        if not metadata_table_resource_model:
+            st.error("⚠️ La table des métadonnées n'est pas disponible dans le scénario de chargement.")
+            return
+
+        metadata_table = metadata_table_resource_model.get_resource()
+        metadata_df = metadata_table.get_data()
+
+        if 'Series' not in metadata_df.columns:
+            st.error("⚠️ La colonne 'Series' est manquante dans la table des métadonnées.")
+            return
+
+        # Get feature extraction results to know all columns that will be in merged table
+        fe_scenario_proxy = ScenarioProxy.from_existing_scenario(feature_extraction_scenario.id)
+        fe_protocol_proxy = fe_scenario_proxy.get_protocol()
+        results_table_resource_model = fe_protocol_proxy.get_output_resource_model('results_table')
+
+        if results_table_resource_model:
+            results_table = results_table_resource_model.get_resource()
+            results_df = results_table.get_data()
+            # Get all columns from both tables (excluding 'Series' which is the merge key)
+            all_merged_columns = sorted(list(set(metadata_df.columns.tolist() + results_df.columns.tolist())))
+
+            # Identify feature extraction columns
+            feature_extraction_columns = sorted(results_df.columns.tolist())
+
+            # Separate numeric and non-numeric columns
+            metadata_numeric_cols = metadata_df.select_dtypes(include=['number']).columns.tolist()
+            results_numeric_cols = results_df.select_dtypes(include=['number']).columns.tolist()
+            all_numeric_columns = sorted(list(set(metadata_numeric_cols + results_numeric_cols)))
+
+            # Calculate non-numeric columns to exclude by default
+            all_non_numeric_columns = sorted(list(set(all_merged_columns) - set(all_numeric_columns)))
+        else:
+            # Fallback to metadata columns only
+            all_merged_columns = sorted(metadata_df.columns.tolist())
+            all_numeric_columns = sorted(metadata_df.select_dtypes(include=['number']).columns.tolist())
+            feature_extraction_columns = []
+
+            # Calculate non-numeric columns to exclude by default
+            all_non_numeric_columns = sorted(list(set(all_merged_columns) - set(all_numeric_columns)))
+
+        st.markdown(f"**Colonnes numériques disponibles** : {len(all_numeric_columns)}")
+        cols_preview = ', '.join(all_numeric_columns[:10])
+        if len(all_numeric_columns) > 10:
+            st.markdown(f"**Aperçu** : {cols_preview}, ... (+{len(all_numeric_columns)-10} autres)")
+        else:
+            st.markdown(f"**Aperçu** : {cols_preview}")
+
+    except Exception as e:
+        st.error(f"Erreur lors de la lecture des tables : {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
+        return
+
+    # Check existing Random Forest scenarios for this feature extraction
+    existing_rf_scenarios = recipe.get_random_forest_scenarios_for_feature_extraction(feature_extraction_scenario.id)
+
+    if existing_rf_scenarios:
+        st.markdown(f"**Analyses Random Forest existantes** : {len(existing_rf_scenarios)}")
+        with st.expander("📊 Voir les analyses Random Forest existantes"):
+            for idx, rf_scenario in enumerate(existing_rf_scenarios):
+                st.write(
+                    f"{idx + 1}. {rf_scenario.title} - Statut: {rf_scenario.status.name}")
+
+    # Configuration form for new Random Forest
+    st.markdown("---")
+    st.markdown("### ➕ Lancer une nouvelle analyse Random Forest")
+
+    st.markdown("**Configuration de l'analyse**")
+
+    # Target column selection (must select exactly one)
+    target_column = st.selectbox(
+        "Variable cible à prédire (Y) *",
+        options=all_numeric_columns,
+        index=None,
+        key=f"rf_target_column_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
+        help="Sélectionnez une variable à prédire (par exemple: taux de croissance, rendement, etc.)"
+    )
+
+    st.markdown("**Paramètres du modèle**")
+
+    test_size = st.slider(
+        "Proportion test set",
+        min_value=0.1,
+        max_value=0.5,
+        value=0.2,
+        step=0.05,
+        key=f"rf_test_size_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
+        help="Proportion des données à utiliser pour le test (entre 0.1 et 0.5)"
+    )
+
+    st.markdown("**Options avancées**")
+
+    # Calculate default columns to exclude:
+    # 1. All non-numeric columns
+    # 2. All feature extraction columns (except the target if it's from features)
+    default_excluded = sorted(list(
+        set(all_non_numeric_columns) |
+        set([col for col in feature_extraction_columns if col != target_column])
+    ))
+
+    # Columns to exclude
+    columns_to_exclude = st.multiselect(
+        "Colonnes à exclure de l'analyse Random Forest",
+        options=[col for col in all_merged_columns if col != target_column],
+        default=default_excluded,
+        key=f"rf_columns_exclude_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
+        help="Sélectionnez les colonnes à exclure de l'analyse. Par défaut : colonnes non-numériques et colonnes de feature extraction (sauf cible)."
+    )
+    # Convert empty list to None
+    if not columns_to_exclude:
+        columns_to_exclude = None
+
+    # Submit button
+    if st.button(
+        "🚀 Lancer l'analyse Random Forest",
+        type="primary",
+        key=f"rf_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
+        use_container_width=True
+    ):
+        if not target_column:
+            st.error("⚠️ Veuillez sélectionner une variable cible")
+        else:
+            # Launch Random Forest scenario
+            rf_scenario = launch_random_forest_scenario(
+                quality_check_scenario,
+                cell_culture_state,
+                load_scenario,
+                feature_extraction_scenario,
+                target_column,
+                columns_to_exclude,
+                test_size
+            )
+
+            if rf_scenario:
+                st.success(f"✅ Analyse Random Forest lancée avec succès ! ID : {rf_scenario.id}")
+                st.info("⏳ L'analyse est en cours d'exécution...")
+
+                # Add to recipe
+                recipe.add_random_forest_scenario(feature_extraction_scenario.id, rf_scenario)
+
+                st.rerun()
+            else:
+                st.error("❌ Erreur lors du lancement de l'analyse Random Forest")
+
+    # Info box with explanation
+    with st.expander("💡 Aide sur l'analyse Random Forest Regression"):
+        st.markdown("""
+### Qu'est-ce que la régression Random Forest ?
+
+La régression Random Forest est une méthode d'apprentissage automatique qui :
+
+1. **Combine plusieurs arbres de décision** :
+   - Chaque arbre est entraîné sur un sous-ensemble aléatoire des données
+   - La prédiction finale est la moyenne des prédictions de tous les arbres
+
+2. **Optimisation automatique** :
+   - Optimisation des hyperparamètres (nombre d'arbres, profondeur maximale)
+   - Validation croisée pour trouver les meilleurs paramètres
+
+3. **Robustesse** :
+   - Résiste bien au surapprentissage
+   - Gère naturellement les relations non-linéaires
+   - Moins sensible aux valeurs aberrantes
+
+### Résultats fournis
+
+**Tableaux** :
+- **Summary Table** : Performances du modèle (R², RMSE) pour train et test
+- **VIP Table** : Importance des variables (features importances)
+
+**Graphiques** :
+- **Estimators Plot** : Performance en fonction des hyperparamètres
+- **VIP Plot** : Importance relative des variables
+- **Train/Test Predictions** : Valeurs prédites vs observées
+
+### Applications
+
+- Identifier quels facteurs influencent le plus une variable cible
+- Prédire des performances biologiques à partir de conditions expérimentales
+- Comprendre les relations complexes et non-linéaires
+- Sélectionner les variables les plus importantes
+
+### Paramètres recommandés
+
+- **Test size** : 0.2 (20% pour validation)
+- **Variable cible** : Un seul paramètre biologique d'intérêt
+
+### Différence avec PLS Regression
+
+- **Random Forest** : Meilleur pour les relations non-linéaires, plus robuste
+- **PLS** : Meilleur pour la multicolinéarité, interprétation plus simple
+- Utilisez les deux pour comparer les résultats !
+""")

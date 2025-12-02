@@ -25,6 +25,10 @@ from .recipe_steps import (
     render_feature_extraction_results,
     render_metadata_feature_umap_step,
     render_metadata_feature_umap_results,
+    render_pls_regression_step,
+    render_pls_regression_results,
+    render_random_forest_step,
+    render_random_forest_results,
 )
 
 
@@ -250,6 +254,62 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                         material_icon='scatter_plot'
                                                     )
                                                     fe_umap_launch_item.add_child(metadata_umap_result_item)
+
+                                        elif post_feature_extraction_analysis_type == 'pls_regression':
+                                            # Create sub-item for launching new PLS regression analysis
+                                            fe_pls_launch_item = StreamlitTreeMenuItem(
+                                                label=translate_service.translate(
+                                                    post_feature_extraction_analysis_info['title']),
+                                                key=f'analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}',
+                                                material_icon=post_feature_extraction_analysis_info['icon'])
+                                            fe_result_item.add_child(fe_pls_launch_item)
+
+                                            # Add existing PLS regression scenarios as sub-items
+                                            pls_scenarios = recipe.get_pls_regression_scenarios_for_feature_extraction(
+                                                fe_scenario.id)
+                                            if pls_scenarios:
+                                                for pls_scenario in pls_scenarios:
+                                                    pls_timestamp = pls_scenario.title
+                                                    if "PLS Regression - " in pls_scenario.title:
+                                                        pls_timestamp = pls_scenario.title.replace(
+                                                            "PLS Regression - ",
+                                                            "")
+
+                                                    # Create sub-sub-item for this PLS regression result
+                                                    pls_result_item = StreamlitTreeMenuItem(
+                                                        label=pls_timestamp,
+                                                        key=f'pls_regression_result_{pls_scenario.id}',
+                                                        material_icon='insights'
+                                                    )
+                                                    fe_pls_launch_item.add_child(pls_result_item)
+
+                                        elif post_feature_extraction_analysis_type == 'random_forest_regression':
+                                            # Create sub-item for launching new Random Forest regression analysis
+                                            fe_rf_launch_item = StreamlitTreeMenuItem(
+                                                label=translate_service.translate(
+                                                    post_feature_extraction_analysis_info['title']),
+                                                key=f'analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}',
+                                                material_icon=post_feature_extraction_analysis_info['icon'])
+                                            fe_result_item.add_child(fe_rf_launch_item)
+
+                                            # Add existing Random Forest regression scenarios as sub-items
+                                            rf_scenarios = recipe.get_random_forest_scenarios_for_feature_extraction(
+                                                fe_scenario.id)
+                                            if rf_scenarios:
+                                                for rf_scenario in rf_scenarios:
+                                                    rf_timestamp = rf_scenario.title
+                                                    if "Random Forest Regression - " in rf_scenario.title:
+                                                        rf_timestamp = rf_scenario.title.replace(
+                                                            "Random Forest Regression - ",
+                                                            "")
+
+                                                    # Create sub-sub-item for this Random Forest regression result
+                                                    rf_result_item = StreamlitTreeMenuItem(
+                                                        label=rf_timestamp,
+                                                        key=f'random_forest_result_{rf_scenario.id}',
+                                                        material_icon='account_tree'
+                                                    )
+                                                    fe_rf_launch_item.add_child(rf_result_item)
 
                                     analysis_item.add_child(fe_result_item)
 
@@ -510,7 +570,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.title(f"{recipe.name} - Metadata Feature UMAP Analysis")
                             # Render the step page to launch new analyses or view existing ones
                             render_metadata_feature_umap_step(
-                                recipe, cell_culture_state, quality_check_scenario=target_qc_scenario)
+                                recipe, cell_culture_state, quality_check_scenario=target_qc_scenario,
+                                feature_extraction_scenario=target_fe_scenario)
                         else:
                             st.error("Quality Check scenario not found")
                     else:
@@ -528,5 +589,83 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     render_metadata_feature_umap_results(recipe, cell_culture_state, target_umap_scenario)
                 else:
                     st.error("UMAP Metadata+Features scenario not found")
+            elif selected_key.startswith('analysis_pls_regression_fe_'):
+                # Extract Feature Extraction scenario ID from key (analysis_pls_regression_fe_{fe_scenario_id})
+                fe_scenario_id = selected_key.replace('analysis_pls_regression_fe_', '')
+                # Find the corresponding FE scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_fe_scenario = next((s for s in all_analyses_scenarios if s.id == fe_scenario_id), None)
+                if target_fe_scenario:
+                    # Find the quality check scenario (parent of the FE scenario)
+                    entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, fe_scenario_id)
+                    parent_qc_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_quality_check")
+
+                    if parent_qc_tags:
+                        qc_scenario_id = parent_qc_tags[0].tag_value
+                        all_qc_scenarios = recipe.get_quality_check_scenarios()
+                        target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+
+                        if target_qc_scenario:
+                            st.title(f"{recipe.name} - PLS Regression Analysis")
+                            # Render the step page to launch new analyses or view existing ones
+                            render_pls_regression_step(
+                                recipe, cell_culture_state, quality_check_scenario=target_qc_scenario,
+                                feature_extraction_scenario=target_fe_scenario)
+                        else:
+                            st.error("Quality Check scenario not found")
+                    else:
+                        st.error("Parent Quality Check scenario not found for this Feature Extraction")
+                else:
+                    st.error("Feature Extraction scenario not found")
+            elif selected_key.startswith('pls_regression_result_'):
+                # Extract PLS scenario ID from key (pls_regression_result_{pls_scenario_id})
+                pls_scenario_id = selected_key.replace('pls_regression_result_', '')
+                # Find the corresponding PLS scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_pls_scenario = next((s for s in all_analyses_scenarios if s.id == pls_scenario_id), None)
+                if target_pls_scenario:
+                    # Use the render function from pls_regression_results.py
+                    render_pls_regression_results(recipe, cell_culture_state, target_pls_scenario)
+                else:
+                    st.error("PLS Regression scenario not found")
+            elif selected_key.startswith('analysis_random_forest_regression_fe_'):
+                # Extract Feature Extraction scenario ID from key (analysis_random_forest_regression_fe_{fe_scenario_id})
+                fe_scenario_id = selected_key.replace('analysis_random_forest_regression_fe_', '')
+                # Find the corresponding FE scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_fe_scenario = next((s for s in all_analyses_scenarios if s.id == fe_scenario_id), None)
+                if target_fe_scenario:
+                    # Find the quality check scenario (parent of the FE scenario)
+                    entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, fe_scenario_id)
+                    parent_qc_tags = entity_tag_list.get_tags_by_key("fermentor_analyses_parent_quality_check")
+
+                    if parent_qc_tags:
+                        qc_scenario_id = parent_qc_tags[0].tag_value
+                        all_qc_scenarios = recipe.get_quality_check_scenarios()
+                        target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
+
+                        if target_qc_scenario:
+                            st.title(f"{recipe.name} - Random Forest Regression Analysis")
+                            # Render the step page to launch new analyses or view existing ones
+                            render_random_forest_step(
+                                recipe, cell_culture_state, quality_check_scenario=target_qc_scenario,
+                                feature_extraction_scenario=target_fe_scenario)
+                        else:
+                            st.error("Quality Check scenario not found")
+                    else:
+                        st.error("Parent Quality Check scenario not found for this Feature Extraction")
+                else:
+                    st.error("Feature Extraction scenario not found")
+            elif selected_key.startswith('random_forest_result_'):
+                # Extract Random Forest scenario ID from key (random_forest_result_{rf_scenario_id})
+                rf_scenario_id = selected_key.replace('random_forest_result_', '')
+                # Find the corresponding Random Forest scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step('analyses')
+                target_rf_scenario = next((s for s in all_analyses_scenarios if s.id == rf_scenario_id), None)
+                if target_rf_scenario:
+                    # Use the render function from random_forest_results.py
+                    render_random_forest_results(recipe, cell_culture_state, target_rf_scenario)
+                else:
+                    st.error("Random Forest Regression scenario not found")
             else:
                 st.info(translate_service.translate('select_step_in_menu'))

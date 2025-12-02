@@ -60,16 +60,16 @@ def launch_metadata_feature_umap_scenario(
             # Get the protocol
             protocol_proxy = scenario_proxy.get_protocol()
 
-            # Get the metadata_table resource model from the load scenario
-            load_scenario_proxy = ScenarioProxy.from_existing_scenario(load_scenario.id)
-            load_protocol_proxy = load_scenario_proxy.get_protocol()
+            # Get the metadata_table resource model from the quality check scenario output
+            qc_scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
+            qc_protocol_proxy = qc_scenario_proxy.get_protocol()
 
-            metadata_table_resource_model = load_protocol_proxy.get_process(
-                cell_culture_state.PROCESS_NAME_DATA_PROCESSING
-            ).get_output_resource_model('metadata_table')
+            metadata_table_resource_model = qc_protocol_proxy.get_output_resource_model(
+                cell_culture_state.QUALITY_CHECK_SCENARIO_METADATA_OUTPUT_NAME
+            )
 
             if not metadata_table_resource_model:
-                raise ValueError("La sortie 'metadata_table' n'est pas disponible dans le scénario de chargement")
+                raise ValueError("La sortie 'metadata_table' n'est pas disponible dans le scénario de quality check")
 
             # Get the results_table from feature extraction scenario
             fe_scenario_proxy = ScenarioProxy.from_existing_scenario(feature_extraction_scenario.id)
@@ -232,19 +232,24 @@ def launch_metadata_feature_umap_scenario(
 
 
 def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
-                                      quality_check_scenario: Scenario) -> None:
+                                      quality_check_scenario: Scenario,
+                                      feature_extraction_scenario: Scenario) -> None:
     """
     Render the Metadata Feature UMAP analysis step
 
     :param recipe: The Recipe instance
     :param cell_culture_state: The cell culture state
     :param quality_check_scenario: The quality check scenario to analyze
+    :param feature_extraction_scenario: The feature extraction scenario to use for analysis
     """
     translate_service = cell_culture_state.get_translate_service()
 
     st.markdown(f"### 🗺️ Analyse UMAP Métadonnées + Features")
 
     st.info("L'analyse UMAP combine les données de composition des milieux (métadonnées) avec les caractéristiques extraites des courbes de croissance pour une visualisation intégrée en 2D ou 3D.")
+
+    # Display selected feature extraction scenario
+    st.info(f"📊 Scénario d'extraction de caractéristiques : **{feature_extraction_scenario.title}**")
 
     # Get the load scenario to check for metadata_table output
     load_scenario = recipe.get_load_scenario()
@@ -272,45 +277,6 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         st.warning(f"⚠️ Impossible de vérifier la disponibilité de la table des métadonnées : {str(e)}")
         return
 
-    # Get feature extraction scenarios for this quality check
-    feature_extraction_scenarios = recipe.get_feature_extraction_scenarios_for_quality_check(quality_check_scenario.id)
-
-    if not feature_extraction_scenarios:
-        st.warning(
-            "⚠️ Aucun scénario d'extraction de caractéristiques trouvé. Veuillez d'abord exécuter une extraction de caractéristiques.")
-        st.info("💡 Allez à l'étape 'Feature Extraction' pour lancer une analyse.")
-        return
-
-    # Filter only successful scenarios
-    successful_fe_scenarios = [s for s in feature_extraction_scenarios if s.status == ScenarioStatus.SUCCESS]
-
-    if not successful_fe_scenarios:
-        st.warning("⚠️ Aucun scénario d'extraction de caractéristiques terminé avec succès.")
-        pending_count = len([s for s in feature_extraction_scenarios if s.status.is_finished()])
-        if pending_count > 0:
-            st.info(f"⏳ {pending_count} scénario(s) en cours d'exécution. Veuillez attendre qu'ils soient terminés.")
-        return
-
-    st.markdown(
-        f"**Analyses disponibles** : {len(successful_fe_scenarios)} scénario(s) d'extraction de caractéristiques")
-
-    # Select which feature extraction scenario to use
-    selected_fe_scenario = None
-    if len(successful_fe_scenarios) == 1:
-        selected_fe_scenario = successful_fe_scenarios[0]
-        st.info(f"📊 Utilisation de : **{selected_fe_scenario.title}**")
-    else:
-        # Let user choose
-        fe_options = {f"{s.title} (ID: {s.id[:8]})": s for s in successful_fe_scenarios}
-        selected_fe_key = st.selectbox(
-            "Sélectionner le scénario d'extraction de caractéristiques",
-            options=list(fe_options.keys())
-        )
-        selected_fe_scenario = fe_options[selected_fe_key]
-
-    if not selected_fe_scenario:
-        return
-
     # Get available series from metadata table
     try:
         metadata_table = metadata_table_resource_model.get_resource()
@@ -327,7 +293,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         available_columns = sorted(metadata_df.columns.tolist())
 
         # Get feature extraction results to know all columns that will be in merged table
-        fe_scenario_proxy = ScenarioProxy.from_existing_scenario(selected_fe_scenario.id)
+        fe_scenario_proxy = ScenarioProxy.from_existing_scenario(feature_extraction_scenario.id)
         fe_protocol_proxy = fe_scenario_proxy.get_protocol()
         results_table_resource_model = fe_protocol_proxy.get_output_resource_model('results_table')
 
@@ -357,7 +323,8 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         return
 
     # Check existing UMAP scenarios for this feature extraction
-    existing_umap_scenarios = recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(selected_fe_scenario.id)
+    existing_umap_scenarios = recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
+        feature_extraction_scenario.id)
 
     if existing_umap_scenarios:
         st.markdown(f"**Analyses UMAP existantes** : {len(existing_umap_scenarios)}")
@@ -466,7 +433,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
                 quality_check_scenario,
                 cell_culture_state,
                 load_scenario,
-                selected_fe_scenario,
+                feature_extraction_scenario,
                 medium_name_column,
                 n_neighbors,
                 min_dist,
@@ -482,7 +449,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
                 st.info("⏳ L'analyse est en cours d'exécution...")
 
                 # Add to recipe
-                recipe.add_metadata_feature_umap_scenario(selected_fe_scenario.id, umap_scenario)
+                recipe.add_metadata_feature_umap_scenario(feature_extraction_scenario.id, umap_scenario)
 
                 st.rerun()
             else:

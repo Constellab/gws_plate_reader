@@ -443,3 +443,87 @@ class FermentalgRecipe(CellCultureRecipe):
 
         # Update the scenarios dict
         self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_pls_regression_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get PLS Regression scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of PLS Regression scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (pls_regression scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a pls_regression analysis for the specified feature extraction
+            is_pls_regression = analysis_type_tags and analysis_type_tags[0].tag_value == "pls_regression"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_pls_regression and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_pls_regression_scenario(self, fe_id: str, pls_scenario: Scenario) -> None:
+        """
+        Add a PLS Regression scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param pls_scenario: PLS Regression scenario to add
+        """
+        # Get existing analyses scenarios (pls_regression scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [pls_scenario] + existing_analyses_scenarios
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_random_forest_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get Random Forest Regression scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of Random Forest Regression scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (random_forest scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a random_forest_regression analysis for the specified feature extraction
+            is_random_forest = analysis_type_tags and analysis_type_tags[0].tag_value == "random_forest_regression"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_random_forest and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_random_forest_scenario(self, fe_id: str, rf_scenario: Scenario) -> None:
+        """
+        Add a Random Forest Regression scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param rf_scenario: Random Forest Regression scenario to add
+        """
+        # Get existing analyses scenarios (random_forest scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [rf_scenario] + existing_analyses_scenarios
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)

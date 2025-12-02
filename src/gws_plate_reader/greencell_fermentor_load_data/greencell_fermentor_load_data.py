@@ -116,7 +116,7 @@ def create_venn_diagram_2_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
 @task_decorator("BiolectorLoadData", human_name="Load Biolector data QC0",
                 short_description="Load and process Biolector QC0 fermentation data from multiple sources",
                 style=TypingStyle.community_icon(icon_technical_name="file-upload", background_color="#2492FE"))
-class BiolectorLoadData(Task):
+class GreencellFermentorLoadData(Task):
     """
     Load and process Biolector QC0 fermentation data from multiple CSV files and follow-up data.
 

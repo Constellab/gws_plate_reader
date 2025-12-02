@@ -42,15 +42,13 @@ def render_pls_regression_results(recipe: CellCultureRecipe, cell_culture_state:
         vip_plot_model = protocol_proxy.get_output_resource_model('vip_plot')
         plot_train_model = protocol_proxy.get_output_resource_model('plot_train_set')
         plot_test_model = protocol_proxy.get_output_resource_model('plot_test_set')
-        merged_table_model = protocol_proxy.get_output_resource_model('merged_table')
 
         # Display results in tabs
         tabs = st.tabs([
             "📈 Performance",
             "🎯 Importance des variables",
             "🔬 Prédictions Train",
-            "✅ Prédictions Test",
-            "📊 Table fusionnée"
+            "✅ Prédictions Test"
         ])
 
         # Tab 1: Performance metrics and components plot
@@ -160,30 +158,6 @@ def render_pls_regression_results(recipe: CellCultureRecipe, cell_culture_state:
 - Si performances train >> test : sur-apprentissage possible
 - Points s'écartant fortement de la diagonale = outliers ou cas particuliers
 """)
-
-        # Tab 5: Merged table
-        with tabs[4]:
-            st.markdown("#### 📊 Table fusionnée (Métadonnées + Features)")
-
-            if merged_table_model:
-                merged_table = merged_table_model.get_resource()
-                merged_df = merged_table.get_data()
-
-                st.markdown(f"**Dimensions** : {merged_df.shape[0]} lignes × {merged_df.shape[1]} colonnes")
-
-                # Display table
-                st.dataframe(merged_df, use_container_width=True, height=400)
-
-                # Download button
-                csv = merged_df.to_csv(index=True)
-                st.download_button(
-                    label="📥 Télécharger la table fusionnée (CSV)",
-                    data=csv,
-                    file_name=f"pls_merged_table_{pls_scenario.id[:8]}.csv",
-                    mime="text/csv"
-                )
-
-                st.info("💡 Cette table contient les données brutes utilisées pour l'analyse PLS (métadonnées + features)")
 
     except Exception as e:
         st.error(f"Erreur lors de l'affichage des résultats : {str(e)}")

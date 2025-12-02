@@ -220,6 +220,8 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
     :param quality_check_scenario: The quality check scenario to analyze
     :param feature_extraction_scenario: The feature extraction scenario to use for analysis
     """
+    translate_service = cell_culture_state.get_translate_service()
+
     st.markdown("## 🌲 Random Forest Regression")
     st.markdown("""
     Analysez les relations entre les métadonnées (composition du milieu) et les features biologiques

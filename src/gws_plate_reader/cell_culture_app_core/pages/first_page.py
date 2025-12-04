@@ -111,8 +111,8 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             if recipe_name in recipes_dict:
                 recipes_dict[recipe_name]['analyses_scenarios'].append(scenario)
 
-        # Pass both load and selection scenarios - the table function will filter and group them correctly
-        list_scenario_user: List[Scenario] = load_scenarios + selection_scenarios
+        # Pass load, selection, and quality check scenarios - the table function will filter and group them correctly
+        list_scenario_user: List[Scenario] = load_scenarios + selection_scenarios + quality_check_scenarios
 
         # Use the new centralized function to render the table
         selected_scenario_id = render_recipe_table(list_scenario_user, cell_culture_state)

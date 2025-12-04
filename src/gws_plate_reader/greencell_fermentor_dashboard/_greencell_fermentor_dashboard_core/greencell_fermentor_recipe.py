@@ -10,6 +10,14 @@ from gws_core.tag.tag_entity_type import TagEntityType
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
 
+# Tag constants (matching GreencellFermentorState)
+_TAG_FERMENTOR_RECIPE_NAME = "greencell_fermentor_recipe_name"
+_TAG_FERMENTOR_PIPELINE_ID = "greencell_fermentor_pipeline_id"
+_TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION = "greencell_fermentor_quality_check_parent_selection"
+_TAG_FERMENTOR_ANALYSES_PARENT_SELECTION = "greencell_fermentor_analyses_parent_selection"
+_TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK = "greencell_fermentor_analyses_parent_quality_check"
+
+
 @dataclass
 class GreencellFermentorRecipe(CellCultureRecipe):
     """
@@ -29,10 +37,12 @@ class GreencellFermentorRecipe(CellCultureRecipe):
         entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
 
         # Extract recipe name using Greencell Fermentor-specific tag
-        name = cls._extract_tag_value(entity_tag_list, "greencell_fermentor_recipe_name", scenario.title)
+        name = cls._extract_tag_value(
+            entity_tag_list, _TAG_FERMENTOR_RECIPE_NAME, scenario.title)
 
         # Extract pipeline ID using Greencell Fermentor-specific tag
-        pipeline_id = cls._extract_tag_value(entity_tag_list, "greencell_fermentor_pipeline_id", scenario.id)
+        pipeline_id = cls._extract_tag_value(
+            entity_tag_list, _TAG_FERMENTOR_PIPELINE_ID, scenario.id)
         # For Greencell Fermentor, we don't have the microplate distinction
         analysis_type = "standard"
 
@@ -58,7 +68,8 @@ class GreencellFermentorRecipe(CellCultureRecipe):
             scenarios=scenarios_by_step,
             main_scenario=scenario,
             pipeline_id=pipeline_id,
-            file_info=file_info
+            file_info=file_info,
+            has_data_raw=False  # GreenCell recipes don't have raw data
         )
 
     def add_selection_scenarios(self, selection_scenarios: List[Scenario]) -> None:
@@ -92,7 +103,7 @@ class GreencellFermentorRecipe(CellCultureRecipe):
         for scenario in all_qc_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
             parent_selection_tags = entity_tag_list.get_tags_by_key(
-                "greencell_fermentor_quality_check_parent_selection")
+                _TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION)
             if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
                 filtered_scenarios.append(scenario)
         return filtered_scenarios
@@ -119,7 +130,8 @@ class GreencellFermentorRecipe(CellCultureRecipe):
         filtered_scenarios = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_selection_tags = entity_tag_list.get_tags_by_key("greencell_fermentor_analyses_parent_selection")
+            parent_selection_tags = entity_tag_list.get_tags_by_key(
+                _TAG_FERMENTOR_ANALYSES_PARENT_SELECTION)
             if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
                 filtered_scenarios.append(scenario)
         return filtered_scenarios
@@ -130,7 +142,8 @@ class GreencellFermentorRecipe(CellCultureRecipe):
         filtered = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_qc_tags = entity_tag_list.get_tags_by_key("greencell_fermentor_analyses_parent_quality_check")
+            parent_qc_tags = entity_tag_list.get_tags_by_key(
+                _TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK)
             analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
             is_medium_pca = analysis_type_tags and analysis_type_tags[0].tag_value == "medium_pca"
             is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
@@ -150,7 +163,8 @@ class GreencellFermentorRecipe(CellCultureRecipe):
         filtered = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_qc_tags = entity_tag_list.get_tags_by_key("greencell_fermentor_analyses_parent_quality_check")
+            parent_qc_tags = entity_tag_list.get_tags_by_key(
+                _TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK)
             analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
             is_medium_umap = analysis_type_tags and analysis_type_tags[0].tag_value == "medium_umap"
             is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
@@ -170,7 +184,8 @@ class GreencellFermentorRecipe(CellCultureRecipe):
         filtered = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_qc_tags = entity_tag_list.get_tags_by_key("greencell_fermentor_analyses_parent_quality_check")
+            parent_qc_tags = entity_tag_list.get_tags_by_key(
+                _TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK)
             analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
             is_feature_extraction = analysis_type_tags and analysis_type_tags[0].tag_value == "feature_extraction"
             is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id

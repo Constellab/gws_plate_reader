@@ -33,6 +33,7 @@ class CellCultureRecipe(ABC):
     # Additional metadata
     pipeline_id: Optional[str] = None
     file_info: Optional[Dict[str, str]] = None  # Info about uploaded files
+    has_data_raw: bool = True  # Whether this recipe has raw data (for feature extraction)
 
     @classmethod
     @abstractmethod

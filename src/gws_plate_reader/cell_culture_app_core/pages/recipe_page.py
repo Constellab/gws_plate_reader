@@ -173,6 +173,10 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                     qc_folder.add_child(analysis_folder)
 
                     for analysis_type, analysis_info in cell_culture_state.ANALYSIS_TREE.items():
+                        # Skip feature extraction if recipe doesn't have raw data
+                        if analysis_type == 'feature_extraction' and not recipe.has_data_raw:
+                            continue
+
                         analysis_item = StreamlitTreeMenuItem(
                             label=translate_service.translate(analysis_info['title']),
                             key=f'analysis_{analysis_type}_qc_{qc_scenario.id}',

@@ -76,6 +76,7 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
                     'recipe_name': recipe_name,
                     'load_scenario': None,
                     'selection_scenarios': [],
+                    'quality_check_scenarios': [],
                     'pipeline_id': '',
                     'is_microplate': False,
                     'folder_name': translate_service.translate('summary_root_folder'),
@@ -91,6 +92,11 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
             selection_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR)
             is_selection_scenario = any(tag.tag_value == cell_culture_state.TAG_SELECTION_PROCESSING
                                         for tag in selection_tags)
+
+            # Check if this is a quality check scenario
+            quality_check_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR)
+            is_quality_check_scenario = any(tag.tag_value == cell_culture_state.TAG_QUALITY_CHECK_PROCESSING
+                                            for tag in quality_check_tags)
 
             if is_load_scenario:
                 recipes_dict[recipe_name]['load_scenario'] = scenario
@@ -116,6 +122,9 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
 
             elif is_selection_scenario:
                 recipes_dict[recipe_name]['selection_scenarios'].append(scenario)
+
+            elif is_quality_check_scenario:
+                recipes_dict[recipe_name]['quality_check_scenarios'].append(scenario)
 
         except Exception as e:
             # Si erreur lors du traitement d'un scénario, on l'ignore et continue

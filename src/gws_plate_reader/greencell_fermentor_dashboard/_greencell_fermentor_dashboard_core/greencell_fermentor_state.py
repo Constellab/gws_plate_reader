@@ -19,10 +19,10 @@ class GreencellFermentorState(CellCultureState):
     TAG_FERMENTOR = "greencell_fermentor"
     TAG_FERMENTOR_RECIPE_NAME = "greencell_fermentor_recipe_name"
     TAG_FERMENTOR_PIPELINE_ID = "greencell_fermentor_pipeline_id"
-    TAG_GREENCELL_FERMENTOR_SELECTION_STEP = "greencell_fermentor_selection_step"
-    TAG_GREENCELL_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION = "greencell_fermentor_quality_check_parent_selection"
-    TAG_GREENCELL_FERMENTOR_ANALYSES_PARENT_SELECTION = "greencell_fermentor_analyses_parent_selection"
-    TAG_GREENCELL_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK = "greencell_fermentor_analyses_parent_quality_check"
+    TAG_FERMENTOR_SELECTION_STEP = "greencell_fermentor_selection_step"
+    TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION = "greencell_fermentor_quality_check_parent_selection"
+    TAG_FERMENTOR_ANALYSES_PARENT_SELECTION = "greencell_fermentor_analyses_parent_selection"
+    TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK = "greencell_fermentor_analyses_parent_quality_check"
 
     # Process names (Greencell Fermentor-specific)
     PROCESS_NAME_DATA_PROCESSING = 'greencell_fermentor_data_processing'

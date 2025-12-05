@@ -12,7 +12,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_filter import CellCultureMergeFeatureMetadata
+from gws_plate_reader.cell_culture_filter import CellCultureMergeFeatureMetadata
 from gws_design_of_experiments.random_forest.random_forest_task import RandomForestRegressorTask
 
 
@@ -203,7 +203,7 @@ def launch_random_forest_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario Random Forest Regression: {str(e)}")
+        st.error(translate_service.translate('error_launching_random_forest').format(error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return None
@@ -232,11 +232,11 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
     load_scenario = recipe.get_load_scenario()
 
     if not load_scenario:
-        st.error("⚠️ Scénario de chargement introuvable.")
+        st.error(f"⚠️ {translate_service.translate('load_scenario_not_found')}")
         return
 
     # Display selected feature extraction scenario
-    st.info(f"📊 Scénario d'extraction de caractéristiques : **{feature_extraction_scenario.title}**")
+    st.info(f"📊 {translate_service.translate('feature_extraction_scenario_info').format(title=feature_extraction_scenario.title)}")
 
     # Get available columns from merged table (metadata + features)
     try:
@@ -248,14 +248,14 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
         ).get_output_resource_model('metadata_table')
 
         if not metadata_table_resource_model:
-            st.error("⚠️ La table des métadonnées n'est pas disponible dans le scénario de chargement.")
+            st.error(f"⚠️ {translate_service.translate('metadata_table_not_available_load')}")
             return
 
         metadata_table = metadata_table_resource_model.get_resource()
         metadata_df = metadata_table.get_data()
 
         if 'Series' not in metadata_df.columns:
-            st.error("⚠️ La colonne 'Series' est manquante dans la table des métadonnées.")
+            st.error(f"⚠️ {translate_service.translate('series_column_missing')}")
             return
 
         # Get feature extraction results to know all columns that will be in merged table
@@ -288,15 +288,16 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
             # Calculate non-numeric columns to exclude by default
             all_non_numeric_columns = sorted(list(set(all_merged_columns) - set(all_numeric_columns)))
 
-        st.markdown(f"**Colonnes numériques disponibles** : {len(all_numeric_columns)}")
+        st.markdown(f"**{translate_service.translate('numeric_columns_available_label')}** : {len(all_numeric_columns)}")
         cols_preview = ', '.join(all_numeric_columns[:10])
         if len(all_numeric_columns) > 10:
-            st.markdown(f"**Aperçu** : {cols_preview}, ... (+{len(all_numeric_columns)-10} autres)")
+            st.markdown(
+                f"**{translate_service.translate('preview_label')}** : {cols_preview}{translate_service.translate('more_columns_suffix').format(count=len(all_numeric_columns)-10)}")
         else:
-            st.markdown(f"**Aperçu** : {cols_preview}")
+            st.markdown(f"**{translate_service.translate('preview_label')}** : {cols_preview}")
 
     except Exception as e:
-        st.error(f"Erreur lors de la lecture des tables : {str(e)}")
+        st.error(translate_service.translate('error_reading_tables').format(error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return

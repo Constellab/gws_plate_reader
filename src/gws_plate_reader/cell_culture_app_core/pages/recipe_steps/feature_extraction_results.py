@@ -130,7 +130,7 @@ def render_feature_extraction_results(recipe: CellCultureRecipe, cell_culture_st
         st.warning(translate_service.translate('feature_extraction_curves_not_found'))
 
     # Info box with interpretation help
-    with st.expander("💡 Aide à l'interprétation des résultats"):
+    with st.expander(f"💡 {translate_service.translate('interpretation_help')}"):
         st.markdown("""
         **Interprétation des résultats d'extraction de caractéristiques**
 

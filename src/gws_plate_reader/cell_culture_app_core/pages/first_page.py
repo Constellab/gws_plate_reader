@@ -66,6 +66,11 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             .add_is_archived_filter(False) \
             .search_all()
 
+        # Sort all scenarios by creation date (oldest first, most recent last)
+        selection_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+        quality_check_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+        analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
         # Create dictionary with recipe name as key and scenarios structure as value
         recipes_dict = {}
 

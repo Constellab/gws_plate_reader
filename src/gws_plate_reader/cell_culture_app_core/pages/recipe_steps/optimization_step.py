@@ -13,7 +13,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser, StreamlitResourceSelect
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_filter import CellCultureMergeFeatureMetadata
+from gws_plate_reader.cell_culture_filter import CellCultureMergeFeatureMetadata
 from gws_design_of_experiments import Optimization, GenerateOptimizationDashboard
 
 
@@ -199,7 +199,8 @@ def launch_optimization_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario Optimization: {str(e)}")
+        st.error(translate_service.translate('error_launching_scenario_generic').format(
+            scenario_type='Optimization', error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return None
@@ -218,12 +219,12 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### ⚙️ Analyse Optimization")
+    st.markdown("### ⚙️ " + translate_service.translate('optimization_title'))
 
-    st.info("L'analyse Optimization utilise des algorithmes génétiques pour trouver les conditions optimales de composition des milieux permettant de maximiser les performances biologiques.")
+    st.info(translate_service.translate('optimization_info'))
 
     # Display selected feature extraction scenario
-    st.info(f"📊 Scénario d'extraction de caractéristiques : **{feature_extraction_scenario.title}**")
+    st.info("📊 " + translate_service.translate('feature_extraction_scenario_info').format(title=feature_extraction_scenario.title))
 
     # Get available columns from merged table (metadata + features)
     try:
@@ -244,7 +245,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
         metadata_df = metadata_table.get_data()
 
         if 'Series' not in metadata_df.columns:
-            st.error("⚠️ La colonne 'Series' est manquante dans la table des métadonnées.")
+            st.error(f"⚠️ {translate_service.translate('series_column_missing')}")
             return
 
         # Get feature extraction results to know all columns that will be in merged table
@@ -277,12 +278,14 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
             # Calculate non-numeric columns to exclude by default
             all_non_numeric_columns = sorted(list(set(all_merged_columns) - set(all_numeric_columns)))
 
-        st.markdown(f"**Colonnes numériques disponibles** : {len(all_numeric_columns)}")
+        st.markdown("**" + translate_service.translate('numeric_columns_available') + "** : " +
+                    str(len(all_numeric_columns)))
         cols_preview = ', '.join(all_numeric_columns[:10])
         if len(all_numeric_columns) > 10:
-            st.markdown(f"**Aperçu** : {cols_preview}, ... (+{len(all_numeric_columns)-10} autres)")
+            st.markdown("**" + translate_service.translate('preview') + "** : " + cols_preview +
+                        translate_service.translate('more_columns').format(count=len(all_numeric_columns)-10))
         else:
-            st.markdown(f"**Aperçu** : {cols_preview}")
+            st.markdown("**" + translate_service.translate('preview') + "** : " + cols_preview)
 
     except Exception as e:
         st.error(f"Erreur lors de la lecture des tables : {str(e)}")
@@ -305,14 +308,14 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
     st.markdown("---")
     st.markdown("### ➕ Lancer une nouvelle analyse Optimization")
 
-    st.markdown("**Sélection de la ressource de contraintes**")
+    st.markdown(f"**{translate_service.translate('constraints_resource_selection')}**")
 
     # Use StreamlitResourceSelect to select JSONDict resource
     resource_select_constraints = StreamlitResourceSelect()
     # Filter to show only JSONDict resources
     resource_select_constraints.filters['resourceTypingNames'] = ['RESOURCE.gws_core.JSONDict']
     resource_select_constraints.select_resource(
-        placeholder="Sélectionnez une ressource de contraintes manuelles (JSONDict)",
+        placeholder=translate_service.translate('select_constraints_resource_placeholder'),
         key=f"optimization_constraints_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
         defaut_resource=None
     )
@@ -327,7 +330,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
 
     # Check if a resource is selected
     if not selected_constraints_id:
-        st.warning("⚠️ Veuillez sélectionner une ressource JSONDict de contraintes manuelles.")
+        st.warning(f"⚠️ {translate_service.translate('select_jsondict_warning')}")
         st.info(
             "💡 Créez une ressource JSONDict contenant les contraintes au format : {\"feature_name\": {\"lower_bound\": value, \"upper_bound\": value}}")
         return
@@ -374,7 +377,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
                 f"Cible {i+1}",
                 options=all_numeric_columns,
                 key=f"optimization_target_{i}_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-                help="Variable à optimiser"
+                help=translate_service.translate('variable_to_optimize')
             )
 
         with col_threshold:

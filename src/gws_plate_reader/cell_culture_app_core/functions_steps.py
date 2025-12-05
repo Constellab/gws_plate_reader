@@ -42,6 +42,20 @@ def get_status_prettify(status: ScenarioStatus, translate_service: StreamlitTran
     return prettify_map.get(status, translate_service.translate('status_unknown'))
 
 
+def get_status_material_icon(status: ScenarioStatus) -> str:
+    """Return Material icon for scenario status"""
+    icon_map = {
+        ScenarioStatus.DRAFT: "edit_note",
+        ScenarioStatus.IN_QUEUE: "schedule",
+        ScenarioStatus.WAITING_FOR_CLI_PROCESS: "pause_circle",
+        ScenarioStatus.RUNNING: "sync",
+        ScenarioStatus.SUCCESS: "check_circle",
+        ScenarioStatus.ERROR: "error",
+        ScenarioStatus.PARTIALLY_RUN: "check_circle_outline"
+    }
+    return icon_map.get(status, "help")
+
+
 def get_microplate_emoji(is_microplate: bool) -> str:
     """Return appropriate emoji for microplate analysis"""
     return "🧪" if is_microplate else "🔬"

@@ -123,10 +123,10 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
         # If scenario is provided, use it
         if scenario:
             target_scenario = scenario
-            st.info(f"� Affichage des données : **{target_scenario.title}**")
+            st.info(f"📋 {translate_service.translate('displaying_data')} : **{target_scenario.title}**")
 
             if target_scenario.status != ScenarioStatus.SUCCESS:
-                st.warning("Le scénario n'est pas encore terminé avec succès.")
+                st.warning(translate_service.translate('scenario_not_successful_yet'))
                 return
 
             # Get data from scenario using the provided output name
@@ -144,7 +144,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                     return
 
             except Exception as e:
-                st.error(f"Erreur lors de la récupération des données: {str(e)}")
+                st.error(translate_service.translate('error_retrieving_data').format(error=str(e)))
                 return
 
         # Backward compatibility: if no scenario provided, try to get latest selection
@@ -240,7 +240,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                     options=index_columns,
                     index=0,
                     key="table_view_index",
-                    help="Choisissez n'importe quelle colonne pour l'utiliser comme index. Les colonnes de temps apparaissent en premier par défaut."
+                    help=translate_service.translate('choose_index_column_help')
                 )
             else:
                 st.warning(translate_service.translate('no_index_column'))
@@ -260,8 +260,8 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 options=filtered_data_columns,
                 default=[],  # Aucune colonne sélectionnée par défaut
                 key="table_view_columns",
-                help=f"Colonnes de données disponibles" +
-                (f" (excluant l'index '{selected_index}')" if selected_index else ""))
+                help=translate_service.translate('data_columns_available_help') +
+                (translate_service.translate('excluding_index_help').format(index=selected_index) if selected_index else ""))
 
         # Prepare extended data with selected columns
         extended_data = prepare_extended_data_for_visualization(
@@ -298,7 +298,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
 
         # Display data organized by selected columns
         if selected_columns:
-            st.markdown(f"### 📊 Données organisées par {selected_index}")
+            st.markdown("### 📊 " + translate_service.translate('data_organized_by').format(index=selected_index))
 
             # Create a section for each selected column using the optimized function
             for i, column_name in enumerate(selected_columns):
@@ -387,9 +387,9 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                         #     key=f"download_{column_name}_{i}"
                         # )
                     else:
-                        st.warning(f"⚠️ Aucune donnée correspond aux filtres sélectionnés pour {column_name}")
+                        st.warning(translate_service.translate('no_data_matches_column').format(column=column_name))
                 else:
-                    st.warning(f"⚠️ Aucune donnée disponible pour la colonne {column_name}")
+                    st.warning(translate_service.translate('no_data_available_column').format(column=column_name))
 
                 # Add separator between columns (except for the last one)
                 if i < len(selected_columns) - 1:

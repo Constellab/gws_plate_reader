@@ -26,46 +26,47 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
     # Check scenario status
     if umap_scenario.status != ScenarioStatus.SUCCESS:
         if umap_scenario.status == ScenarioStatus.ERROR:
-            st.error("❌ L'analyse UMAP a échoué. Veuillez vérifier les logs du scénario.")
+            st.error(f"❌ {translate_service.translate('umap_analysis_failed')}")
         elif umap_scenario.status.is_running():
-            st.info("⏳ L'analyse UMAP est en cours d'exécution. Veuillez patienter...")
+            st.info(f"⏳ {translate_service.translate('umap_analysis_running')}")
         else:
-            st.warning(f"⚠️ L'analyse UMAP n'est pas terminée (statut: {umap_scenario.status.name})")
+            st.warning(translate_service.translate('umap_analysis_not_completed').format(
+                status=umap_scenario.status.name))
         return
 
-    st.success("✅ Analyse UMAP terminée avec succès")
+    st.success(translate_service.translate('umap_analysis_complete'))
 
     # Display UMAP scenario outputs
     scenario_proxy = ScenarioProxy.from_existing_scenario(umap_scenario.id)
     protocol_proxy = scenario_proxy.get_protocol()
 
     # Display merged table info
-    st.markdown("### 📊 Données combinées")
+    st.markdown("### 📊 " + translate_service.translate('combined_data'))
     merged_table = protocol_proxy.get_output('merged_table')
     if merged_table and isinstance(merged_table, Table):
         merged_df = merged_table.get_data()
         n_rows, n_cols = merged_df.shape
-        st.info(f"La table combinée contient **{n_rows} séries** et **{n_cols} colonnes** (métadonnées + features)")
+        st.info(translate_service.translate('combined_table_info').format(rows=n_rows, cols=n_cols))
 
-        with st.expander("📋 Voir un aperçu de la table combinée"):
+        with st.expander(f"📋 {translate_service.translate('preview_combined_table')}"):
             st.dataframe(merged_df.head(20), use_container_width=True)
 
             # Download button
             csv = merged_df.to_csv(index=False)
             st.download_button(
-                label="💾 Télécharger la table combinée (CSV)",
+                label=f"💾 {translate_service.translate('download_combined_table_csv')}",
                 data=csv,
                 file_name=f"metadata_features_merged_{umap_scenario.id[:8]}.csv",
                 mime="text/csv"
             )
     else:
-        st.warning("⚠️ Table combinée non disponible")
+        st.warning(translate_service.translate('combined_table_unavailable'))
 
     st.markdown("---")
 
     # Display 2D UMAP plot
-    st.markdown(f"### 🗺️ Projection UMAP 2D")
-    st.markdown("Visualisation en 2 dimensions des séries dans l'espace métadonnées + features")
+    st.markdown(f"### 🗺️ {translate_service.translate('umap_2d_plot')}")
+    st.markdown(translate_service.translate('visualization_2d_description'))
 
     umap_2d_plot = protocol_proxy.get_output('umap_2d_plot')
     if umap_2d_plot and isinstance(umap_2d_plot, PlotlyResource):
@@ -125,13 +126,13 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
         # Download button
         csv = df_2d.to_csv(index=False)
         st.download_button(
-            label="💾 Télécharger coordonnées 2D (CSV)",
+            label=f"💾 {translate_service.translate('download_2d_coordinates_csv')}",
             data=csv,
             file_name=f"umap_2d_coordinates_{umap_scenario.id[:8]}.csv",
             mime="text/csv"
         )
     else:
-        st.warning("⚠️ Table des coordonnées 2D non disponible")
+        st.warning(f"⚠️ {translate_service.translate('coordinates_2d_table_unavailable')}")
 
     st.markdown("---")
 
@@ -156,13 +157,13 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
         # Download button
         csv = df_3d.to_csv(index=False)
         st.download_button(
-            label="💾 Télécharger coordonnées 3D (CSV)",
+            label=f"💾 {translate_service.translate('download_3d_coordinates_csv')}",
             data=csv,
             file_name=f"umap_3d_coordinates_{umap_scenario.id[:8]}.csv",
             mime="text/csv"
         )
     else:
-        st.warning("⚠️ Table des coordonnées 3D non disponible")
+        st.warning(f"⚠️ {translate_service.translate('coordinates_3d_table_unavailable')}")
 
     # Info box with interpretation guide
     with st.expander(f"💡 Guide d'interprétation détaillé"):

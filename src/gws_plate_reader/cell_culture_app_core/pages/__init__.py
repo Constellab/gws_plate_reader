@@ -1,6 +1,6 @@
 """
 Common Cell Culture Dashboard Pages
-Shared pages for cell culture analysis dashboards (Fermentalg, Biolector, etc.)
+Shared pages for cell culture analysis dashboards
 """
 from . import first_page
 from . import recipe_page

@@ -12,7 +12,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_filter import CellCultureMergeFeatureMetadata, CellCulturePrepareFeatureMetadataTable
+from gws_plate_reader.cell_culture_filter import CellCultureMergeFeatureMetadata, CellCulturePrepareFeatureMetadataTable
 from gws_design_of_experiments.umap.umap import UMAPTask
 
 
@@ -225,7 +225,8 @@ def launch_metadata_feature_umap_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario Metadata Feature UMAP: {str(e)}")
+        st.error(translate_service.translate('error_launching_scenario_generic').format(
+            scenario_type='Metadata Feature UMAP', error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return None
@@ -244,18 +245,18 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 🗺️ Analyse UMAP Métadonnées + Features")
+    st.markdown("### 🗺️ " + translate_service.translate('metadata_feature_umap_title'))
 
-    st.info("L'analyse UMAP combine les données de composition des milieux (métadonnées) avec les caractéristiques extraites des courbes de croissance pour une visualisation intégrée en 2D ou 3D.")
+    st.info(translate_service.translate('metadata_feature_umap_info'))
 
     # Display selected feature extraction scenario
-    st.info(f"📊 Scénario d'extraction de caractéristiques : **{feature_extraction_scenario.title}**")
+    st.info("📊 " + translate_service.translate('feature_extraction_scenario_info').format(title=feature_extraction_scenario.title))
 
     # Get the load scenario to check for metadata_table output
     load_scenario = recipe.get_load_scenario()
 
     if not load_scenario:
-        st.warning("⚠️ Aucun scénario de chargement de données trouvé. L'analyse UMAP n'est pas disponible.")
+        st.warning(translate_service.translate('medium_umap_no_load_scenario'))
         return
 
     # Check if load scenario has metadata_table output
@@ -268,13 +269,13 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         ).get_output_resource_model('metadata_table')
 
         if not metadata_table_resource_model:
-            st.warning(
-                "⚠️ La table des métadonnées (metadata_table) n'est pas disponible dans le scénario de chargement.")
+            st.warning(translate_service.translate('metadata_table_unavailable_load'))
             return
 
-        st.success(f"✅ Table des métadonnées disponible : {metadata_table_resource_model.name}")
+        st.success(translate_service.translate('metadata_table_success').format(
+            name=metadata_table_resource_model.name))
     except Exception as e:
-        st.warning(f"⚠️ Impossible de vérifier la disponibilité de la table des métadonnées : {str(e)}")
+        st.warning(translate_service.translate('metadata_table_check_failed').format(error=str(e)))
         return
 
     # Get available series from metadata table
@@ -283,7 +284,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         metadata_df = metadata_table.get_data()
 
         if 'Series' not in metadata_df.columns:
-            st.error("⚠️ La colonne 'Series' est manquante dans la table des métadonnées.")
+            st.error(f"⚠️ {translate_service.translate('series_column_missing')}")
             return
 
         available_series = sorted(metadata_df['Series'].unique().tolist())
@@ -311,15 +312,16 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
             [col for col in available_columns if col != 'Series'][0] if len(available_columns) > 1 else 'Medium'
         )
 
-        st.markdown(f"**Séries disponibles** : {n_series}")
+        st.markdown("**" + translate_service.translate('available_series') + "** : " + str(n_series))
         cols_preview = ', '.join(available_columns[:10])
         if len(available_columns) > 10:
-            st.markdown(f"**Colonnes disponibles** : {cols_preview}, ... (+{len(available_columns)-10} autres)")
+            st.markdown("**" + translate_service.translate('available_columns') + "** : " + cols_preview +
+                        translate_service.translate('more_columns').format(count=len(available_columns) - 10))
         else:
-            st.markdown(f"**Colonnes disponibles** : {cols_preview}")
+            st.markdown("**" + translate_service.translate('available_columns') + "** : " + cols_preview)
 
     except Exception as e:
-        st.error(f"Erreur lors de la lecture de la table des métadonnées : {str(e)}")
+        st.error(translate_service.translate('error_reading_metadata').format(error=str(e)))
         return
 
     # Check existing UMAP scenarios for this feature extraction
@@ -327,45 +329,45 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         feature_extraction_scenario.id)
 
     if existing_umap_scenarios:
-        st.markdown(f"**Analyses UMAP existantes** : {len(existing_umap_scenarios)}")
-        with st.expander("📊 Voir les analyses UMAP existantes"):
+        st.markdown(f"**{translate_service.translate('existing_umap_analyses')}** : {len(existing_umap_scenarios)}")
+        with st.expander(f"📊 {translate_service.translate('view_existing_umap')}"):
             for idx, umap_scenario in enumerate(existing_umap_scenarios):
                 st.write(
                     f"{idx + 1}. {umap_scenario.title} (ID: {umap_scenario.id}) - Statut: {umap_scenario.status.name}")
 
     # Configuration form for new UMAP
     st.markdown("---")
-    st.markdown("### ➕ Lancer une nouvelle analyse UMAP")
+    st.markdown(f"### ➕ {translate_service.translate('launch_new_umap')}")
 
     with st.form(key=f"metadata_feature_umap_form_{quality_check_scenario.id}"):
-        st.markdown("**Configuration de l'analyse**")
+        st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
 
         # Medium column selection
         medium_name_column = st.selectbox(
-            "Colonne pour le nom du milieu",
+            translate_service.translate('medium_column_label'),
             options=available_columns,
             index=available_columns.index(default_medium_column) if default_medium_column in available_columns else 0,
-            help="Colonne contenant les noms de milieux (utilisée pour colorer les points dans UMAP)"
+            help=translate_service.translate('medium_name_column_help')
         )
 
-        st.markdown("**Paramètres UMAP**")
+        st.markdown("**" + translate_service.translate('umap_parameters') + "**")
 
         col1, col2 = st.columns(2)
 
         with col1:
             n_neighbors = st.slider(
-                "Nombre de voisins",
+                translate_service.translate('n_neighbors_label'),
                 min_value=2,
                 max_value=50,
                 value=15,
-                help="Contrôle l'équilibre entre structure locale et globale (plus élevé = structure plus globale)"
+                help=translate_service.translate('n_neighbors_help')
             )
 
             metric = st.selectbox(
-                "Métrique de distance",
+                translate_service.translate('distance_metric_label'),
                 options=["euclidean", "manhattan", "cosine", "correlation"],
                 index=0,
-                help="Métrique pour calculer la distance entre points"
+                help=translate_service.translate('distance_metric_help')
             )
 
         with col2:
@@ -385,7 +387,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
             )
 
         st.markdown(f"**{translate_service.translate('optional_clustering')}**")
-        enable_clustering = st.checkbox("Activer le clustering K-Means", value=False)
+        enable_clustering = st.checkbox(translate_service.translate('enable_clustering'), value=False)
         n_clusters = None
         if enable_clustering:
             n_clusters = st.slider(
@@ -402,7 +404,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         columns_to_exclude = st.multiselect(
             translate_service.translate('columns_to_exclude_label'),
             options=all_merged_columns,
-            default=[],
+            default=[medium_name_column] if medium_name_column in all_merged_columns else [],
             help=translate_service.translate('columns_to_exclude_help')
         )
         # Convert empty list to None
@@ -411,10 +413,10 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
 
         # Hover data columns
         hover_data_columns = st.multiselect(
-            "Colonnes à afficher au survol des points",
+            translate_service.translate('hover_columns_label'),
             options=all_merged_columns,
             default=[],
-            help="Sélectionnez les colonnes à afficher comme métadonnées au survol des points (Batch, Essai, Date, etc.)"
+            help=translate_service.translate('hover_data_help')
         )
         # Convert empty list to None
         if not hover_data_columns:
@@ -457,7 +459,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
 
     # Info box with explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='UMAP Métadonnées + Features')):
-        st.markdown("### Qu'est-ce que cette analyse ?")
+        st.markdown(f"### {translate_service.translate('what_is_this_analysis')}")
         st.markdown("""
 Cette analyse combine deux types de données complémentaires :
 

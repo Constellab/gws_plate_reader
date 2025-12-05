@@ -14,7 +14,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_filter import FilterFermentorAnalyseLoadedResourceSetBySelection, FermentalgSubsampling
+from gws_plate_reader.cell_culture_filter import FilterFermentorAnalyseLoadedResourceSetBySelection, CellCultureSubsampling
 
 
 def launch_selection_scenario(
@@ -67,7 +67,7 @@ def launch_selection_scenario(
 
             # Add the subsampling task
             subsampling_task = protocol_proxy.add_process(
-                FermentalgSubsampling,
+                CellCultureSubsampling,
                 'subsampling_task'
             )
 
@@ -97,7 +97,7 @@ def launch_selection_scenario(
             # Set subsampling parameters from configuration (or use defaults)
             if interpolation_config is None:
                 # Use default configuration if none provided
-                interpolation_config = FermentalgSubsampling.config_specs.get_default_values()
+                interpolation_config = CellCultureSubsampling.config_specs.get_default_values()
 
             # Override min_values_threshold to 500 (only subsample columns with at least 500 values)
             interpolation_config['min_values_threshold'] = 500
@@ -169,7 +169,7 @@ def launch_selection_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario de sélection: {str(e)}")
+        st.error(translate_service.translate('error_launching_selection').format(error=str(e)))
         return None
 
 
@@ -195,12 +195,12 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
         # Show existing selections info if any
         existing_selections = recipe.get_selection_scenarios()
         if existing_selections:
-            st.info(f"📋 {len(existing_selections)} sélection(s) déjà créée(s). Vous pouvez en créer une nouvelle.")
+            st.info(f"📋 {translate_service.translate('existing_selections_info').format(count=len(existing_selections))}")
 
-            with st.expander("👁️ Voir les sélections existantes"):
+            with st.expander(f"👁️ {translate_service.translate('view_existing_selections')}"):
                 for i, selection in enumerate(existing_selections, 1):
                     # Extract timestamp from title or tags
-                    timestamp = "Non défini"
+                    timestamp = translate_service.translate('not_defined')
                     if "Sélection - " in selection.title:
                         timestamp = selection.title.replace("Sélection - ", "")
 
@@ -248,7 +248,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
             # Remove the Resource_Name column for display
             df_display = df_valid[['Batch', 'Sample', 'Medium']].copy()
 
-            st.write(f"**{len(df_valid)} échantillons valides disponibles**")
+            st.write(f"**{translate_service.translate('valid_samples_available').format(count=len(df_valid))}**")
 
             # Use st.dataframe with selection_mode for row selection
             selected_data = st.dataframe(
@@ -278,10 +278,15 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                         )
 
                         if selection_scenario:
-                            st.success(f"✅ Scénario de sélection lancé ! ID : {selection_scenario.id}")
+                            st.success(translate_service.translate(
+                                'selection_launched_success').format(id=selection_scenario.id))
                             st.info(translate_service.translate('scenario_running'))
 
                             updated_selection_scenarios = [selection_scenario] + existing_selections
+
+                            # Sort by creation date (oldest first, most recent last)
+                            updated_selection_scenarios.sort(
+                                key=lambda s: s.created_at or s.last_modified_at, reverse=False)
 
                             # Update the recipe instance with the new selection scenario
                             recipe.add_scenarios_by_step('selection', updated_selection_scenarios)
@@ -289,10 +294,10 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                         else:
                             st.error(translate_service.translate('error_launching_scenario'))
                     except Exception as e:
-                        st.error(f"❌ Erreur lors du lancement du scénario : {str(e)}")
+                        st.error(translate_service.translate('error_launching_scenario_short').format(error=str(e)))
 
-                    st.markdown(f"### {translate_service.translate('selected_data')}")
-                    st.write(f"**{len(selected_df)} échantillons sélectionnés :**")
+                    st.markdown("### " + translate_service.translate('selected_data'))
+                    st.write("**" + translate_service.translate('samples_selected').format(count=len(selected_df)) + " :**")
 
                     # Display the selected data
                     st.dataframe(
@@ -324,7 +329,8 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
 
             # Show current selection info
             if selected_data.selection.rows:
-                st.info(f"📌 {len(selected_data.selection.rows)} ligne(s) actuellement sélectionnée(s)")
+                st.info(translate_service.translate('rows_currently_selected').format(
+                    count=len(selected_data.selection.rows)))
             else:
                 st.info(translate_service.translate('click_to_select_hint'))
 

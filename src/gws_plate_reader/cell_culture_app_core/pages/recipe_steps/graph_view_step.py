@@ -29,10 +29,10 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
         # If scenario is provided, use it
         if scenario:
             target_scenario = scenario
-            st.info(f"� Affichage des graphiques : **{target_scenario.title}**")
+            st.info(f"📊 {translate_service.translate('displaying_graphs')} : **{target_scenario.title}**")
 
             if target_scenario.status != ScenarioStatus.SUCCESS:
-                st.warning("Le scénario n'est pas encore terminé avec succès.")
+                st.warning(translate_service.translate('scenario_not_successful_yet'))
                 return
 
             # Get data from scenario using the provided output name
@@ -50,7 +50,7 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                     return
 
             except Exception as e:
-                st.error(f"Erreur lors de la récupération des données: {str(e)}")
+                st.error(translate_service.translate('error_retrieving_data').format(error=str(e)))
                 return
 
         # Backward compatibility: if no scenario provided, try to get latest selection
@@ -417,9 +417,11 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                                 file_name=f"cell_culture_{column_name}_graph_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                                 mime="text/csv", key=f"download_graph_{column_name}_{i}")
                         else:
-                            st.warning(f"⚠️ Aucune donnée correspond aux filtres sélectionnés pour {column_name}")
+                            st.warning(translate_service.translate(
+                                'no_data_matches_filters').format(column=column_name))
                     else:
-                        st.warning(f"⚠️ Aucune donnée disponible pour la colonne {column_name}")
+                        st.warning(translate_service.translate(
+                            'no_data_available_for_column').format(column=column_name))
 
                     # Add separator between columns (except for the last one)
                     if i < len(selected_columns) - 1:

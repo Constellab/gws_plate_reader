@@ -1,3 +1,0 @@
-"""
-Biolector Dashboard App Package
-"""

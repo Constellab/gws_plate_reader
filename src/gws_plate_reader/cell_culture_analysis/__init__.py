@@ -1,5 +1,5 @@
 """
-Fermentalg Analysis Tasks
+Cell Culture Analysis Tasks
 Advanced analysis tasks for cell culture medium data
 """
 

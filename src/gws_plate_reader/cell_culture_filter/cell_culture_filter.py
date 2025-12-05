@@ -9,8 +9,8 @@ SAMPLE_TAG_KEY = "sample"
 
 
 @task_decorator("FilterFermentorAnalyseLoadedResourceSetBySelection",
-                human_name="Filter Fermentalg ResourceSet by Selection",
-                short_description="Filter fermentation data by selecting specific batch/sample combinations",
+                human_name="Filter Cell Culture ResourceSet by Selection",
+                short_description="Filter cell culture data by selecting specific batch/sample combinations",
                 style=TypingStyle.community_icon(icon_technical_name="filter", background_color="#28a745"))
 class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     """
@@ -19,7 +19,7 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     ## Overview
     This task enables selective analysis by filtering a ResourceSet to include only
     specific batch/sample combinations. It works seamlessly with the output from
-    FermentalgLoadData task and preserves all tags and metadata.
+    CellCultureLoadData task and preserves all tags and metadata.
 
     ## Purpose
     - Select specific fermenters and experiments for focused analysis
@@ -30,7 +30,7 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     ## How It Works
 
     ### Input Requirements
-    - **ResourceSet**: Output from FermentalgLoadData containing Tables with tags
+    - **ResourceSet**: Output from CellCultureLoadData containing Tables with tags
     - **Selection Criteria**: List of batch/sample pairs to include
 
     ### Tag-Based Filtering
@@ -86,7 +86,7 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     ## Input Specifications
 
     ### resource_set (ResourceSet)
-    - **Source**: Typically from FermentalgLoadData task
+    - **Source**: Typically from CellCultureLoadData task
     - **Requirements**:
       - Must contain Table resources
       - Each Table must have 'batch' and 'sample' tags
@@ -129,7 +129,7 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
 
     ### 1. Quality-Based Filtering
     ```
-    FermentalgLoadData → View Venn Diagram →
+    CellCultureLoadData → View Venn Diagram →
     Select only complete samples → Filter → Analysis
     ```
 
@@ -152,7 +152,7 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     Filter → Compare performance
     ```
 
-    ## Integration with Fermentalg Dashboard
+    ## Integration with CellCulture Dashboard
 
     The dashboard provides an interactive interface:
     1. **Overview Step**: View all samples in table
@@ -197,23 +197,23 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     | Issue | Cause | Solution |
     |-------|-------|----------|
     | Empty output | No matches found | Verify tag values are exact (case-sensitive) |
-    | Missing samples | Tags not set | Check input from FermentalgLoadData |
+    | Missing samples | Tags not set | Check input from CellCultureLoadData |
     | Warning messages | Resources missing tags | Review input data quality |
     | JSON parse error | Invalid format | Use list of dicts or valid JSON string |
 
     ## Notes
 
-    - Designed specifically for Fermentalg workflow (follows FermentalgLoadData)
+    - Designed specifically for CellCulture workflow (follows CellCultureLoadData)
     - Preserves complete data integrity (no data modification)
     - Tag keys ('batch', 'sample') are hardcoded constants for consistency
-    - Output can be used directly with FermentalgSubsampling task
+    - Output can be used directly with CellCultureSubsampling task
     - Compatible with Streamlit dashboard for interactive use
     """
 
     input_specs: InputSpecs = InputSpecs({
         'resource_set': InputSpec(ResourceSet,
                                   human_name="Input ResourceSet to filter",
-                                  short_description="ResourceSet from FermentalgLoadData containing batch/sample tagged resources",
+                                  short_description="ResourceSet from CellCultureLoadData containing batch/sample tagged resources",
                                   optional=False),
     })
 

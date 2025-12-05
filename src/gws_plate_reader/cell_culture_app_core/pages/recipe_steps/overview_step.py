@@ -405,11 +405,11 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        'Batch': st.column_config.TextColumn('Batch'),
-                        'Sample': st.column_config.TextColumn('Sample'),
+                        'Batch': st.column_config.TextColumn(translate_service.translate('column_batch')),
+                        'Sample': st.column_config.TextColumn(translate_service.translate('column_sample')),
                         'Missing Value': st.column_config.TextColumn(
-                            'Donnée manquante',
-                            help='Types de données manquantes'
+                            translate_service.translate('column_missing_value'),
+                            help=translate_service.translate('column_missing_value')
                         )
                     }
                 )
@@ -472,4 +472,4 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
             st.warning(translate_service.translate('no_complete_data'))
 
     except Exception as e:
-        st.error(f"❌ Erreur lors du chargement de l'aperçu: {str(e)}")
+        st.error(translate_service.translate('error_loading_preview').format(error=str(e)))

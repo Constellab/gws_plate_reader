@@ -84,7 +84,7 @@ def render_medium_view_step(recipe: CellCultureRecipe, cell_culture_state: CellC
         # If scenario is provided, use it
         if scenario:
             target_scenario = scenario
-            st.info(f"📊 Affichage des données : **{target_scenario.title}**")
+            st.info(f"📊 {translate_service.translate('displaying_data')} : **{target_scenario.title}**")
 
             if target_scenario.status != ScenarioStatus.SUCCESS:
                 st.warning(translate_service.translate('selection_not_successful'))
@@ -104,7 +104,7 @@ def render_medium_view_step(recipe: CellCultureRecipe, cell_culture_state: CellC
                     st.error(translate_service.translate('cannot_retrieve_data'))
                     return
             except Exception as e:
-                st.error(f"Erreur lors de la récupération des données: {str(e)}")
+                st.error(translate_service.translate('error_retrieving_data').format(error=str(e)))
                 return
 
         # Backward compatibility: if no scenario provided, try to get from load scenario
@@ -125,7 +125,7 @@ def render_medium_view_step(recipe: CellCultureRecipe, cell_culture_state: CellC
                     st.error(translate_service.translate('cannot_retrieve_data'))
                     return
             except Exception as e:
-                st.error(f"Erreur lors de la récupération des données: {str(e)}")
+                st.error(translate_service.translate('error_retrieving_data').format(error=str(e)))
                 return
 
         # Check if we have a ResourceSet

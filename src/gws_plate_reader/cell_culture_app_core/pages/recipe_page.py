@@ -10,6 +10,7 @@ from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitContainers, StreamlitTreeMenu, StreamlitTreeMenuItem, StreamlitRouter
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.functions_steps import get_status_material_icon, get_status_emoji
 from .recipe_steps import (
     render_overview_step,
     render_selection_step,
@@ -87,11 +88,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
         selection_scenarios = recipe.get_selection_scenarios_organized()
 
         for selection_name, scenario in selection_scenarios.items():
+            # Add status icon to selection scenario label
+            status_emoji = get_status_emoji(scenario.status)
+            selection_label = f"{status_emoji} {selection_name}"
+
             # Create folder for this selection
             selection_folder = StreamlitTreeMenuItem(
-                label=selection_name,
+                label=selection_label,
                 key=f'selection_folder_{scenario.id}',
-                material_icon='folder'
+                material_icon=get_status_material_icon(scenario.status)
             )
 
             # Add table view sub-item
@@ -133,11 +138,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                     if "Quality Check - " in qc_scenario.title:
                         qc_timestamp = qc_scenario.title.replace("Quality Check - ", "")
 
+                    # Add status icon to QC scenario label
+                    status_emoji = get_status_emoji(qc_scenario.status)
+                    qc_label = f"{status_emoji} {qc_timestamp}"
+
                     # Create folder for this QC scenario
                     qc_folder = StreamlitTreeMenuItem(
-                        label=qc_timestamp,
+                        label=qc_label,
                         key=f'qc_folder_{qc_scenario.id}',
-                        material_icon='science'
+                        material_icon=get_status_material_icon(qc_scenario.status)
                     )
 
                     # Add Table view for QC results
@@ -192,11 +201,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                     if "Medium PCA - " in pca_scenario.title:
                                         pca_timestamp = pca_scenario.title.replace("Medium PCA - ", "")
 
+                                    # Add status icon to PCA scenario label
+                                    status_emoji = get_status_emoji(pca_scenario.status)
+                                    pca_label = f"{status_emoji} {pca_timestamp}"
+
                                     # Create sub-item for this PCA scenario
                                     pca_result_item = StreamlitTreeMenuItem(
-                                        label=pca_timestamp,
+                                        label=pca_label,
                                         key=f'pca_result_{pca_scenario.id}',
-                                        material_icon='assessment'
+                                        material_icon=get_status_material_icon(pca_scenario.status)
                                     )
 
                                     analysis_item.add_child(pca_result_item)
@@ -210,11 +223,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                     if "Medium UMAP - " in umap_scenario.title:
                                         umap_timestamp = umap_scenario.title.replace("Medium UMAP - ", "")
 
+                                    # Add status icon to UMAP scenario label
+                                    status_emoji = get_status_emoji(umap_scenario.status)
+                                    umap_label = f"{status_emoji} {umap_timestamp}"
+
                                     # Create sub-item for this UMAP scenario
                                     umap_result_item = StreamlitTreeMenuItem(
-                                        label=umap_timestamp,
+                                        label=umap_label,
                                         key=f'umap_result_{umap_scenario.id}',
-                                        material_icon='bubble_chart'
+                                        material_icon=get_status_material_icon(umap_scenario.status)
                                     )
                                     analysis_item.add_child(umap_result_item)
 
@@ -227,11 +244,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                     if "Feature Extraction - " in fe_scenario.title:
                                         fe_timestamp = fe_scenario.title.replace("Feature Extraction - ", "")
 
+                                    # Add status icon to FE scenario label
+                                    status_emoji = get_status_emoji(fe_scenario.status)
+                                    fe_label = f"{status_emoji} {fe_timestamp}"
+
                                     # Create sub-item for this FE scenario
                                     fe_result_item = StreamlitTreeMenuItem(
-                                        label=fe_timestamp,
+                                        label=fe_label,
                                         key=f'fe_result_{fe_scenario.id}',
-                                        material_icon='auto_graph'
+                                        material_icon=get_status_material_icon(fe_scenario.status)
                                     )
 
                                     for post_feature_extraction_analysis_type, post_feature_extraction_analysis_info in cell_culture_state.POST_FEATURE_EXTRACTION_ANALYSIS_TREE.items():
@@ -255,12 +276,16 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                             "Metadata Feature UMAP - ",
                                                             "")
 
+                                                    # Add status icon to metadata UMAP scenario label
+                                                    status_emoji = get_status_emoji(metadata_umap_scenario.status)
+                                                    metadata_umap_label = f"{status_emoji} {metadata_umap_timestamp}"
+
                                                     # Create sub-sub-item for this metadata feature UMAP result
                                                     metadata_umap_result_item = StreamlitTreeMenuItem(
-                                                        label=metadata_umap_timestamp,
+                                                        label=metadata_umap_label,
                                                         key=f'metadata_feature_umap_result_{metadata_umap_scenario.id}',
-                                                        material_icon='scatter_plot'
-                                                    )
+                                                        material_icon=get_status_material_icon(
+                                                            metadata_umap_scenario.status))
                                                     fe_umap_launch_item.add_child(metadata_umap_result_item)
 
                                         elif post_feature_extraction_analysis_type == 'pls_regression':
@@ -283,11 +308,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                             "PLS Regression - ",
                                                             "")
 
+                                                    # Add status icon to PLS scenario label
+                                                    status_emoji = get_status_emoji(pls_scenario.status)
+                                                    pls_label = f"{status_emoji} {pls_timestamp}"
+
                                                     # Create sub-sub-item for this PLS regression result
                                                     pls_result_item = StreamlitTreeMenuItem(
-                                                        label=pls_timestamp,
+                                                        label=pls_label,
                                                         key=f'pls_regression_result_{pls_scenario.id}',
-                                                        material_icon='insights'
+                                                        material_icon=get_status_material_icon(pls_scenario.status)
                                                     )
                                                     fe_pls_launch_item.add_child(pls_result_item)
 
@@ -311,11 +340,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                             "Random Forest Regression - ",
                                                             "")
 
+                                                    # Add status icon to RF scenario label
+                                                    status_emoji = get_status_emoji(rf_scenario.status)
+                                                    rf_label = f"{status_emoji} {rf_timestamp}"
+
                                                     # Create sub-sub-item for this Random Forest regression result
                                                     rf_result_item = StreamlitTreeMenuItem(
-                                                        label=rf_timestamp,
+                                                        label=rf_label,
                                                         key=f'random_forest_result_{rf_scenario.id}',
-                                                        material_icon='account_tree'
+                                                        material_icon=get_status_material_icon(rf_scenario.status)
                                                     )
                                                     fe_rf_launch_item.add_child(rf_result_item)
 
@@ -339,11 +372,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                             "Causal Effect - ",
                                                             "")
 
+                                                    # Add status icon to Causal Effect scenario label
+                                                    status_emoji = get_status_emoji(causal_scenario.status)
+                                                    causal_label = f"{status_emoji} {causal_timestamp}"
+
                                                     # Create sub-sub-item for this Causal Effect result
                                                     causal_result_item = StreamlitTreeMenuItem(
-                                                        label=causal_timestamp,
+                                                        label=causal_label,
                                                         key=f'causal_effect_result_{causal_scenario.id}',
-                                                        material_icon='link'
+                                                        material_icon=get_status_material_icon(causal_scenario.status)
                                                     )
                                                     fe_causal_launch_item.add_child(causal_result_item)
 
@@ -367,11 +404,15 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                             "Optimization - ",
                                                             "")
 
+                                                    # Add status icon to Optimization scenario label
+                                                    status_emoji = get_status_emoji(opt_scenario.status)
+                                                    opt_label = f"{status_emoji} {opt_timestamp}"
+
                                                     # Create sub-sub-item for this Optimization result
                                                     opt_result_item = StreamlitTreeMenuItem(
-                                                        label=opt_timestamp,
+                                                        label=opt_label,
                                                         key=f'optimization_result_{opt_scenario.id}',
-                                                        material_icon='auto_mode'
+                                                        material_icon=get_status_material_icon(opt_scenario.status)
                                                     )
                                                     fe_opt_launch_item.add_child(opt_result_item)
 
@@ -400,9 +441,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
     """
 
     with StreamlitContainers.container_full_min_height('container-center_analysis_page',
-                                                       additional_style=style):
-
-        # Create two columns like ubiome
+                                                       additional_style=style):        # Create two columns like ubiome
         left_col, right_col = st.columns([1, 4])
 
         # Get Recipe instance from state (created in first_page)
@@ -418,6 +457,13 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
             if st.button(translate_service.translate('recipes_list'),
                          icon=":material/arrow_back:", use_container_width=True):
                 router.navigate("first-page")
+                st.rerun()
+
+            # Add refresh button
+            if st.button(translate_service.translate('refresh'),
+                         icon=":material/refresh:", use_container_width=True):
+                # Reload all scenarios from database to get updated status
+                recipe.reload_scenarios()
                 st.rerun()
 
             st.markdown("---")  # Separator line
@@ -455,7 +501,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 selection_scenarios = recipe.get_selection_scenarios()
                 target_scenario = next((s for s in selection_scenarios if s.id == scenario_id), None)
                 if target_scenario:
-                    st.title(f"{recipe.name} - Tableau")
+                    st.title(f"{recipe.name} - {translate_service.translate('page_title_table')}")
                     render_table_view_step(
                         recipe,
                         cell_culture_state,
@@ -471,7 +517,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 all_qc_scenarios = recipe.get_quality_check_scenarios()
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
-                    st.title(f"{recipe.name} - Tableau (QC)")
+                    st.title(f"{recipe.name} - {translate_service.translate('page_title_table')} (QC)")
                     # Display quality check results in table view (use interpolated output)
                     render_table_view_step(
                         recipe,
@@ -488,7 +534,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 all_qc_scenarios = recipe.get_quality_check_scenarios()
                 target_qc_scenario = next((s for s in all_qc_scenarios if s.id == qc_scenario_id), None)
                 if target_qc_scenario:
-                    st.title(f"{recipe.name} - Graphiques (QC)")
+                    st.title(f"{recipe.name} - {translate_service.translate('page_title_graphs')} (QC)")
                     # Display quality check results in graph view (use interpolated output)
                     render_graph_view_step(
                         recipe,
@@ -505,7 +551,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 selection_scenarios = recipe.get_selection_scenarios()
                 target_scenario = next((s for s in selection_scenarios if s.id == scenario_id), None)
                 if target_scenario:
-                    st.title(f"{recipe.name} - Graphiques")
+                    st.title(f"{recipe.name} - {translate_service.translate('page_title_graphs')}")
                     render_graph_view_step(
                         recipe,
                         cell_culture_state,
@@ -521,7 +567,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 selection_scenarios = recipe.get_selection_scenarios()
                 target_scenario = next((s for s in selection_scenarios if s.id == scenario_id), None)
                 if target_scenario:
-                    st.title(f"{recipe.name} - Medium")
+                    st.title(f"{recipe.name} - {translate_service.translate('page_title_medium')}")
                     render_medium_view_step(
                         recipe,
                         cell_culture_state,

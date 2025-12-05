@@ -17,25 +17,28 @@ def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: 
     :param cell_culture_state: The cell culture state
     :param causal_scenario: The Causal Effect scenario to display
     """
-    st.markdown(f"### 🔗 Résultats Causal Effect")
+    translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"**Scénario** : {causal_scenario.title}")
+    st.markdown(f"### 🔗 {translate_service.translate('causal_effect_results_title')}")
+
+    st.markdown(f"**{translate_service.translate('scenario_label')}** : {causal_scenario.title}")
     st.markdown(f"**ID** : {causal_scenario.id}")
-    st.markdown(f"**Date de création** : {causal_scenario.created_at.strftime('%d/%m/%Y %H:%M:%S')}")
+    st.markdown(
+        f"**{translate_service.translate('creation_date')}** : {causal_scenario.created_at.strftime('%d/%m/%Y %H:%M:%S')}")
 
     # Display scenario status
     if causal_scenario.status == ScenarioStatus.SUCCESS:
-        st.success(f"✅ Analyse terminée avec succès")
+        st.success(f"✅ {translate_service.translate('analysis_completed_success')}")
     elif causal_scenario.status == ScenarioStatus.ERROR:
-        st.error(f"❌ Erreur lors de l'exécution de l'analyse")
+        st.error(f"❌ {translate_service.translate('analysis_failed')}")
         # Display error message if available
         if causal_scenario.error_info:
-            with st.expander("📋 Détails de l'erreur"):
+            with st.expander(f"📋 {translate_service.translate('error_details_expander')}"):
                 st.code(causal_scenario.error_info.get('message', 'Aucun message d\'erreur disponible'))
         return
     elif causal_scenario.status.is_running():
-        st.info(f"⏳ Analyse en cours d'exécution...")
-        st.markdown("Veuillez rafraîchir la page pour voir les résultats une fois l'analyse terminée.")
+        st.info(f"⏳ {translate_service.translate('analysis_in_progress')}")
+        st.markdown(translate_service.translate('refresh_page_for_results'))
         return
     else:
         st.warning(f"⚠️ Statut : {causal_scenario.status.name}")
@@ -50,7 +53,7 @@ def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: 
         streamlit_app_resource_model = causal_protocol_proxy.get_output_resource_model('streamlit_app')
 
         if not streamlit_app_resource_model:
-            st.error("⚠️ La ressource Streamlit app n'est pas disponible dans le scénario")
+            st.error(f"⚠️ {translate_service.translate('streamlit_app_resource_unavailable')}")
             return
 
         # Build the URL to the Streamlit app resource
@@ -91,7 +94,7 @@ Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'ana
         st.markdown("---")
 
         # Additional info
-        with st.expander("ℹ️ Informations sur les résultats"):
+        with st.expander(f"ℹ️ {translate_service.translate('results_info_label')}"):
             st.markdown(f"""
 **Ressource ID** : `{streamlit_app_resource_model.id}`
 
@@ -108,6 +111,6 @@ Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'ana
             """)
 
     except Exception as e:
-        st.error(f"Erreur lors de la récupération des résultats : {str(e)}")
+        st.error(translate_service.translate('error_retrieving_results').format(error=str(e)))
         import traceback
         st.code(traceback.format_exc())

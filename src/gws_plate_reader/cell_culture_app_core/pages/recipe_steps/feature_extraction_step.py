@@ -12,7 +12,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_analysis import ResourceSetToDataTable, CellCultureFeatureExtraction
+from gws_plate_reader.cell_culture_analysis import ResourceSetToDataTable, CellCultureFeatureExtraction
 
 
 def get_available_columns_from_quality_check(quality_check_scenario: Scenario,
@@ -82,7 +82,7 @@ def launch_feature_extraction_scenario(
             # Get the quality check output ResourceSet
             qc_output = cell_culture_state.get_quality_check_scenario_output_resource_model(quality_check_scenario)
             if not qc_output:
-                st.error("Impossible de récupérer le ResourceSet de sortie du Quality Check")
+                st.error(translate_service.translate('unable_retrieve_qc_output'))
                 return None
 
             # Add input task for the ResourceSet
@@ -181,7 +181,8 @@ def launch_feature_extraction_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario Feature Extraction: {str(e)}")
+        st.error(translate_service.translate('error_launching_scenario_generic').format(
+            scenario_type='Feature Extraction', error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return None
@@ -213,8 +214,10 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
     st.success(f"✅ {len(qc_output_resource_set.get_resources())} {translate_service.translate('resources')}")
 
     # Get available columns
-    index_columns = get_available_columns_from_quality_check(quality_check_scenario, cell_culture_state, index_only=True)
-    data_columns = get_available_columns_from_quality_check(quality_check_scenario, cell_culture_state, index_only=False)
+    index_columns = get_available_columns_from_quality_check(
+        quality_check_scenario, cell_culture_state, index_only=True)
+    data_columns = get_available_columns_from_quality_check(
+        quality_check_scenario, cell_culture_state, index_only=False)
 
     if not index_columns:
         st.warning(translate_service.translate('no_index_columns_found'))
@@ -331,7 +334,7 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
                     st.error(translate_service.translate('feature_extraction_error_launching'))
 
     # Info box with Feature Extraction explanation
-    with st.expander("💡 À propos de l'analyse Feature Extraction"):
+    with st.expander(f"💡 {translate_service.translate('about_feature_extraction')}"):
         st.markdown("""
         **Extraction de Caractéristiques (Growth Curve Fitting)**
 

@@ -16,17 +16,17 @@ def render_optimization_results(cell_culture_state: CellCultureState, optimizati
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### ⚙️ Résultats de l'analyse Optimization")
+    st.markdown("### ⚙️ " + translate_service.translate('optimization_results_title'))
 
-    st.markdown(f"**Scénario** : {optimization_scenario.title}")
+    st.markdown("**" + translate_service.translate('scenario_label') + "** : " + optimization_scenario.title)
     st.markdown(f"**ID** : `{optimization_scenario.id}`")
 
     # Display scenario status
     status = optimization_scenario.status
     if status == ScenarioStatus.SUCCESS:
-        st.success(f"✅ **Statut** : Terminé avec succès")
+        st.success(translate_service.translate('status_completed_success'))
     elif status == ScenarioStatus.ERROR:
-        st.error(f"❌ **Statut** : Erreur lors de l'exécution")
+        st.error(f"❌ **{translate_service.translate('status_label')}** : {translate_service.translate('status_error_execution')}")
 
         # Display error details if available
         try:
@@ -35,16 +35,16 @@ def render_optimization_results(cell_culture_state: CellCultureState, optimizati
 
             # Try to get error from the protocol
             if protocol_proxy:
-                st.error("**Détails de l'erreur** :")
+                st.error("**" + translate_service.translate('error_details_label') + "** :")
                 st.code(protocol_proxy.get_error_message() if hasattr(
                     protocol_proxy, 'get_error_message') else "Erreur inconnue")
         except Exception as e:
-            st.warning(f"Impossible de récupérer les détails de l'erreur : {str(e)}")
+            st.warning(translate_service.translate('unable_retrieve_error_details').format(error=str(e)))
 
         return
     elif status == ScenarioStatus.RUNNING or status == ScenarioStatus.IN_QUEUE:
-        st.info(f"⏳ **Statut** : En cours d'exécution...")
-        st.markdown("L'analyse est en cours. Actualisez cette page pour voir les résultats une fois terminée.")
+        st.info(f"⏳ **{translate_service.translate('status_label')}** : {translate_service.translate('analysis_in_progress')}")
+        st.markdown(translate_service.translate('analysis_in_progress_refresh'))
 
         if st.button("🔄 Actualiser", key=f"refresh_optimization_{optimization_scenario.id}"):
             st.rerun()
@@ -106,7 +106,7 @@ Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'ana
         st.markdown("---")
 
         # Additional info
-        with st.expander("ℹ️ Informations sur les résultats"):
+        with st.expander(f"ℹ️ {translate_service.translate('results_info_label')}"):
             st.markdown(f"""
 **Ressource ID** : `{streamlit_app_resource_model.id}`
 
@@ -117,52 +117,39 @@ Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'ana
 4. Identifiez les paramètres optimaux pour votre application
 
 **Interprétation des résultats :**
-- **Best Solution** : Valeurs optimales trouvées pour chaque variable d'entrée
-- **Feature Importance** : Importance relative de chaque variable
-- **Observed vs Predicted** : Validation croisée du modèle (R² score)
-- **Data Explorer** : Tableau complet de toutes les solutions trouvées
-            """)
 
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération des résultats : {str(e)}")
-        import traceback
-        st.code(traceback.format_exc())
-
-    # Help section
-    with st.expander("💡 Aide sur les résultats"):
-        st.markdown("""
-### Interprétation des résultats
-
-**Best Solution** :
+** Best Solution**:
 - Valeurs optimales trouvées pour chaque variable d'entrée
 - Prédictions pour chaque variable cible
 - Score de fitness global
 
-**3D Surface Explorer** :
+**3D Surface Explorer**:
 - Visualisation de la surface de réponse
 - Interaction avec les axes pour explorer différentes perspectives
-- Points rouges = solutions générées
+- Points rouges=solutions générées
 
-**Feature Importance** :
+** Feature Importance**:
 - Importance relative de chaque variable d'entrée
 - Basé sur le modèle Random Forest/XGBoost/CatBoost
 - Plus la valeur est élevée, plus la variable est importante
 
-**Observed vs Predicted** :
+** Observed vs Predicted**:
 - Validation croisée du modèle prédictif
-- Points alignés sur la diagonale = bonnes prédictions
+- Points alignés sur la diagonale=bonnes prédictions
 - R² score indique la qualité du modèle
 
-**Data Explorer** :
+** Data Explorer**:
 - Tableau complet de toutes les solutions trouvées
 - Tri et filtrage interactifs
 - Export CSV possible
 
-### Actions possibles
+# Actions possibles
 
-1. **Analyser les solutions** : Identifier les conditions optimales
-2. **Valider les prédictions** : Vérifier le R² et les graphiques
-3. **Explorer l'espace** : Utiliser le 3D Surface Explorer
-4. **Exporter les données** : Télécharger les CSV depuis le dashboard
-5. **Réitérer** : Lancer une nouvelle optimisation avec des contraintes ajustées
+1. ** Analyser les solutions**: Identifier les conditions optimales
+2. ** Valider les prédictions**: Vérifier le R² et les graphiques
+3. ** Explorer l'espace**: Utiliser le 3D Surface Explorer
+4. ** Exporter les données**: Télécharger les CSV depuis le dashboard
+5. ** Réitérer**: Lancer une nouvelle optimisation avec des contraintes ajustées
         """)
+    except Exception as e:
+        st.error(translate_service.translate('error_retrieving_results').format(error=str(e)))

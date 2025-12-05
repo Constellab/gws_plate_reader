@@ -13,7 +13,7 @@ from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_core.impl.table.table import Table
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_filter import FermentalgQualityCheck
+from gws_plate_reader.cell_culture_filter import CellCultureQualityCheck
 
 
 def get_available_columns_from_selection(
@@ -285,7 +285,7 @@ def launch_quality_check_scenario(
 
             # Add the quality check task
             quality_check_task = protocol_proxy.add_process(
-                FermentalgQualityCheck,
+                CellCultureQualityCheck,
                 'quality_check_task'
             )
 
@@ -311,7 +311,7 @@ def launch_quality_check_scenario(
             # Set quality check parameters from configuration (or use defaults)
             if quality_check_config is None:
                 # Use default configuration if none provided
-                quality_check_config = FermentalgQualityCheck.config_specs.get_default_values()
+                quality_check_config = CellCultureQualityCheck.config_specs.get_default_values()
 
             # Apply all configuration parameters to the quality check task
             for param_name, param_value in quality_check_config.items():
@@ -451,7 +451,7 @@ def _render_selection_quality_checks(
     translate_service = cell_culture_state.get_translate_service()
 
     # Extract timestamp from title
-    timestamp = "Non défini"
+    timestamp = translate_service.translate('not_defined')
     if "Sélection - " in selection.title:
         timestamp = selection.title.replace("Sélection - ", "")
 

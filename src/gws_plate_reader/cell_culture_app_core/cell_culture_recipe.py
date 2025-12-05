@@ -95,6 +95,25 @@ class CellCultureRecipe(ABC):
         """
         self.scenarios[step] = scenarios
 
+    def reload_scenarios(self) -> None:
+        """
+        Reload all scenarios from database to get updated status and sort them by creation date
+        """
+        # Reload main scenario
+        if self.main_scenario:
+            self.main_scenario = Scenario.get_by_id(self.main_scenario.id)
+
+        # Reload all scenarios in each step
+        for step_name, scenarios_list in self.scenarios.items():
+            reloaded_scenarios = []
+            for scenario in scenarios_list:
+                reloaded_scenario = Scenario.get_by_id(scenario.id)
+                reloaded_scenarios.append(reloaded_scenario)
+
+            # Sort scenarios by creation date (oldest first, most recent last)
+            reloaded_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+            self.scenarios[step_name] = reloaded_scenarios
+
     def get_scenarios_for_step(self, step: str) -> List[Scenario]:
         """
         Get scenarios for a specific step

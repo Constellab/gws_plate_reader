@@ -12,7 +12,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_analysis import CellCultureMediumTableFilter
+from gws_plate_reader.cell_culture_analysis import CellCultureMediumTableFilter
 from gws_design_of_experiments.umap.umap import UMAPTask
 
 
@@ -145,6 +145,7 @@ def launch_medium_umap_scenario(
             umap_task.set_param('metric', metric)
             umap_task.set_param('scale_data', scale_data)
             umap_task.set_param('color_by', 'MILIEU')
+            umap_task.set_param('columns_to_exclude', ['MILIEU'])
             if n_clusters is not None:
                 umap_task.set_param('n_clusters', n_clusters)
 
@@ -215,7 +216,8 @@ def launch_medium_umap_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario Medium UMAP: {str(e)}")
+        st.error(translate_service.translate('error_launching_scenario_generic').format(
+            scenario_type='Medium UMAP', error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return None
@@ -232,15 +234,15 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 🗺️ Analyse UMAP des Milieux")
+    st.markdown("### 🗺️ " + translate_service.translate('medium_umap_title'))
 
-    st.info("L'analyse UMAP (Uniform Manifold Approximation and Projection) permet de visualiser les données de composition des milieux en 2D ou 3D, révélant des structures et groupes de milieux similaires.")
+    st.info(translate_service.translate('medium_umap_info'))
 
     # Get the load scenario to check for medium_table output
     load_scenario = recipe.get_load_scenario()
 
     if not load_scenario:
-        st.warning("⚠️ Aucun scénario de chargement de données trouvé. L'analyse UMAP n'est pas disponible.")
+        st.warning(translate_service.translate('medium_umap_no_load_scenario'))
         return
 
     # Check if load scenario has medium_table output
@@ -254,68 +256,67 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
         ).get_output_resource_model('medium_table')
 
         if not medium_table_resource_model:
-            st.warning(
-                "⚠️ La table des milieux (medium_table) n'est pas disponible dans le scénario de chargement. L'analyse UMAP n'est pas disponible.")
-            st.info("💡 Assurez-vous que le scénario de chargement a été exécuté avec succès et qu'il produit une sortie 'medium_table'.")
+            st.warning(translate_service.translate('medium_table_not_available'))
+            st.info(translate_service.translate('medium_table_success_info'))
             return
 
-        st.success(f"✅ Table des milieux disponible : {medium_table_resource_model.name}")
+        st.success(translate_service.translate('medium_table_available').format(name=medium_table_resource_model.name))
     except Exception as e:
-        st.warning(f"⚠️ Impossible de vérifier la disponibilité de la table des milieux : {str(e)}")
+        st.warning(translate_service.translate('medium_table_check_error').format(error=str(e)))
         return
 
     # Get available media from quality check scenario
     available_media = get_available_media_from_quality_check(quality_check_scenario, cell_culture_state)
 
     if not available_media:
-        st.warning("⚠️ Aucun milieu trouvé dans le scénario de contrôle qualité.")
+        st.warning(translate_service.translate('no_medium_found_qc'))
         return
 
-    st.markdown(f"**Milieux disponibles** : {', '.join(available_media)}")
+    st.markdown(f"**{translate_service.translate('available_media')}** : {', '.join(available_media)}")
 
     # Check existing UMAP scenarios
     existing_umap_scenarios = recipe.get_medium_umap_scenarios_for_quality_check(quality_check_scenario.id)
 
     if existing_umap_scenarios:
-        st.markdown(f"**Analyses UMAP existantes** : {len(existing_umap_scenarios)}")
-        with st.expander(f"📊 Voir les analyses UMAP existantes"):
+        st.markdown(f"**{translate_service.translate('existing_umap_analyses')}** : {len(existing_umap_scenarios)}")
+        with st.expander("📊 " + translate_service.translate('view_existing_umap')):
             for idx, umap_scenario in enumerate(existing_umap_scenarios):
                 st.write(
                     f"{idx + 1}. {umap_scenario.title} (ID: {umap_scenario.id}) - Statut: {umap_scenario.status.name}")
 
     # Configuration form for new UMAP
     st.markdown("---")
-    st.markdown(f"### ➕ Lancer une nouvelle analyse UMAP")
+    st.markdown(f"### ➕ {translate_service.translate('launch_new_umap')}")
 
     with st.form(key=f"medium_umap_form_{quality_check_scenario.id}"):
-        st.markdown(f"**Sélection des milieux**")
+        st.markdown(f"**{translate_service.translate('media_selection')}**")
 
         # Multiselect for media selection
         selected_media = st.multiselect(
-            "Milieux à inclure",
+            translate_service.translate('media_to_include'),
             options=available_media,
             default=available_media,
-            help="Sélectionner les milieux à inclure dans l'analyse UMAP"
+            help=translate_service.translate('media_to_include_help')
         )
 
-        st.markdown("**Paramètres UMAP**")
+        st.markdown(f"**{translate_service.translate('umap_parameters')}**")
 
         col1, col2 = st.columns(2)
 
         with col1:
             n_neighbors = st.slider(
-                "Nombre de voisins",
+                translate_service.translate('n_neighbors_label'),
                 min_value=2,
                 max_value=50,
                 value=15,
-                help="Contrôle l'équilibre entre structure locale et globale (plus élevé = structure plus globale)"
+                help=translate_service.translate('n_neighbors_help')
             )
 
             metric = st.selectbox(
-                "Métrique de distance",
+                translate_service.translate('distance_metric_label'),
                 options=["euclidean", "manhattan", "cosine", "correlation"],
                 index=0,
-                help="Métrique pour calculer la distance entre points"
+                help=translate_service.translate('distance_metric_help')
             )
 
         with col2:
@@ -335,7 +336,7 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
             )
 
         st.markdown(f"**{translate_service.translate('optional_clustering')}**")
-        enable_clustering = st.checkbox("Activer le clustering K-Means", value=False)
+        enable_clustering = st.checkbox(translate_service.translate('enable_clustering_label'), value=False)
         n_clusters = None
         if enable_clustering:
             n_clusters = st.slider(
@@ -383,31 +384,32 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
 
     # Info box with UMAP explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='UMAP')):
-        st.markdown(f"### Qu'est-ce que UMAP ?")
-        st.markdown("""
-UMAP (Uniform Manifold Approximation and Projection) est une technique de réduction de dimensionnalité qui permet de visualiser des données complexes en 2D ou 3D.
+        st.markdown("### " + translate_service.translate('umap_help_what_is'))
+        st.markdown(translate_service.translate('umap_help_intro'))
 
-### Interprétation des résultats
+        st.markdown("### " + translate_service.translate('umap_help_interpretation'))
 
-**Graphiques 2D et 3D** :
-- Chaque point représente un milieu
-- Les milieux proches ont des compositions similaires
-- Les groupes de points indiquent des familles de milieux apparentés
-- La couleur distingue les différents milieux (ou clusters si activés)
+        st.markdown("**" + translate_service.translate('umap_help_2d_3d_plots') + "** :")
+        st.markdown("- " + translate_service.translate('umap_help_plot_point'))
+        st.markdown("- " + translate_service.translate('umap_help_plot_proximity'))
+        st.markdown("- " + translate_service.translate('umap_help_plot_groups'))
+        st.markdown("- " + translate_service.translate('umap_help_plot_color'))
 
-**Paramètres clés** :
-- **Nombre de voisins** : Plus élevé préserve la structure globale, plus faible préserve la structure locale
-- **Distance minimale** : Contrôle la dispersion des points (faible = groupes serrés, élevé = dispersion)
-- **Métrique** : Euclidienne pour les données numériques générales, cosinus pour les proportions
+        st.markdown("**" + translate_service.translate('umap_help_key_params') + "** :")
+        st.markdown("- **" + translate_service.translate('n_neighbors_label') +
+                    "** : " + translate_service.translate('umap_help_n_neighbors_desc'))
+        st.markdown(
+            "- **" + translate_service.translate('min_dist_label') + "** : " + translate_service.translate('umap_help_min_dist_desc'))
+        st.markdown("- **" + translate_service.translate('distance_metric_label') +
+                    "** : " + translate_service.translate('umap_help_metric_desc'))
 
-**Clustering** :
-- Identifie automatiquement des groupes de milieux similaires
-- Utile pour découvrir des catégories naturelles dans vos données
-- Le nombre de clusters doit être choisi en fonction de vos connaissances du domaine
+        st.markdown("**" + translate_service.translate('optional_clustering') + "** :")
+        st.markdown("- " + translate_service.translate('umap_help_clustering_desc'))
+        st.markdown("- " + translate_service.translate('umap_help_clustering_useful'))
+        st.markdown("- " + translate_service.translate('umap_help_clustering_choice'))
 
-### Conseils d'utilisation
-- Commencez avec les paramètres par défaut
-- Ajustez le nombre de voisins si vous voulez voir plus de structure locale ou globale
-- Activez le clustering pour identifier des familles de milieux
-- Comparez les résultats 2D et 3D pour une meilleure compréhension
-""")
+        st.markdown("### " + translate_service.translate('umap_help_usage_tips'))
+        st.markdown("- " + translate_service.translate('umap_help_tip_defaults'))
+        st.markdown("- " + translate_service.translate('umap_help_tip_neighbors'))
+        st.markdown("- " + translate_service.translate('umap_help_tip_clustering'))
+        st.markdown("- " + translate_service.translate('umap_help_tip_compare'))

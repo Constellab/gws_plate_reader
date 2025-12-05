@@ -12,7 +12,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_filter import CellCultureMergeFeatureMetadata
+from gws_plate_reader.cell_culture_filter import CellCultureMergeFeatureMetadata
 from gws_design_of_experiments import (CausalEffect, GenerateCausalEffectDashboard)
 
 
@@ -180,7 +180,8 @@ def launch_causal_effect_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario Causal Effect: {str(e)}")
+        st.error(translate_service.translate('error_launching_scenario_generic').format(
+            scenario_type='Causal Effect', error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return None
@@ -199,12 +200,12 @@ def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: Cel
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 🔗 Analyse Causal Effect")
+    st.markdown("### 🔗 " + translate_service.translate('causal_effect_title'))
 
-    st.info("L'analyse Causal Effect identifie les relations de cause à effet entre les variables de composition des milieux et les caractéristiques biologiques extraites des courbes de croissance.")
+    st.info(translate_service.translate('causal_effect_info'))
 
     # Display selected feature extraction scenario
-    st.info(f"📊 Scénario d'extraction de caractéristiques : **{feature_extraction_scenario.title}**")
+    st.info("📊 " + translate_service.translate('feature_extraction_scenario_info').format(title=feature_extraction_scenario.title))
 
     # Get available columns from merged table (metadata + features)
     try:
@@ -217,15 +218,14 @@ def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: Cel
         )
 
         if not metadata_table_resource_model:
-            st.warning(
-                "⚠️ La table des métadonnées (metadata_table) n'est pas disponible dans le scénario de quality check.")
+            st.warning(translate_service.translate('metadata_table_unavailable_qc'))
             return
 
         metadata_table = metadata_table_resource_model.get_resource()
         metadata_df = metadata_table.get_data()
 
         if 'Series' not in metadata_df.columns:
-            st.error("⚠️ La colonne 'Series' est manquante dans la table des métadonnées.")
+            st.error(translate_service.translate('series_column_missing'))
             return
 
         # Get feature extraction results to know all columns that will be in merged table
@@ -258,15 +258,17 @@ def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: Cel
             # Calculate non-numeric columns to exclude by default
             all_non_numeric_columns = sorted(list(set(all_merged_columns) - set(all_numeric_columns)))
 
-        st.markdown(f"**Colonnes numériques disponibles** : {len(all_numeric_columns)}")
+        st.markdown("**" + translate_service.translate('numeric_columns_available') + "** : " +
+                    str(len(all_numeric_columns)))
         cols_preview = ', '.join(all_numeric_columns[:10])
         if len(all_numeric_columns) > 10:
-            st.markdown(f"**Aperçu** : {cols_preview}, ... (+{len(all_numeric_columns)-10} autres)")
+            st.markdown("**" + translate_service.translate('preview') + "** : " + cols_preview +
+                        translate_service.translate('more_columns').format(count=len(all_numeric_columns)-10))
         else:
-            st.markdown(f"**Aperçu** : {cols_preview}")
+            st.markdown("**" + translate_service.translate('preview') + "** : " + cols_preview)
 
     except Exception as e:
-        st.error(f"Erreur lors de la lecture des tables : {str(e)}")
+        st.error(translate_service.translate('error_reading_tables').format(error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return

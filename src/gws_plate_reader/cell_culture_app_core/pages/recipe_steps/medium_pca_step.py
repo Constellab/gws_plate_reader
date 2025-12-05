@@ -12,7 +12,7 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.fermentalg_analysis import CellCultureMediumPCA, CellCultureMediumTableFilter
+from gws_plate_reader.cell_culture_analysis import CellCultureMediumPCA, CellCultureMediumTableFilter
 
 
 def get_available_media_from_quality_check(
@@ -194,7 +194,8 @@ def launch_medium_pca_scenario(
             return new_scenario
 
     except Exception as e:
-        st.error(f"Erreur lors du lancement du scénario Medium PCA: {str(e)}")
+        st.error(translate_service.translate('error_launching_scenario_generic').format(
+            scenario_type='Medium PCA', error=str(e)))
         import traceback
         st.code(traceback.format_exc())
         return None
@@ -219,7 +220,7 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
     load_scenario = recipe.get_load_scenario()
 
     if not load_scenario:
-        st.warning("⚠️ Aucun scénario de chargement de données trouvé. L'analyse PCA n'est pas disponible.")
+        st.warning(translate_service.translate('medium_pca_no_load_scenario'))
         return
 
     # Check if load scenario has medium_table output
@@ -233,14 +234,13 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
         ).get_output_resource_model('medium_table')
 
         if not medium_table_resource_model:
-            st.warning(
-                "⚠️ La table des milieux (medium_table) n'est pas disponible dans le scénario de chargement. L'analyse PCA n'est pas disponible.")
-            st.info("💡 Assurez-vous que le scénario de chargement a été exécuté avec succès et qu'il produit une sortie 'medium_table'.")
+            st.warning(translate_service.translate('medium_pca_table_unavailable'))
+            st.info(translate_service.translate('medium_pca_table_success_info'))
             return
 
-        st.success(f"✅ Table des milieux disponible : {medium_table_resource_model.name}")
+        st.success(translate_service.translate('medium_table_available').format(name=medium_table_resource_model.name))
     except Exception as e:
-        st.warning(f"⚠️ Impossible de vérifier la disponibilité de la table des milieux : {str(e)}")
+        st.warning(translate_service.translate('medium_pca_table_check_error').format(error=str(e)))
         return
 
     # Get available media from quality check scenario

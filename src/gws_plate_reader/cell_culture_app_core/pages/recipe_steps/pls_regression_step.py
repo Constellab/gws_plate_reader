@@ -206,6 +206,7 @@ def launch_pls_regression_scenario(
             return new_scenario
 
     except Exception as e:
+        translate_service = cell_culture_state.get_translate_service()
         st.error(f"{translate_service.translate('error_launching_scenario').format(analysis_type='PLS Regression')}: {str(e)}")
         import traceback
         st.code(traceback.format_exc())

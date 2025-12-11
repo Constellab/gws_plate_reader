@@ -63,6 +63,7 @@ def launch_feature_extraction_scenario(
     :param models_to_fit: List of models to fit
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for Feature Extraction

@@ -225,6 +225,7 @@ def launch_metadata_feature_umap_scenario(
             return new_scenario
 
     except Exception as e:
+        translate_service = cell_culture_state.get_translate_service()
         st.error(translate_service.translate('error_launching_scenario_generic').format(
             scenario_type='Metadata Feature UMAP', error=str(e)))
         import traceback

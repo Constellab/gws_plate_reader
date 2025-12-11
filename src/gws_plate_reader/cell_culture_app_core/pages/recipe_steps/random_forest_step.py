@@ -203,6 +203,7 @@ def launch_random_forest_scenario(
             return new_scenario
 
     except Exception as e:
+        translate_service = cell_culture_state.get_translate_service()
         st.error(translate_service.translate('error_launching_random_forest').format(error=str(e)))
         import traceback
         st.code(traceback.format_exc())

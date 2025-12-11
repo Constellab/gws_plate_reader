@@ -95,7 +95,7 @@ def render_settings_page(cell_culture_state: CellCultureState):
         - ⚙️ {translate_service.translate('feature_processing')}
         - ✅ {translate_service.translate('feature_quality')}
         - 🎯 {translate_service.translate('feature_selection')}
-        - � {translate_service.translate('feature_visualization')}
-        - � {translate_service.translate('feature_statistics')}
-        - � {translate_service.translate('feature_comparison')}
+        - 📊 {translate_service.translate('feature_visualization')}
+        - 📈 {translate_service.translate('feature_statistics')}
+        - 🔄 {translate_service.translate('feature_comparison')}
         """)

@@ -281,7 +281,7 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
         selected_models = st.multiselect(
             translate_service.translate('feature_extraction_model_selection'),
             options=all_models,
-            default=all_models,
+            default=["Logistic_4P"],
             help=translate_service.translate('feature_extraction_model_help')
         )
 

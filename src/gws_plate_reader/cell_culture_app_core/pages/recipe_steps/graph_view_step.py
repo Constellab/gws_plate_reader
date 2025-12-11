@@ -243,7 +243,7 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
 
         # Display graphs organized by selected columns
         if selected_columns:
-            st.markdown(f"### 📊 Graphiques organisés par {selected_index}")
+            st.markdown(f"### 📊 {translate_service.translate('plots_organized_by')} {selected_index}")
 
             # If combine_columns is True, display all columns in one plot
             if combine_columns:
@@ -418,7 +418,7 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                                 mime="text/csv", key=f"download_graph_{column_name}_{i}")
                         else:
                             st.warning(translate_service.translate(
-                                'no_data_matches_filters').format(column=column_name))
+                                'no_data_matches_filters_column').format(column=column_name))
                     else:
                         st.warning(translate_service.translate(
                             'no_data_available_for_column').format(column=column_name))

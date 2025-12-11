@@ -204,7 +204,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                     if "Sélection - " in selection.title:
                         timestamp = selection.title.replace("Sélection - ", "")
 
-                    st.write(f"**{i}.** {selection.title} (ID: {selection.id}) - Statut: {selection.status}")
+                    st.write(f"**{i}.** {selection.title} - Statut: {selection.status}")
 
         st.markdown(translate_service.translate('create_new_selection'))
 

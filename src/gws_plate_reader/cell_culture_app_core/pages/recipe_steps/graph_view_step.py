@@ -225,6 +225,20 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
         ]
         displayed_couples = len(filtered_df_all[['Batch', 'Sample']].drop_duplicates())
 
+        # Option to plot mean curves with error bands
+        cols_mean = st.columns(2)
+        with cols_mean[0]:
+            options_mode = [translate_service.translate('individual_curves'), translate_service.translate('mean')]
+            display_mode_selected = st.selectbox(translate_service.translate('select_display_mode'),
+                                        options_mode,
+                                        index=0,
+                                        key="plot_mode")
+
+        error_band = False
+        if display_mode_selected == translate_service.translate('mean'):
+            with cols_mean[1]:
+                error_band = st.checkbox(translate_service.translate("error_band"), value=False, key="error_band")
+
         # Display summary metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -285,24 +299,78 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                             columns_to_keep) > 1 else column_df[[selected_index]]
 
                         if len(filtered_column_df.columns) > 1:
-                            # Add traces for each batch_sample combination for this column
-                            for col in filtered_column_df.columns:
-                                if col != selected_index:
-                                    # Clean the data by removing NaN values
-                                    clean_data = filtered_column_df[[selected_index, col]].dropna()
+                            # Individual curves mode
+                            if display_mode_selected == translate_service.translate('individual_curves'):
+                                # Add traces for each batch_sample combination for this column
+                                for col in filtered_column_df.columns:
+                                    if col != selected_index:
+                                        # Clean the data by removing NaN values
+                                        clean_data = filtered_column_df[[selected_index, col]].dropna()
+
+                                        if not clean_data.empty:
+                                            fig.add_trace(go.Scatter(
+                                                x=clean_data[selected_index],
+                                                y=clean_data[col],
+                                                mode='lines+markers',
+                                                name=f"{column_name} - {col}",
+                                                line=dict(width=2),
+                                                marker=dict(size=6, symbol=marker_symbol),
+                                                hovertemplate=f'<b>{column_name} - {col}</b><br>' +
+                                                              f'{selected_index}: %{{x}}<br>' +
+                                                              f'Valeur: %{{y:.4f}}<extra></extra>'
+                                            ))
+                            # Mean curves mode
+                            elif display_mode_selected == translate_service.translate('mean'):
+                                # Get data columns (exclude index)
+                                data_cols = [col for col in filtered_column_df.columns if col != selected_index]
+
+                                if data_cols:
+                                    # Calculate mean and std across all batch_sample combinations
+                                    df_mean = filtered_column_df[data_cols].mean(axis=1)
+                                    df_std = filtered_column_df[data_cols].std(axis=1)
+
+                                    # Clean data by removing NaN values
+                                    clean_data = pd.DataFrame({
+                                        selected_index: filtered_column_df[selected_index],
+                                        'mean': df_mean,
+                                        'std': df_std
+                                    }).dropna()
 
                                     if not clean_data.empty:
+                                        # Add mean trace
                                         fig.add_trace(go.Scatter(
                                             x=clean_data[selected_index],
-                                            y=clean_data[col],
+                                            y=clean_data['mean'],
                                             mode='lines+markers',
-                                            name=f"{column_name} - {col}",
-                                            line=dict(width=2),
+                                            name=f"{column_name} - {translate_service.translate('mean')}",
+                                            line=dict(width=2, shape='spline'),
                                             marker=dict(size=6, symbol=marker_symbol),
-                                            hovertemplate=f'<b>{column_name} - {col}</b><br>' +
+                                            hovertemplate=f'<b>{column_name} - {translate_service.translate("mean")}</b><br>' +
                                                           f'{selected_index}: %{{x}}<br>' +
-                                                          f'Valeur: %{{y:.4f}}<extra></extra>'
+                                                          f'{translate_service.translate("mean")}: %{{y:.4f}}<extra></extra>'
                                         ))
+
+                                        # Add error band if requested
+                                        if error_band:
+                                            # Upper bound
+                                            fig.add_trace(go.Scatter(
+                                                x=clean_data[selected_index],
+                                                y=clean_data['mean'] + clean_data['std'],
+                                                mode='lines',
+                                                line=dict(width=0),
+                                                showlegend=False,
+                                                hoverinfo='skip'
+                                            ))
+                                            # Lower bound with fill
+                                            fig.add_trace(go.Scatter(
+                                                x=clean_data[selected_index],
+                                                y=clean_data['mean'] - clean_data['std'],
+                                                mode='lines',
+                                                line=dict(width=0),
+                                                fill='tonexty',
+                                                name=f'{column_name} - {translate_service.translate("error_band")} (±1 SD)',
+                                                hoverinfo='skip'
+                                            ))
 
                 # Update layout
                 fig.update_layout(
@@ -358,24 +426,79 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                             # Create interactive line plot using Plotly
                             fig = go.Figure()
 
-                            # Add a line for each batch_sample combination
-                            for col in filtered_column_df.columns:
-                                if col != selected_index:
-                                    # Clean the data by removing NaN values
-                                    clean_data = filtered_column_df[[selected_index, col]].dropna()
+                            # Individual curves mode
+                            if display_mode_selected == translate_service.translate('individual_curves'):
+                                # Add a line for each batch_sample combination
+                                for col in filtered_column_df.columns:
+                                    if col != selected_index:
+                                        # Clean the data by removing NaN values
+                                        clean_data = filtered_column_df[[selected_index, col]].dropna()
+
+                                        if not clean_data.empty:
+                                            fig.add_trace(go.Scatter(
+                                                x=clean_data[selected_index],
+                                                y=clean_data[col],
+                                                mode='lines+markers',
+                                                name=col,
+                                                line=dict(width=2),
+                                                marker=dict(size=4),
+                                                hovertemplate=f'<b>{col}</b><br>' +
+                                                              f'{selected_index}: %{{x}}<br>' +
+                                                              f'{column_name}: %{{y:.4f}}<extra></extra>'
+                                            ))
+
+                            # Mean curves mode
+                            elif display_mode_selected == translate_service.translate('mean'):
+                                # Get data columns (exclude index)
+                                data_cols = [col for col in filtered_column_df.columns if col != selected_index]
+
+                                if data_cols:
+                                    # Calculate mean and std across all batch_sample combinations
+                                    df_mean = filtered_column_df[data_cols].mean(axis=1)
+                                    df_std = filtered_column_df[data_cols].std(axis=1)
+
+                                    # Clean data by removing NaN values
+                                    clean_data = pd.DataFrame({
+                                        selected_index: filtered_column_df[selected_index],
+                                        'mean': df_mean,
+                                        'std': df_std
+                                    }).dropna()
 
                                     if not clean_data.empty:
+                                        # Add mean trace
                                         fig.add_trace(go.Scatter(
                                             x=clean_data[selected_index],
-                                            y=clean_data[col],
+                                            y=clean_data['mean'],
                                             mode='lines+markers',
-                                            name=col,
-                                            line=dict(width=2),
-                                            marker=dict(size=4),
-                                            hovertemplate=f'<b>{col}</b><br>' +
+                                            name=translate_service.translate("mean_of_selected_samples"),
+                                            line=dict(width=2, shape='spline', smoothing=1),
+                                            marker=dict(size=6),
+                                            hovertemplate=f'<b>{translate_service.translate("mean")}</b><br>' +
                                                           f'{selected_index}: %{{x}}<br>' +
                                                           f'{column_name}: %{{y:.4f}}<extra></extra>'
                                         ))
+
+                                        # Add error band if requested
+                                        if error_band:
+                                            # Upper bound
+                                            fig.add_trace(go.Scatter(
+                                                x=clean_data[selected_index],
+                                                y=clean_data['mean'] + clean_data['std'],
+                                                mode='lines',
+                                                line=dict(width=0),
+                                                showlegend=False,
+                                                hoverinfo='skip'
+                                            ))
+                                            # Lower bound with fill
+                                            fig.add_trace(go.Scatter(
+                                                x=clean_data[selected_index],
+                                                y=clean_data['mean'] - clean_data['std'],
+                                                mode='lines',
+                                                line=dict(width=0),
+                                                fill='tonexty',
+                                                name=f'{translate_service.translate("error_band")} (±1 SD)',
+                                                hoverinfo='skip'
+                                            ))
 
                             # Update layout
                             fig.update_layout(
@@ -389,33 +512,63 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                             # Display the plot
                             st.plotly_chart(fig, use_container_width=True)
 
-                            # Add summary statistics
-                            data_columns_only = filtered_column_df.select_dtypes(include=[float, int])
-                            if selected_index in data_columns_only.columns:
-                                data_columns_only = data_columns_only.drop(columns=[selected_index])
+                            # Add summary statistics based on display mode
+                            if display_mode_selected == translate_service.translate('individual_curves'):
+                                data_columns_only = filtered_column_df.select_dtypes(include=[float, int])
+                                if selected_index in data_columns_only.columns:
+                                    data_columns_only = data_columns_only.drop(columns=[selected_index])
 
-                            if not data_columns_only.empty:
-                                col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
-                                with col_stats1:
-                                    total_values = data_columns_only.count().sum()
-                                    st.metric(translate_service.translate('data_points'), int(total_values))
-                                with col_stats2:
-                                    mean_val = data_columns_only.mean().mean()
-                                    st.metric(translate_service.translate('overall_average'), f"{mean_val:.3f}")
-                                with col_stats3:
-                                    min_val = data_columns_only.min().min()
-                                    st.metric(translate_service.translate('minimum'), f"{min_val:.3f}")
-                                with col_stats4:
-                                    max_val = data_columns_only.max().max()
-                                    st.metric(translate_service.translate('maximum'), f"{max_val:.3f}")
+                                if not data_columns_only.empty:
+                                    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+                                    with col_stats1:
+                                        total_values = data_columns_only.count().sum()
+                                        st.metric(translate_service.translate('data_points'), int(total_values))
+                                    with col_stats2:
+                                        mean_val = data_columns_only.mean().mean()
+                                        st.metric(translate_service.translate('overall_average'), f"{mean_val:.3f}")
+                                    with col_stats3:
+                                        min_val = data_columns_only.min().min()
+                                        st.metric(translate_service.translate('minimum'), f"{min_val:.3f}")
+                                    with col_stats4:
+                                        max_val = data_columns_only.max().max()
+                                        st.metric(translate_service.translate('maximum'), f"{max_val:.3f}")
 
-                            # Download button for this specific column data
-                            csv_data = filtered_column_df.to_csv(index=False)
-                            st.download_button(
-                                label=translate_service.translate('download_data').format(column=column_name),
-                                data=csv_data,
-                                file_name=f"cell_culture_{column_name}_graph_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                mime="text/csv", key=f"download_graph_{column_name}_{i}")
+                                # Download button for individual curves
+                                csv_data = filtered_column_df.to_csv(index=False)
+                                st.download_button(
+                                    label=translate_service.translate('download_data').format(column=column_name),
+                                    data=csv_data,
+                                    file_name=f"cell_culture_{column_name}_graph_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                    mime="text/csv", key=f"download_graph_{column_name}_{i}")
+
+                            elif display_mode_selected == translate_service.translate('mean'):
+                                # Statistics for mean data
+                                if not clean_data.empty:
+                                    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+                                    with col_stats1:
+                                        total_values = len(clean_data)
+                                        st.metric(translate_service.translate('data_points'), int(total_values))
+                                    with col_stats2:
+                                        mean_val = clean_data['mean'].mean()
+                                        st.metric(translate_service.translate('overall_average'), f"{mean_val:.3f}")
+                                    with col_stats3:
+                                        min_val = clean_data['mean'].min()
+                                        st.metric(translate_service.translate('minimum'), f"{min_val:.3f}")
+                                    with col_stats4:
+                                        max_val = clean_data['mean'].max()
+                                        st.metric(translate_service.translate('maximum'), f"{max_val:.3f}")
+
+                                # Download button for mean data
+                                # Prepare download dataframe with mean and std
+                                download_df = clean_data.copy()
+                                download_df = download_df.rename(columns={'mean': f'{column_name}_mean', 'std': f'{column_name}_std'})
+                                csv_data = download_df.to_csv(index=False)
+                                st.download_button(
+                                    label=translate_service.translate('download_data').format(column=f"{column_name} ({translate_service.translate('mean')})"),
+                                    data=csv_data,
+                                    file_name=f"cell_culture_{column_name}_mean_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                    mime="text/csv", key=f"download_graph_{column_name}_{i}")
+
                         else:
                             st.warning(translate_service.translate(
                                 'no_data_matches_filters_column').format(column=column_name))

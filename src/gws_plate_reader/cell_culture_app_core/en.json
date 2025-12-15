@@ -681,5 +681,10 @@
     "umap_launch_error": "Error launching UMAP analysis",
     "status_with_name": "Status: {status}",
     "pls_metadata_output_unavailable": "Output 'metadata_table' is not available in the quality check scenario",
-    "pls_results_table_unavailable": "Output 'results_table' is not available in the feature extraction scenario"
+    "pls_results_table_unavailable": "Output 'results_table' is not available in the feature extraction scenario",
+    "individual_curves" : "Individual curves",
+    "mean": "Mean",
+    "mean_of_selected_samples": "Mean of selected samples",
+    "select_display_mode": "Select the display mode",
+    "error_band": "Error band"
 }

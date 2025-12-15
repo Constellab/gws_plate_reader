@@ -681,5 +681,10 @@
     "feature_extraction_params_not_found": "Table des paramètres non trouvée",
     "feature_extraction_curves_not_found": "Graphique des courbes ajustées non trouvé",
     "feature_extraction_params_tab": "Paramètres extraits",
-    "feature_extraction_error_displaying": "Erreur lors de l'affichage des résultats"
+    "feature_extraction_error_displaying": "Erreur lors de l'affichage des résultats",
+    "individual_curves" : "Courbes individuelles",
+    "mean" : "Moyenne",
+    "mean_of_selected_samples": "Moyenne des échantillons sélectionnés",
+    "select_display_mode": "Sélectionner le mode d'affichage",
+    "error_band": "Bande d'erreur"
 }

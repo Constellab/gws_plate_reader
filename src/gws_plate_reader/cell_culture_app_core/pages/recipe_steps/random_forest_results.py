@@ -72,7 +72,7 @@ def render_random_forest_results(recipe: CellCultureRecipe, cell_culture_state: 
                 summary_table = summary_table_model.get_resource()
                 summary_df = summary_table.get_data()
 
-                st.dataframe(summary_df, use_container_width=True)
+                st.dataframe(summary_df, width='stretch')
 
                 # Download button
                 csv = summary_df.to_csv(index=True)
@@ -105,7 +105,7 @@ def render_random_forest_results(recipe: CellCultureRecipe, cell_culture_state: 
                 vip_table = vip_table_model.get_resource()
                 vip_df = vip_table.get_data()
 
-                st.dataframe(vip_df, use_container_width=True)
+                st.dataframe(vip_df, width='stretch')
 
                 # Download button
                 csv = vip_df.to_csv(index=True)

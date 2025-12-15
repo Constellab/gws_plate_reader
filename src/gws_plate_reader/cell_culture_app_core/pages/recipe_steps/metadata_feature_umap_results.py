@@ -49,7 +49,7 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
         st.info(translate_service.translate('combined_table_info').format(rows=n_rows, cols=n_cols))
 
         with st.expander(f"📋 {translate_service.translate('preview_combined_table')}"):
-            st.dataframe(merged_df.head(20), use_container_width=True)
+            st.dataframe(merged_df.head(20), width='stretch')
 
             # Download button
             csv = merged_df.to_csv(index=False)
@@ -113,7 +113,7 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
 
         col1, col2 = st.columns([2, 1])
         with col1:
-            st.dataframe(df_2d, use_container_width=True, height=400)
+            st.dataframe(df_2d, width='stretch', height=400)
         with col2:
             st.metric("Nombre de séries", len(df_2d))
             st.metric("Colonnes", len(df_2d.columns))
@@ -144,7 +144,7 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
 
         col1, col2 = st.columns([2, 1])
         with col1:
-            st.dataframe(df_3d, use_container_width=True, height=400)
+            st.dataframe(df_3d, width='stretch', height=400)
         with col2:
             st.metric("Nombre de séries", len(df_3d))
             st.metric("Colonnes", len(df_3d.columns))

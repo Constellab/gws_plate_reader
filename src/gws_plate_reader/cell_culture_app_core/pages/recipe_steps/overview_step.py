@@ -402,7 +402,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
 
                 st.dataframe(
                     df_display,
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True,
                     column_config={
                         'Batch': st.column_config.TextColumn(translate_service.translate('column_batch')),

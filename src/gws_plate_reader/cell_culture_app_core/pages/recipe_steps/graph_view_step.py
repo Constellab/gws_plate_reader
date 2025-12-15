@@ -134,7 +134,7 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 st.write(translate_service.translate('batch_selection'))
             with col1_button:
                 if st.button(translate_service.translate('select_all_batches'),
-                             key="select_all_batches_graph", use_container_width=True):
+                             key="select_all_batches_graph", width='stretch'):
                     st.session_state.graph_view_batches = unique_batches
                     st.rerun()
 
@@ -155,7 +155,7 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 st.write(translate_service.translate('sample_selection'))
             with col2_button:
                 if st.button(translate_service.translate('select_all_samples'),
-                             key="select_all_samples_graph", use_container_width=True):
+                             key="select_all_samples_graph", width='stretch'):
                     st.session_state.graph_view_samples = unique_samples
                     st.rerun()
 
@@ -584,4 +584,4 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
             st.info(translate_service.translate('select_columns_hint'))
 
     except Exception as e:
-        st.error(f"❌ {translate_service.translate('error_details')}: {str(e)}")
+        st.error(f"❌ {translate_service.translate('error_details')} {str(e)}")

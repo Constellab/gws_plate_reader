@@ -427,7 +427,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         submit_button = st.form_submit_button(
             translate_service.translate('launch_analysis_button_with_type').format(analysis_type='UMAP'),
             type="primary",
-            use_container_width=True
+            width='stretch'
         )
 
         if submit_button:

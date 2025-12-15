@@ -35,7 +35,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
 
         with col_button_new:
             if st.button(translate_service.translate("create_new_recipe"),
-                         icon=":material/add:", use_container_width=False, type="primary"):
+                         icon=":material/add:", width='content', type="primary"):
                 # Navigate to new recipe page
                 router = StreamlitRouter.load_from_session()
                 router.navigate("new-analysis")
@@ -201,6 +201,6 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             # Add direct call-to-action
             st.markdown("---")
             if st.button(f"🆕 {translate_service.translate('create_first_analysis')}", type="primary",
-                         use_container_width=True):
+                        width='stretch'):
                 router = StreamlitRouter.load_from_session()
                 router.navigate("new-analysis")

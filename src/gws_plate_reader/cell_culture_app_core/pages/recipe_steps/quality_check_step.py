@@ -479,7 +479,7 @@ def _render_selection_quality_checks(
 
         # Launch button
         if st.button(f"🚀 {translate_service.translate('qc_launch_button')}", key=f"launch_qc_{selection.id}",
-                     type="primary", use_container_width=True):
+                     type="primary", width='stretch'):
             try:
                 # Authenticate for scenario creation
                 with StreamlitAuthenticateUser():

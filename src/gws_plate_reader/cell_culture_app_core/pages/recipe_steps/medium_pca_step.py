@@ -283,7 +283,7 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
         submit_button = st.form_submit_button(
             f"🚀 {translate_service.translate('pca_launch_button')}",
             type="primary",
-            use_container_width=True
+            width='stretch'
         )
 
         if submit_button:

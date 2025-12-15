@@ -52,7 +52,7 @@ def show_content(microplate: TecanParser):
         df = st.data_editor(formatted_df)
 
 
-        if st.button("Update raw data", use_container_width=False, icon = ":material/save:"):
+        if st.button("Update raw data", width='content', icon = ":material/save:"):
             # Convert the formatted DataFrame back to floats for numeric columns
             for col in df.select_dtypes(include="object").columns:
                 # Remove spaces introduced during formatting and convert back to numeric
@@ -66,7 +66,7 @@ def show_content(microplate: TecanParser):
             st.success("Saved!")
             st.rerun()
 
-        if st.button("Reset changes", use_container_width=False, icon = ":material/restart_alt:"):
+        if st.button("Reset changes", width='content', icon = ":material/restart_alt:"):
             df = original_raw_data.get_data()
             #Update the data of microplate :
             microplate.update_row_data(df)

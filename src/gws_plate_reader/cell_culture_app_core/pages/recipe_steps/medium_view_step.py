@@ -189,7 +189,7 @@ def render_medium_view_step(recipe: CellCultureRecipe, cell_culture_state: CellC
         st.dataframe(
             df,
             column_config=column_config,
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
 

@@ -105,7 +105,7 @@ def render_find_experiments_page():
                 },
                 disabled=['id_biolector_experiment', 'raw_data', 'filter', 'wells', 'user', 'comment'],
                 hide_index=True,
-                use_container_width=True
+                width='stretch'
             )
 
         selected_experiments = {}

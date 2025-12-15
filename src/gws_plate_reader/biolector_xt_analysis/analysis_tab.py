@@ -114,7 +114,7 @@ def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
 
             with StreamlitContainers.full_width_dataframe_container('container-full-dataframe-growth-rate'):
                 st.dataframe(df_analysis.style.format(
-                    thousands=" ", precision=4), use_container_width=True)
+                    thousands=" ", precision=4), width='stretch')
             with st.expander("Analysis Plots", expanded=True):
                 st.plotly_chart(fig)
                 st.plotly_chart(histogram)

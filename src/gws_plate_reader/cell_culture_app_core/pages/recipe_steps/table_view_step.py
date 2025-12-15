@@ -191,7 +191,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 st.write(translate_service.translate('batch_selection_label'))
             with col1_button:
                 if st.button(translate_service.translate('select_all_batches'),
-                             key="select_all_batches_table", use_container_width=True):
+                             key="select_all_batches_table", width='stretch'):
                     st.session_state.table_view_batches = unique_batches
                     st.rerun()
 
@@ -212,7 +212,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 st.write(translate_service.translate('sample_selection'))
             with col2_button:
                 if st.button(translate_service.translate('select_all_samples'),
-                             key="select_all_samples_table", use_container_width=True):
+                             key="select_all_samples_table", width='stretch'):
                     st.session_state.table_view_samples = unique_samples
                     st.rerun()
 
@@ -366,7 +366,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                         # Display the table for this column
                         st.dataframe(
                             filtered_column_df,
-                            use_container_width=True,
+                            width='stretch',
                             hide_index=True,
                             column_config=column_config
                         )

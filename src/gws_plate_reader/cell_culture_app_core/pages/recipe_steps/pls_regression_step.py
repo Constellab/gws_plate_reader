@@ -385,7 +385,7 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='PLS'),
         type="primary",
         key=f"pls_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        use_container_width=True
+        width='stretch'
     ):
         if len(target_columns) == 0:
             st.error(translate_service.translate('select_target_first'))

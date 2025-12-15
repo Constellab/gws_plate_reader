@@ -431,7 +431,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Optimization'),
         type="primary",
         key=f"optimization_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        use_container_width=True
+        width='stretch'
     ):
         if len(targets_thresholds) == 0:
             st.error(translate_service.translate('select_target_first'))

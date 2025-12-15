@@ -38,7 +38,7 @@ def render_feature_extraction_results(recipe: CellCultureRecipe, cell_culture_st
         results_table = protocol_proxy.get_output('results_table')
         if results_table and isinstance(results_table, Table):
             df = results_table.get_data()
-            st.dataframe(df, use_container_width=True, height=600)
+            st.dataframe(df, width='stretch', height=600)
 
             # Option to download
             csv = df.to_csv(index=False)

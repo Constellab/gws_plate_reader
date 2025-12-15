@@ -294,7 +294,7 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
         submit_button = st.form_submit_button(
             f"🚀 {translate_service.translate('feature_extraction_launch_button')}",
             type="primary",
-            use_container_width=True
+            width='stretch'
         )
 
         if submit_button:

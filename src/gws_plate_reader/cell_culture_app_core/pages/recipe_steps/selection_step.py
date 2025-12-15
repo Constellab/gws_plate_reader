@@ -253,7 +253,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
             # Use st.dataframe with selection_mode for row selection
             selected_data = st.dataframe(
                 df_display,
-                use_container_width=True,
+                width='stretch',
                 hide_index=True,
                 selection_mode="multi-row",
                 on_select="rerun",
@@ -261,7 +261,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
             )
 
             # Button to validate selection
-            if st.button(translate_service.translate('validate_selection'), type="primary", use_container_width=True):
+            if st.button(translate_service.translate('validate_selection'), type="primary", width='stretch'):
                 if selected_data.selection.rows:
                     # Get selected rows
                     selected_indices = selected_data.selection.rows
@@ -302,7 +302,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                     # Display the selected data
                     st.dataframe(
                         selected_df,
-                        use_container_width=True,
+                        width='stretch',
                         hide_index=True,
                         column_config={
                             'Batch': st.column_config.TextColumn('Batch'),

@@ -327,7 +327,7 @@ def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: Cel
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Causal Effect'),
         type="primary",
         key=f"causal_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        use_container_width=True
+        width='stretch'
     ):
         if len(target_columns) == 0:
             st.error(translate_service.translate('select_target_first'))

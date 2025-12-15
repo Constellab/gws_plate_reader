@@ -582,7 +582,7 @@ class CellCultureState(ABC):
             for resource in resources.values():
                 if isinstance(resource, Table):
                     if column_name in resource.get_column_names():
-                        col_tags = resource.get_column_tags_by_name(col_name)
+                        col_tags = resource.get_column_tags_by_name(column_name)
                         unit = col_tags.get('unit')
 
                         if unit:

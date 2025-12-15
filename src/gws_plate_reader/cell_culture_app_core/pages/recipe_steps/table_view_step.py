@@ -8,7 +8,6 @@ from typing import List, Dict, Any, Optional
 
 from gws_core import Table, Scenario, ScenarioStatus, ScenarioProxy
 from gws_core.resource.resource_set.resource_set import ResourceSet
-from gws_core.tag.tag_list import TagList
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
@@ -254,7 +253,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
             filtered_data_columns = data_columns
 
         with col4:
-            st.write(translate_service.translate('column_selection'))
+            st.write(f"**{translate_service.translate('column_selection')}:**")
             selected_columns = st.multiselect(
                 translate_service.translate('choose_columns'),
                 options=filtered_data_columns,
@@ -399,4 +398,4 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
             st.info(translate_service.translate('select_columns_table_hint'))
 
     except Exception as e:
-        st.error(f"❌ Erreur lors du chargement de la vue tableau: {str(e)}")
+        st.error(translate_service.translate('error_loading_table_view').format(error=str(e)))

@@ -338,4 +338,4 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
             st.warning(translate_service.translate('no_valid_samples'))
 
     except Exception as e:
-        st.error(f"❌ Erreur: {str(e)}")
+        st.error(f"{translate_service.translate('error_details_expander')}: {str(e)}")

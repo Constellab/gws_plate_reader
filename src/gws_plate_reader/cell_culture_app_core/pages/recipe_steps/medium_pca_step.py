@@ -24,6 +24,7 @@ def get_available_media_from_quality_check(
     :param cell_culture_state: The cell culture state
     :return: List of unique medium names
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         # Get the filtered interpolated ResourceSet from quality check
         scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
@@ -50,7 +51,7 @@ def get_available_media_from_quality_check(
         return sorted(list(media))
     except Exception as e:
         # Handle any exception during media extraction
-        st.error(f"Erreur lors de l'extraction des milieux : {str(e)}")
+        st.error(translate_service.translate('error_extracting_media').format(error=str(e)))
         return []
 
 
@@ -68,6 +69,7 @@ def launch_medium_pca_scenario(
     :param selected_media: List of selected medium names to include in analysis
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for Medium PCA
@@ -93,7 +95,7 @@ def launch_medium_pca_scenario(
             ).get_output_resource_model('medium_table')
 
             if not medium_table_resource_model:
-                raise ValueError("La sortie 'medium_table' n'est pas disponible dans le scénario de chargement")
+                raise ValueError(translate_service.translate('medium_table_output_unavailable'))
 
             # Add input task for the medium_table from load scenario
             medium_input_task = protocol_proxy.add_process(
@@ -194,7 +196,6 @@ def launch_medium_pca_scenario(
             return new_scenario
 
     except Exception as e:
-        translate_service = cell_culture_state.get_translate_service()
         st.error(translate_service.translate('error_launching_scenario_generic').format(
             scenario_type='Medium PCA', error=str(e)))
         import traceback

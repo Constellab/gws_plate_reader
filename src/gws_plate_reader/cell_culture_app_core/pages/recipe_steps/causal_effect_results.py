@@ -61,15 +61,9 @@ def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: 
         resource_url = f"{front_url}/app/resource/{streamlit_app_resource_model.id}"
 
         st.markdown("---")
-        st.markdown("### 📊 Dashboard interactif")
+        st.markdown(f"### 📊 {translate_service.translate('causal_effect_dashboard_title')}")
 
-        st.markdown("""
-Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'analyse Causal Effect :
-- **Heatmaps** : Visualisation matricielle des effets causaux
-- **Barplots** : Comparaison des effets par traitement et cible
-- **Clustermaps** : Analyse hiérarchique des patterns causaux
-- **Filtres interactifs** : Sélection dynamique des variables et combinaisons
-        """)
+        st.markdown(translate_service.translate('causal_effect_dashboard_description'))
 
         # Button to open the Streamlit app
         st.markdown(
@@ -85,7 +79,7 @@ Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'ana
             f'font-weight: 600; '
             f'width: 100%;'
             f'">'
-            f'🚀 Ouvrir le Dashboard Interactif'
+            f'{translate_service.translate("open_interactive_dashboard")}'
             f'</button>'
             f'</a>',
             unsafe_allow_html=True
@@ -96,18 +90,9 @@ Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'ana
         # Additional info
         with st.expander(f"ℹ️ {translate_service.translate('results_info_label')}"):
             st.markdown(f"""
-**Ressource ID** : `{streamlit_app_resource_model.id}`
+**{translate_service.translate('resource_id_label')}** : `{streamlit_app_resource_model.id}`
 
-**Comment utiliser le dashboard :**
-1. Cliquez sur le bouton ci-dessus pour ouvrir le dashboard dans un nouvel onglet
-2. Utilisez les filtres dans la barre latérale pour sélectionner les variables d'intérêt
-3. Explorez les différents onglets pour différentes visualisations
-4. Les effets causaux sont affichés avec transformation logarithmique pour une meilleure lisibilité
-
-**Interprétation des résultats :**
-- **Valeurs positives** : Le traitement augmente la variable cible
-- **Valeurs négatives** : Le traitement diminue la variable cible
-- **Valeurs proches de zéro** : Pas d'effet causal significatif
+{translate_service.translate('causal_effect_usage_guide')}
             """)
 
     except Exception as e:

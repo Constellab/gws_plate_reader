@@ -182,7 +182,7 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                     options=index_columns,
                     index=0,
                     key="graph_view_index",
-                    help="Choisissez n'importe quelle colonne pour l'utiliser comme index (axe X). Les colonnes de temps apparaissent en premier par défaut."
+                    help=translate_service.translate('choose_index_column_help')
                 )
             else:
                 st.warning(translate_service.translate('no_index_column'))
@@ -196,7 +196,7 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
             filtered_data_columns = data_columns
 
         with col4:
-            st.write(translate_service.translate('column_selection'))
+            st.write(f"**{translate_service.translate('column_selection')}:**")
             help_text = translate_service.translate('available_data_columns')
             if selected_index:
                 help_text += " " + translate_service.translate('excluding_index').format(index=selected_index)
@@ -431,4 +431,4 @@ def render_graph_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
             st.info(translate_service.translate('select_columns_hint'))
 
     except Exception as e:
-        st.error(f"❌ Erreur lors du chargement de la vue graphique: {str(e)}")
+        st.error(f"❌ {translate_service.translate('error_details')}: {str(e)}")

@@ -83,13 +83,7 @@ def render_pls_regression_results(recipe: CellCultureRecipe, cell_culture_state:
                     mime="text/csv"
                 )
 
-                st.markdown("""
-**Interprétation** :
-- **R² (Train)** : Qualité d'ajustement sur les données d'entraînement (0-1, plus proche de 1 = meilleur)
-- **R² (Test)** : Qualité de prédiction sur les données de test (indicateur de généralisation)
-- **RMSE (Train/Test)** : Erreur quadratique moyenne (plus faible = meilleur)
-- Si R² Test << R² Train : possible sur-apprentissage
-""")
+                st.markdown(translate_service.translate('pls_metrics_interpretation'))
 
         # Tab 2: VIP scores
         with tabs[1]:
@@ -122,13 +116,7 @@ def render_pls_regression_results(recipe: CellCultureRecipe, cell_culture_state:
                     mime="text/csv"
                 )
 
-                st.markdown("""
-**Interprétation VIP** :
-- **VIP > 1** : Variable importante pour le modèle
-- **VIP > 1.5** : Variable très importante
-- **VIP < 0.5** : Variable peu importante, peut être retirée
-- Les scores VIP indiquent quelles variables (nutriments, conditions) influencent le plus les résultats
-""")
+                st.markdown(translate_service.translate('pls_vip_interpretation'))
 
         # Tab 3: Train predictions
         with tabs[2]:
@@ -138,12 +126,7 @@ def render_pls_regression_results(recipe: CellCultureRecipe, cell_culture_state:
                 plot_train = plot_train_model.get_resource()
                 st.plotly_chart(plot_train.figure, use_container_width=True)
 
-                st.markdown("""
-**Interprétation** :
-- Les points proches de la diagonale indiquent de bonnes prédictions
-- Dispersion autour de la diagonale = erreur de prédiction
-- Patterns systématiques (courbe) peuvent indiquer un biais du modèle
-""")
+                st.markdown(translate_service.translate('pls_train_interpretation'))
 
         # Tab 4: Test predictions
         with tabs[3]:
@@ -153,13 +136,7 @@ def render_pls_regression_results(recipe: CellCultureRecipe, cell_culture_state:
                 plot_test = plot_test_model.get_resource()
                 st.plotly_chart(plot_test.figure, use_container_width=True)
 
-                st.markdown("""
-**Interprétation** :
-- Performance sur données non vues pendant l'entraînement
-- Évalue la capacité de généralisation du modèle
-- Si performances train >> test : sur-apprentissage possible
-- Points s'écartant fortement de la diagonale = outliers ou cas particuliers
-""")
+                st.markdown(translate_service.translate('pls_test_interpretation'))
 
     except Exception as e:
         st.error(translate_service.translate('error_displaying_results').format(error=str(e)))
@@ -168,59 +145,4 @@ def render_pls_regression_results(recipe: CellCultureRecipe, cell_culture_state:
 
     # Additional information section
     with st.expander(f"ℹ️ {translate_service.translate('pls_interpretation_guide')}"):
-        st.markdown("""
-### Comment interpréter les résultats PLS ?
-
-#### 1. Performance du modèle (Tab 1)
-
-**Graphique des composantes** :
-- Montre l'erreur de validation croisée en fonction du nombre de composantes
-- Le modèle sélectionne automatiquement le nombre optimal
-- Plus de composantes ≠ nécessairement meilleur (risque de sur-apprentissage)
-
-**Métriques** :
-- **R² proche de 1** : Excellent modèle
-- **R² autour de 0.7-0.9** : Bon modèle
-- **R² < 0.5** : Modèle faible, revoir les variables
-- **R² Test < R² Train** : Normal, mais l'écart ne doit pas être trop grand
-
-#### 2. Importance des variables (VIP) (Tab 2)
-
-**Scores VIP** :
-- Identifie les nutriments/conditions les plus influents
-- VIP > 1 : Variable importante à conserver
-- Permet de simplifier les milieux en se concentrant sur les facteurs clés
-
-**Applications** :
-- Optimisation de formulation : focus sur variables à VIP élevé
-- Réduction de coûts : éliminer variables à VIP faible
-- Compréhension biologique : quels facteurs contrôlent la croissance ?
-
-#### 3. Prédictions (Tabs 3 et 4)
-
-**Train Set** :
-- Doit montrer un bon ajustement (points sur la diagonale)
-- Dispersion modérée acceptable
-
-**Test Set** :
-- Plus important : évalue la généralisation
-- Performance similaire au train = bon modèle
-- Outliers = conditions expérimentales particulières à investiguer
-
-#### 4. Utilisation pratique
-
-**Pour optimiser un milieu** :
-1. Regarder les variables à VIP élevé
-2. Analyser leur influence (coefficient positif/négatif)
-3. Ajuster ces composants en priorité
-
-**Pour prédire des performances** :
-1. Vérifier R² Test > 0.7
-2. Utiliser le modèle pour simuler de nouvelles compositions
-3. Valider expérimentalement les prédictions
-
-**Limites** :
-- Le modèle interpole, pas extrapole : rester dans la gamme des données
-- Corrélation ≠ causalité : confirmer les hypothèses expérimentalement
-- Qualité des données critique : outliers et erreurs de mesure impactent les résultats
-""")
+        st.markdown(translate_service.translate('pls_guide_content'))

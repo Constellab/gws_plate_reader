@@ -5,7 +5,6 @@ from gws_core import Tag, ScenarioSearchBuilder, Scenario
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
-from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.cell_culture_app_core.functions_steps import (
     render_recipe_table,
     create_recipe_table_data

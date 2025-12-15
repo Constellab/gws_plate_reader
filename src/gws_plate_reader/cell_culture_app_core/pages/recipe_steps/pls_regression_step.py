@@ -6,7 +6,7 @@ import streamlit as st
 from typing import List, Optional
 from datetime import datetime
 
-from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag, ScenarioStatus
+from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
@@ -19,7 +19,6 @@ from gws_design_of_experiments.pls.pls_regression_task import PLSRegressorTask
 def launch_pls_regression_scenario(
         quality_check_scenario: Scenario,
         cell_culture_state: CellCultureState,
-        load_scenario: Scenario,
         feature_extraction_scenario: Scenario,
         target_columns: List[str],
         columns_to_exclude: Optional[List[str]],
@@ -61,7 +60,7 @@ def launch_pls_regression_scenario(
             )
 
             if not metadata_table_resource_model:
-                raise ValueError("La sortie 'metadata_table' n'est pas disponible dans le scénario de quality check")
+                raise ValueError(translate_service.translate('pls_metadata_output_unavailable'))
 
             # Get the results_table from feature extraction scenario
             fe_scenario_proxy = ScenarioProxy.from_existing_scenario(feature_extraction_scenario.id)
@@ -70,8 +69,7 @@ def launch_pls_regression_scenario(
             results_table_resource_model = fe_protocol_proxy.get_output_resource_model('results_table')
 
             if not results_table_resource_model:
-                raise ValueError(
-                    "La sortie 'results_table' n'est pas disponible dans le scénario d'extraction de caractéristiques")
+                raise ValueError(translate_service.translate('pls_results_table_unavailable'))
 
             # Add input task for metadata_table
             metadata_input_task = protocol_proxy.add_process(
@@ -396,7 +394,6 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
             pls_scenario = launch_pls_regression_scenario(
                 quality_check_scenario,
                 cell_culture_state,
-                load_scenario,
                 feature_extraction_scenario,
                 target_columns,
                 columns_to_exclude,
@@ -418,47 +415,4 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
 
     # Info box with explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='PLS Regression')):
-        st.markdown("""
-### Qu'est-ce que la régression PLS ?
-
-La régression PLS (Partial Least Squares) est une méthode statistique qui :
-
-1. **Combine deux types de données** :
-   - **Métadonnées (X)** : Composition des milieux de culture
-   - **Features biologiques (Y)** : Paramètres extraits des courbes de croissance
-
-2. **Identifie les relations** entre composition et performances biologiques
-
-3. **Gère la multicolinéarité** : Contrairement à la régression classique, PLS fonctionne bien même quand les variables sont corrélées
-
-### Résultats fournis
-
-**Tableaux** :
-- **Summary Table** : Performances du modèle (R², RMSE) pour train et test
-- **VIP Table** : Importance des variables (scores VIP > 1 sont significatives)
-
-**Graphiques** :
-- **Components Plot** : Nombre optimal de composantes (validation croisée)
-- **VIP Plot** : Importance relative des variables
-- **Train/Test Predictions** : Valeurs prédites vs observées
-
-### Applications
-
-- Identifier quels nutriments influencent le plus la croissance
-- Prédire les performances à partir de la composition
-- Optimiser la formulation des milieux
-- Comprendre les relations composition-performance
-
-### Paramètres recommandés
-
-- **Normalisation** : Activée (recommandé car échelles différentes)
-- **Test size** : 0.2 (20% pour validation)
-- **Variables cibles** : Paramètres biologiques d'intérêt (taux de croissance, rendement, etc.)
-
-### Interprétation VIP
-
-**VIP (Variable Importance in Projection)** :
-- **VIP > 1** : Variable importante pour le modèle
-- **VIP < 0.5** : Variable peu importante
-- Plus le VIP est élevé, plus la variable contribue à la prédiction
-""")
+        st.markdown(translate_service.translate('pls_help_content'))

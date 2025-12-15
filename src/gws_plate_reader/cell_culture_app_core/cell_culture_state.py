@@ -6,7 +6,6 @@ import streamlit as st
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 from gws_core import ScenarioProxy, Scenario, ResourceSet
-from gws_core.resource.resource import Resource
 from gws_core.resource.resource_model import ResourceModel
 from gws_core.streamlit import StreamlitTranslateService
 import pandas as pd

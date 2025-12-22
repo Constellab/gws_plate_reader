@@ -806,5 +806,8 @@
     "select_target_variables": "Select target variable(s)",
     "select_target_variables_help": "The biological characteristic(s) to predict (Y variable(s))",
     "test_size_label": "Test set proportion",
-    "test_size_help": "Proportion of data to use for testing (between 0.1 and 0.5)"
+    "test_size_help": "Proportion of data to use for testing (between 0.1 and 0.5)",
+    "plot_by_batch": "Mean by batch",
+    "by_batch": "By batch",
+    "mean_selected_batches": "Mean of selected batches"
 }

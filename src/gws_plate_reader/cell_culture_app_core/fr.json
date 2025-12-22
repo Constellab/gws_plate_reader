@@ -806,5 +806,8 @@
     "interactive_dashboard": "📊 Dashboard interactif",
     "results_interpretation": "Interprétation des résultats",
     "scenario_status": "Statut",
-    "view_scenario_in_lab": "🔬 Voir le scénario dans Lab"
+    "view_scenario_in_lab": "🔬 Voir le scénario dans Lab",
+    "plot_by_batch": "Moyenne par batch",
+    "by_batch": "Par batch",
+    "mean_selected_batches": "Moyenne des batchs sélectionnés"
 }

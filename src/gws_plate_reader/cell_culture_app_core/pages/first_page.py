@@ -34,11 +34,12 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             st.markdown(f"## {translate_service.translate('recipes_list_title')}")
 
         with col_button_new:
-            if st.button(translate_service.translate("create_new_recipe"),
-                         icon=":material/add:", width='content', type="primary"):
-                # Navigate to new recipe page
-                router = StreamlitRouter.load_from_session()
-                router.navigate("new-analysis")
+            if not cell_culture_state.get_is_standalone():
+                if st.button(translate_service.translate("create_new_recipe"),
+                            icon=":material/add:", width='content', type="primary"):
+                    # Navigate to new recipe page
+                    router = StreamlitRouter.load_from_session()
+                    router.navigate("new-analysis")
 
         # Search for existing cell culture analyses (both load and selection scenarios)
         # Get load scenarios
@@ -199,8 +200,9 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                 """)
 
             # Add direct call-to-action
-            st.markdown("---")
-            if st.button(f"🆕 {translate_service.translate('create_first_analysis')}", type="primary",
-                        width='stretch'):
-                router = StreamlitRouter.load_from_session()
-                router.navigate("new-analysis")
+            if not cell_culture_state.get_is_standalone():
+                st.markdown("---")
+                if st.button(f"🆕 {translate_service.translate('create_first_analysis')}", type="primary",
+                            width='stretch'):
+                    router = StreamlitRouter.load_from_session()
+                    router.navigate("new-analysis")

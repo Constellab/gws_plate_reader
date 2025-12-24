@@ -37,6 +37,7 @@ def launch_pls_regression_scenario(
     :param test_size: Proportion of data for testing (0.0 to 1.0)
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for PLS Regression
@@ -204,7 +205,6 @@ def launch_pls_regression_scenario(
             return new_scenario
 
     except Exception as e:
-        translate_service = cell_culture_state.get_translate_service()
         st.error(f"{translate_service.translate('error_launching_scenario_analyse').format(analysis_type='PLS Regression')}: {str(e)}")
         import traceback
         st.code(traceback.format_exc())
@@ -385,7 +385,8 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='PLS'),
         type="primary",
         key=f"pls_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        width='stretch'
+        width='stretch',
+        disabled=cell_culture_state.get_is_standalone()
     ):
         if len(target_columns) == 0:
             st.error(translate_service.translate('select_target_first'))
@@ -413,6 +414,8 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
             else:
                 st.error(translate_service.translate('analysis_launch_error').format(analysis_type='PLS'))
 
+    if cell_culture_state.get_is_standalone():
+        st.info(translate_service.translate('standalone_mode_function_blocked'))
     # Info box with explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='PLS Regression')):
         st.markdown(translate_service.translate('pls_help_content'))

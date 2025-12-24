@@ -294,8 +294,11 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
         submit_button = st.form_submit_button(
             f"🚀 {translate_service.translate('feature_extraction_launch_button')}",
             type="primary",
-            width='stretch'
+            width='stretch',
+            disabled=cell_culture_state.get_is_standalone()
         )
+        if cell_culture_state.get_is_standalone():
+            st.info(translate_service.translate('standalone_mode_function_blocked'))
 
         if submit_button:
             if not selected_data_columns:

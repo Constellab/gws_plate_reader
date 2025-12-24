@@ -1,11 +1,14 @@
 """
 Causal Effect Results Display Page
 """
+import traceback
+
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus
 from gws_core.core.utils.settings import Settings
-from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 
 
 def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: CellCultureState,
@@ -22,7 +25,6 @@ def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: 
     st.markdown(f"### 🔗 {translate_service.translate('causal_effect_results_title')}")
 
     st.markdown(f"**{translate_service.translate('scenario_label')}** : {causal_scenario.title}")
-    st.markdown(f"**ID** : {causal_scenario.id}")
     st.markdown(
         f"**{translate_service.translate('creation_date')}** : {causal_scenario.created_at.strftime('%d/%m/%Y %H:%M:%S')}")
 
@@ -36,7 +38,7 @@ def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: 
             with st.expander(f"📋 {translate_service.translate('error_details_expander')}"):
                 st.code(causal_scenario.error_info.get('message', 'Aucun message d\'erreur disponible'))
         return
-    elif causal_scenario.status.is_running():
+    elif causal_scenario.is_running:
         st.info(f"⏳ {translate_service.translate('analysis_in_progress')}")
         st.markdown(translate_service.translate('refresh_page_for_results'))
         return
@@ -65,6 +67,10 @@ def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: 
 
         st.markdown(translate_service.translate('causal_effect_dashboard_description'))
 
+        if cell_culture_state.get_is_standalone():
+            st.info(translate_service.translate('standalone_mode_function_blocked'))
+            return
+
         # Button to open the Streamlit app
         st.markdown(
             f'<a href="{resource_url}" target="_blank">'
@@ -90,12 +96,11 @@ def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: 
         # Additional info
         with st.expander(f"ℹ️ {translate_service.translate('results_info_label')}"):
             st.markdown(f"""
-**{translate_service.translate('resource_id_label')}** : `{streamlit_app_resource_model.id}`
+            **{translate_service.translate('resource_id_label')}** : `{streamlit_app_resource_model.id}`
 
-{translate_service.translate('causal_effect_usage_guide')}
-            """)
+            {translate_service.translate('causal_effect_usage_guide')}
+                        """)
 
     except Exception as e:
         st.error(translate_service.translate('error_retrieving_results').format(error=str(e)))
-        import traceback
         st.code(traceback.format_exc())

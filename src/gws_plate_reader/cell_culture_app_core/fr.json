@@ -703,7 +703,6 @@
     "created_at": "Date de création",
     "scenario_refresh_message": "L'analyse est en cours. Actualisez cette page pour voir les résultats une fois terminée.",
     "streamlit_app_unavailable": "⚠️ La ressource de dashboard Streamlit n'est pas encore disponible.",
-    "dashboard_available": "✅ Le dashboard {analysis_type} est disponible !",
     "open_dashboard_button": "📊 Ouvrir le Dashboard {analysis_type}",
     "scenario_information": "📋 Informations du scénario",
     "metadata_table_not_found_qc": "⚠️ La table des métadonnées n'est pas disponible dans le scénario de quality check.",
@@ -809,5 +808,10 @@
     "view_scenario_in_lab": "🔬 Voir le scénario dans Lab",
     "plot_by_batch": "Moyenne par batch",
     "by_batch": "Par batch",
-    "mean_selected_batches": "Moyenne des batchs sélectionnés"
+    "mean_selected_batches": "Moyenne des batchs sélectionnés",
+    "standalone_mode_function_blocked": "Vous êtes en mode standalone. Cette fonctionnalité n'est pas disponible. Contactez-nous si vous souhaitez disposer de l'application avec toutes ses fonctionnalités dans votre lab.",
+    "unknown_error" : "Erreur inconnue",
+    "optimization_dashboard_description": "Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'analyse Optimization :\n- **Summary** : Meilleure solution trouvée et métriques\n- **3D Surface Explorer** : Exploration interactive de l'espace de recherche\n- **Feature Importance** : Importance des variables dans le modèle\n- **Observed vs Predicted** : Validation du modèle prédictif\n- **Data Explorer** : Toutes les solutions trouvées",
+    "optimization_dashboard_usage_guide": "**Comment utiliser le dashboard :**\n1. Cliquez sur le bouton ci-dessus pour ouvrir le dashboard dans un nouvel onglet\n2. Explorez les solutions optimales proposées\n3. Visualisez les compromis entre différents objectifs avec le 3D Surface Explorer\n4. Identifiez les paramètres optimaux pour votre application\n\n**Interprétation des résultats :**\n\n** Best Solution**:\n- Valeurs optimales trouvées pour chaque variable d'entrée\n- Prédictions pour chaque variable cible\n- Score de fitness global\n\n**3D Surface Explorer**:\n- Visualisation de la surface de réponse\n- Interaction avec les axes pour explorer différentes perspectives\n- Points rouges=solutions générées\n\n** Feature Importance**:\n- Importance relative de chaque variable d'entrée\n- Basé sur le modèle Random Forest/XGBoost/CatBoost\n- Plus la valeur est élevée, plus la variable est importante\n\n** Observed vs Predicted**:\n- Validation croisée du modèle prédictif\n- Points alignés sur la diagonale=bonnes prédictions\n- R² score indique la qualité du modèle\n\n** Data Explorer**:\n- Tableau complet de toutes les solutions trouvées\n- Tri et filtrage interactifs\n- Export CSV possible\n\n# Actions possibles\n\n1. ** Analyser les solutions**: Identifier les conditions optimales\n2. ** Valider les prédictions**: Vérifier le R² et les graphiques\n3. ** Explorer l'espace**: Utiliser le 3D Surface Explorer\n4. ** Exporter les données**: Télécharger les CSV depuis le dashboard\n5. ** Réitérer**: Lancer une nouvelle optimisation avec des contraintes ajustées"
+
 }

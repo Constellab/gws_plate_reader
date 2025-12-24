@@ -5,7 +5,7 @@ Manages common state and session management - Abstract base class
 import streamlit as st
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
-from gws_core import ScenarioProxy, Scenario, ResourceSet
+from gws_core import ScenarioProxy, Scenario, ResourceSet, ResourceOrigin
 from gws_core.resource.resource_model import ResourceModel
 from gws_core.streamlit import StreamlitTranslateService
 import pandas as pd
@@ -21,6 +21,8 @@ class CellCultureState(ABC):
     Provides common session state management and recipe handling.
     Subclasses should define their own constants for tags and keys.
     """
+
+    STANDALONE_KEY = "standalone_key"
 
     # Common session state keys (subclasses can override or extend)
     LANG_KEY = "lang_select"
@@ -61,9 +63,9 @@ class CellCultureState(ABC):
     TAG_COLUMN_NAME = "column_name"
 
     # Column name constants (to be overridden by subclasses)
-    BASE_TIME_COLUMN_NAME = None
-    BATCH_COLUMN_NAME = None
-    SAMPLE_COLUMN_NAME = None
+    BASE_TIME_COLUMN_NAME = "Temps de culture (h)"
+    BATCH_COLUMN_NAME = "ESSAI"
+    SAMPLE_COLUMN_NAME = "FERMENTEUR"
 
     # Common output names
     LOAD_SCENARIO_METADATA_OUTPUT_NAME = "metadata_table"
@@ -74,7 +76,7 @@ class CellCultureState(ABC):
     QUALITY_CHECK_SCENARIO_METADATA_OUTPUT_NAME = 'quality_check_scenario_metadata_output'
 
     # Process names (subclasses must override)
-    PROCESS_NAME_DATA_PROCESSING = None  # Must be set by subclasses
+    PROCESS_NAME_DATA_PROCESSING = 'data_processing'  # Must be set by subclasses
 
     ANALYSIS_TREE: Dict[str, Any] = {
         "medium_pca": {"title": "medium_pca_analysis", "icon": "scatter_plot", "children": []},
@@ -125,8 +127,17 @@ class CellCultureState(ABC):
         """Get the translation service from session state."""
         return st.session_state.get(self.TRANSLATE_SERVICE)
 
-    # Abstract method for creating recipe instances (to be implemented by subclasses)
-    @abstractmethod
+    # Standalone method
+    @classmethod
+    def get_is_standalone(self) -> bool:
+        return st.session_state.get(self.STANDALONE_KEY, False)
+
+    @classmethod
+    def set_is_standalone(self, value: bool) -> None:
+        st.session_state[self.STANDALONE_KEY] = value
+
+    # method for creating recipe instances
+    @classmethod
     def create_recipe_from_scenario(self, scenario: Scenario) -> CellCultureRecipe:
         """
         Create a recipe instance from a scenario.
@@ -135,7 +146,7 @@ class CellCultureState(ABC):
         :param scenario: The scenario to create the recipe from
         :return: A CellCultureRecipe instance (or subclass)
         """
-        pass
+        return CellCultureRecipe.from_scenario(scenario)
 
     # Recipe instance management
     def get_selected_recipe_instance(self) -> Optional[CellCultureRecipe]:
@@ -398,7 +409,7 @@ class CellCultureState(ABC):
 
         table.tags.add_tags(tags)
 
-        table_resource_model = ResourceModel.from_resource(table, scenario=scenario)
+        table_resource_model = ResourceModel.from_resource(table, origin = ResourceOrigin.UPLOADED,scenario=scenario)
 
         table_resource_model.save()
 

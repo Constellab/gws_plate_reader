@@ -26,7 +26,7 @@ def render_random_forest_results(recipe: CellCultureRecipe, cell_culture_state: 
     if rf_scenario.status != ScenarioStatus.SUCCESS:
         if rf_scenario.status == ScenarioStatus.ERROR:
             st.error(f"❌ {translate_service.translate('analysis_failed')}")
-        elif rf_scenario.status.is_running():
+        elif rf_scenario.is_running:
             st.info(f"⏳ {translate_service.translate('analysis_in_progress')}")
         else:
             st.warning(translate_service.translate('analysis_status').format(status=rf_scenario.status.name))

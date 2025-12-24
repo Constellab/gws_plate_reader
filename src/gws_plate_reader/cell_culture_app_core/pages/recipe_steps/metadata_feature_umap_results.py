@@ -27,7 +27,7 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
     if umap_scenario.status != ScenarioStatus.SUCCESS:
         if umap_scenario.status == ScenarioStatus.ERROR:
             st.error(f"❌ {translate_service.translate('umap_analysis_failed')}")
-        elif umap_scenario.status.is_running():
+        elif umap_scenario.is_running:
             st.info(f"⏳ {translate_service.translate('umap_analysis_running')}")
         else:
             st.warning(translate_service.translate('umap_analysis_not_completed').format(

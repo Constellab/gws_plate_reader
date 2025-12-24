@@ -121,7 +121,7 @@ def launch_selection_scenario(
                 flag_resource=True
             )
 
-            # Add tags to identify this as a selection scenario (suite du premier scénario)
+            # Add tags to identify this as a selection scenario (continuation of the first scenario)
             # Get the original analysis name from the parent scenario
             parent_entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, load_scenario.id)
 
@@ -199,17 +199,9 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
 
             with st.expander(f"👁️ {translate_service.translate('view_existing_selections')}"):
                 for i, selection in enumerate(existing_selections, 1):
-                    # Extract timestamp from title or tags
-                    timestamp = translate_service.translate('not_defined')
-                    if "Sélection - " in selection.title:
-                        timestamp = selection.title.replace("Sélection - ", "")
-
                     st.write(f"**{i}.** {selection.title} - Statut: {selection.status}")
 
         st.markdown(translate_service.translate('create_new_selection'))
-
-        # Prepare valid samples (those with no missing data)
-        valid_samples = []
 
         # Prepare valid data only (no missing data)
         valid_data = []
@@ -261,7 +253,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
             )
 
             # Button to validate selection
-            if st.button(translate_service.translate('validate_selection'), type="primary", width='stretch'):
+            if st.button(translate_service.translate('validate_selection'), type="primary", width='stretch', disabled = cell_culture_state.get_is_standalone()):
                 if selected_data.selection.rows:
                     # Get selected rows
                     selected_indices = selected_data.selection.rows
@@ -327,12 +319,15 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                 else:
                     st.warning(translate_service.translate('select_at_least_one'))
 
-            # Show current selection info
-            if selected_data.selection.rows:
-                st.info(translate_service.translate('rows_currently_selected').format(
-                    count=len(selected_data.selection.rows)))
+            if not cell_culture_state.get_is_standalone():
+                # Show current selection info
+                if selected_data.selection.rows:
+                    st.info(translate_service.translate('rows_currently_selected').format(
+                        count=len(selected_data.selection.rows)))
+                else:
+                    st.info(translate_service.translate('click_to_select_hint'))
             else:
-                st.info(translate_service.translate('click_to_select_hint'))
+                st.info(translate_service.translate('standalone_mode_function_blocked'))
 
         else:
             st.warning(translate_service.translate('no_valid_samples'))

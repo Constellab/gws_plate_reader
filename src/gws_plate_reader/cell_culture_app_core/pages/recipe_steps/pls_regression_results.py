@@ -26,7 +26,7 @@ def render_pls_regression_results(recipe: CellCultureRecipe, cell_culture_state:
     if pls_scenario.status != ScenarioStatus.SUCCESS:
         if pls_scenario.status == ScenarioStatus.ERROR:
             st.error(f"❌ {translate_service.translate('analysis_failed')}")
-        elif pls_scenario.status.is_running():
+        elif pls_scenario.is_running:
             st.info(f"⏳ {translate_service.translate('analysis_in_progress')}")
         else:
             st.warning(translate_service.translate('analysis_status').format(status=pls_scenario.status.name))

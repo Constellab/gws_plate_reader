@@ -372,19 +372,13 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                         )
 
                         # Download button for this specific column
-                        if st.button(translate_service.translate('save_table'), key=f"download_{column_name}_{i}"):
+                        if st.button(translate_service.translate('save_table'), key=f"download_{column_name}_{i}", disabled=cell_culture_state.get_is_standalone()):
                             cell_culture_state.save_df_as_table(
                                 filtered_column_df,
                                 f"cell_culture_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}",
                                 scenario=target_scenario)
-                        # csv_data = filtered_column_df.to_csv(index=False)
-                        # st.download_button(
-                        #     label=translate_service.translate('download_column').format(column=column_name),
-                        #     data=csv_data,
-                        #     file_name=f"cell_culture_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        #     mime="text/csv",
-                        #     key=f"download_{column_name}_{i}"
-                        # )
+                        if cell_culture_state.get_is_standalone():
+                            st.info(translate_service.translate('standalone_mode_function_blocked'))
                     else:
                         st.warning(translate_service.translate('no_data_matches_column').format(column=column_name))
                 else:

@@ -35,6 +35,7 @@ def launch_random_forest_scenario(
     :param test_size: Proportion of data for testing (0.0 to 1.0)
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for Random Forest Regression
@@ -363,7 +364,8 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Random Forest'),
         type="primary",
         key=f"rf_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        width='stretch'
+        width='stretch',
+        disabled=cell_culture_state.get_is_standalone()
     ):
         if not target_column:
             st.error(translate_service.translate('select_target_first'))
@@ -389,6 +391,9 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
                 st.rerun()
             else:
                 st.error(translate_service.translate('analysis_launch_error').format(analysis_type='Random Forest'))
+
+    if cell_culture_state.get_is_standalone():
+        st.info(translate_service.translate('standalone_mode_function_blocked'))
 
     # Info box with explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='Random Forest Regression')):

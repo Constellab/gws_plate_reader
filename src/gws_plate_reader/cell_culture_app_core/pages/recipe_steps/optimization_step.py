@@ -5,6 +5,7 @@ Allows users to run optimization on combined metadata and feature extraction dat
 import streamlit as st
 from typing import List, Optional
 from datetime import datetime
+import traceback
 
 from gws_core import (Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag)
 from gws_core.tag.tag_entity_type import TagEntityType
@@ -288,7 +289,6 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
 
     except Exception as e:
         st.error(f"{translate_service.translate('error_reading_tables')} : {str(e)}")
-        import traceback
         st.code(traceback.format_exc())
         return
 
@@ -306,6 +306,10 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
     # Configuration form for new Optimization
     st.markdown("---")
     st.markdown(translate_service.translate('launch_new_optimization_analysis'))
+
+    if cell_culture_state.get_is_standalone():
+        st.info(translate_service.translate('standalone_mode_function_blocked'))
+        return
 
     st.markdown(f"**{translate_service.translate('constraints_resource_selection')}**")
 
@@ -431,7 +435,8 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Optimization'),
         type="primary",
         key=f"optimization_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        width='stretch'
+        width='stretch',
+        disabled=cell_culture_state.get_is_standalone()
     ):
         if len(targets_thresholds) == 0:
             st.error(translate_service.translate('select_target_first'))
@@ -459,6 +464,8 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
                 st.rerun()
             else:
                 st.error(translate_service.translate('analysis_launch_error').format(analysis_type='Optimization'))
+    if cell_culture_state.get_is_standalone():
+        st.info(translate_service.translate('standalone_mode_function_blocked'))
 
     # Info box with explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='Optimization')):

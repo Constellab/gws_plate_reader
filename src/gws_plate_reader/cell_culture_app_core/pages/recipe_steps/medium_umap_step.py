@@ -353,8 +353,11 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
         submit_button = st.form_submit_button(
             translate_service.translate('launch_analysis_button_with_type').format(analysis_type='UMAP'),
             type="primary",
-            width='stretch'
+            width='stretch',
+            disabled=cell_culture_state.get_is_standalone()
         )
+        if cell_culture_state.get_is_standalone():
+            st.info(translate_service.translate('standalone_mode_function_blocked'))
 
         if submit_button:
             if not selected_media:

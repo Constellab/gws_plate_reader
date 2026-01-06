@@ -1,21 +1,34 @@
 import os
 import re
+from typing import Any, Dict, Set, Tuple
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
-
-from gws_core import (File, InputSpec, OutputSpec, InputSpecs, OutputSpecs, Table, Folder, Tag,
-                      TypingStyle, ResourceSet, Task, task_decorator, TableImporter, ZipCompress,
-                      PlotlyResource)
-
-from typing import Dict, Any, Set, Tuple
+from gws_core import (
+    File,
+    Folder,
+    InputSpec,
+    InputSpecs,
+    OutputSpec,
+    OutputSpecs,
+    PlotlyResource,
+    ResourceSet,
+    Table,
+    TableImporter,
+    Tag,
+    Task,
+    TypingStyle,
+    ZipCompress,
+    task_decorator,
+)
 
 # Fixed variables
 BATCH_NAME = "Batch"
 FERMENTOR_NAME = "Fermentor"
 MEDIUM_NAME = "Medium"
 TIME_NAME = "Time"
+
 
 def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> go.Figure:
     """
@@ -32,9 +45,9 @@ def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
     """
 
     # Extract sets
-    A = sample_sets.get('info', set())  # Info
-    B = sample_sets.get('raw_data', set())  # Raw Data
-    C = sample_sets.get('follow_up', set())  # Follow-up
+    A = sample_sets.get("info", set())  # Info
+    B = sample_sets.get("raw_data", set())  # Raw Data
+    C = sample_sets.get("follow_up", set())  # Follow-up
 
     # Calculate all regions
     only_A = len(A - B - C)  # Only Info
@@ -50,9 +63,9 @@ def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
 
     # Circle parameters
     radius = 0.28
-    Ax, Ay = 0.35, 0.5   # Info (left)
-    Bx, By = 0.65, 0.5   # Raw Data (right)
-    Cx, Cy = 0.5, 0.72   # Follow-up (top)
+    Ax, Ay = 0.35, 0.5  # Info (left)
+    Bx, By = 0.65, 0.5  # Raw Data (right)
+    Cx, Cy = 0.5, 0.72  # Follow-up (top)
 
     # Create circles using parametric equations
     theta = np.linspace(0, 2 * np.pi, 100)
@@ -60,105 +73,131 @@ def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
     # Circle A - Info (Blue)
     x_A = radius * np.cos(theta) + Ax
     y_A = radius * np.sin(theta) + Ay
-    fig.add_trace(go.Scatter(
-        x=x_A, y=y_A,
-        fill='toself',
-        fillcolor='rgba(33, 150, 243, 0.3)',
-        line=dict(color='rgba(33, 150, 243, 0.8)', width=3),
-        name='Info',
-        mode='lines',
-        hoverinfo='skip',
-        showlegend=False
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=x_A,
+            y=y_A,
+            fill="toself",
+            fillcolor="rgba(33, 150, 243, 0.3)",
+            line=dict(color="rgba(33, 150, 243, 0.8)", width=3),
+            name="Info",
+            mode="lines",
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
 
     # Circle B - Raw Data (Green)
     x_B = radius * np.cos(theta) + Bx
     y_B = radius * np.sin(theta) + By
-    fig.add_trace(go.Scatter(
-        x=x_B, y=y_B,
-        fill='toself',
-        fillcolor='rgba(76, 175, 80, 0.3)',
-        line=dict(color='rgba(76, 175, 80, 0.8)', width=3),
-        name='Raw Data',
-        mode='lines',
-        hoverinfo='skip',
-        showlegend=False
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=x_B,
+            y=y_B,
+            fill="toself",
+            fillcolor="rgba(76, 175, 80, 0.3)",
+            line=dict(color="rgba(76, 175, 80, 0.8)", width=3),
+            name="Raw Data",
+            mode="lines",
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
 
     # Circle C - Follow-up (Purple)
     x_C = radius * np.cos(theta) + Cx
     y_C = radius * np.sin(theta) + Cy
-    fig.add_trace(go.Scatter(
-        x=x_C, y=y_C,
-        fill='toself',
-        fillcolor='rgba(156, 39, 176, 0.3)',
-        line=dict(color='rgba(156, 39, 176, 0.8)', width=3),
-        name='Follow-up',
-        mode='lines',
-        hoverinfo='skip',
-        showlegend=False
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=x_C,
+            y=y_C,
+            fill="toself",
+            fillcolor="rgba(156, 39, 176, 0.3)",
+            line=dict(color="rgba(156, 39, 176, 0.8)", width=3),
+            name="Follow-up",
+            mode="lines",
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
 
     # Add titles near the top of each circle
-    fig.add_annotation(x=Ax, y=Ay + radius + 0.05, text="<b>Info</b>",
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Bx, y=By + radius + 0.05, text="<b>Raw Data</b>",
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Cx, y=Cy + radius + 0.05, text="<b>Follow-up</b>",
-                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(
+        x=Ax, y=Ay + radius + 0.05, text="<b>Info</b>", showarrow=False, font=dict(size=14)
+    )
+    fig.add_annotation(
+        x=Bx, y=By + radius + 0.05, text="<b>Raw Data</b>", showarrow=False, font=dict(size=14)
+    )
+    fig.add_annotation(
+        x=Cx, y=Cy + radius + 0.05, text="<b>Follow-up</b>", showarrow=False, font=dict(size=14)
+    )
 
     # Add region counts (manually positioned for clarity)
     # Only A (Info only)
-    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A),
-                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A), showarrow=False, font=dict(size=14))
 
     # Only B (Raw Data only)
-    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B),
-                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B), showarrow=False, font=dict(size=14))
 
     # Only C (Follow-up only)
-    fig.add_annotation(x=Cx, y=Cy + 0.18, text=str(only_C),
-                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Cx, y=Cy + 0.18, text=str(only_C), showarrow=False, font=dict(size=14))
 
     # A ∩ B (excluding C) - Info & Raw Data
-    fig.add_annotation(x=(Ax + Bx) / 2, y=Ay - 0.08, text=str(A_and_B),
-                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(
+        x=(Ax + Bx) / 2, y=Ay - 0.08, text=str(A_and_B), showarrow=False, font=dict(size=14)
+    )
 
     # A ∩ C (excluding B) - Info & Follow-up
-    fig.add_annotation(x=Ax + 0.07, y=Ay + 0.16, text=str(A_and_C),
-                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(
+        x=Ax + 0.07, y=Ay + 0.16, text=str(A_and_C), showarrow=False, font=dict(size=14)
+    )
 
     # B ∩ C (excluding A) - Raw Data & Follow-up
-    fig.add_annotation(x=Bx - 0.07, y=By + 0.16, text=str(B_and_C),
-                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(
+        x=Bx - 0.07, y=By + 0.16, text=str(B_and_C), showarrow=False, font=dict(size=14)
+    )
 
     # A ∩ B ∩ C (center) - All three (complete)
     fig.add_annotation(
-        x=Cx, y=Ay + 0.1,
+        x=Cx,
+        y=Ay + 0.1,
         text=f"<b>{A_and_B_and_C}</b>",
         showarrow=False,
-        font=dict(size=16, color='darkgreen'),
-        bgcolor='rgba(255, 255, 255, 0.9)',
+        font=dict(size=16, color="darkgreen"),
+        bgcolor="rgba(255, 255, 255, 0.9)",
         borderpad=4,
-        bordercolor='darkgreen',
-        borderwidth=2
+        bordercolor="darkgreen",
+        borderwidth=2,
     )
 
     # Update layout
     fig.update_layout(
-        title="Data Availability - Venn Diagram (Info, Raw Data, Follow-up)", showlegend=False,
+        title="Data Availability - Venn Diagram (Info, Raw Data, Follow-up)",
+        showlegend=False,
         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
         yaxis=dict(
-            showticklabels=False, showgrid=False, zeroline=False, range=[0.2, 1.05],
-            scaleanchor="x", scaleratio=1),
-        height=600, width=600, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',)
+            showticklabels=False,
+            showgrid=False,
+            zeroline=False,
+            range=[0.2, 1.05],
+            scaleanchor="x",
+            scaleratio=1,
+        ),
+        height=600,
+        width=600,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
 
     return fig
 
 
-@task_decorator("ConstellabBioprocessLoadData", human_name="Load Constellab Bioprocess data QC0",
-                short_description="Load and process Constellab Bioprocess QC0 fermentation data from multiple sources",
-                style=TypingStyle.material_icon(material_icon_name="file_upload", background_color="#2492FE"))
+@task_decorator(
+    "ConstellabBioprocessLoadData",
+    human_name="Load Constellab Bioprocess data QC0",
+    short_description="Load and process Constellab Bioprocess QC0 fermentation data from multiple sources",
+    style=TypingStyle.material_icon(material_icon_name="file_upload", background_color="#2492FE"),
+)
 class ConstellabBioprocessLoadData(Task):
     """
     Load and process Constellab Bioprocess QC0 fermentation data from multiple CSV files and follow-up data.
@@ -291,34 +330,44 @@ class ConstellabBioprocessLoadData(Task):
     - Time columns are automatically detected and tagged for indexing
     - Output tables can be directly used with Filter and Interpolation tasks
     """
+
     input_specs: InputSpecs = InputSpecs(
         {
-            'info_csv': InputSpec(File, human_name="Info CSV file", optional=False),
-            'raw_data_csv': InputSpec(File, human_name="Raw data CSV file", optional=False),
-            'medium_csv': InputSpec(File, human_name="Medium CSV file", optional=False),
-            'follow_up_zip': InputSpec(File, human_name="Follow-up ZIP file", optional=False),
+            "info_csv": InputSpec(File, human_name="Info CSV file", optional=False),
+            "raw_data_csv": InputSpec(File, human_name="Raw data CSV file", optional=False),
+            "medium_csv": InputSpec(File, human_name="Medium CSV file", optional=False),
+            "follow_up_zip": InputSpec(File, human_name="Follow-up ZIP file", optional=False),
         }
     )
 
     output_specs: OutputSpecs = OutputSpecs(
-        {'resource_set': OutputSpec(ResourceSet, human_name="Resource set containing all the tables"),
-         'venn_diagram': OutputSpec(
-             PlotlyResource, human_name="Venn diagram of data availability", optional=True),
-         'medium_table':
-         OutputSpec(
-             Table, human_name="Medium composition table",
-             short_description="Medium CSV file with numeric columns properly converted to float", optional=True),
-             'metadata_table': OutputSpec(
-                 Table, human_name="Metadata table",
-                 short_description="Table containing metadata information", optional=True)
-         })
+        {
+            "resource_set": OutputSpec(
+                ResourceSet, human_name="Resource set containing all the tables"
+            ),
+            "venn_diagram": OutputSpec(
+                PlotlyResource, human_name="Venn diagram of data availability", optional=True
+            ),
+            "medium_table": OutputSpec(
+                Table,
+                human_name="Medium composition table",
+                short_description="Medium CSV file with numeric columns properly converted to float",
+                optional=True,
+            ),
+            "metadata_table": OutputSpec(
+                Table,
+                human_name="Metadata table",
+                short_description="Table containing metadata information",
+                optional=True,
+            ),
+        }
+    )
 
     def run(self, params, inputs):
-
-        info_file: File = inputs['info_csv']
-        raw_data_file: File = inputs['raw_data_csv']
-        medium_file: File = inputs['medium_csv']
-        follow_up_file: File = inputs['follow_up_zip']
+        info_file: File = inputs["info_csv"]
+        raw_data_file: File = inputs["raw_data_csv"]
+        medium_file: File = inputs["medium_csv"]
+        follow_up_file: File = inputs["follow_up_zip"]
 
         info_table: Table = TableImporter.call(info_file)
         raw_data_table: Table = TableImporter.call(raw_data_file)
@@ -334,9 +383,9 @@ class ConstellabBioprocessLoadData(Task):
 
         follow_up_folder = Folder(follow_up_folder_path)
 
-        follow_up_folder_name = ''
+        follow_up_folder_name = ""
         for folder in follow_up_folder.list_dir():
-            if not folder.startswith('_'):
+            if not folder.startswith("_"):
                 follow_up_folder_name = folder
                 break
 
@@ -350,7 +399,7 @@ class ConstellabBioprocessLoadData(Task):
             table.name = os.path.splitext(file_path)[0]
             follow_up_dict[table.name] = table
 
-            parts = table.name.split(' ', 1)  # Split on first space only
+            parts = table.name.split(" ", 1)  # Split on first space only
             if len(parts) == 2:
                 couples_follow_up_data.append({BATCH_NAME: parts[0], FERMENTOR_NAME: parts[1]})
 
@@ -361,12 +410,14 @@ class ConstellabBioprocessLoadData(Task):
                     df = df[df[TIME_NAME] >= 25]
                 medians = df.median(numeric_only=True)
                 medians["Series"] = f"{parts[0]}_{parts[1]}"
-                follow_up_df_medians = pd.concat([follow_up_df_medians, medians.to_frame().T], ignore_index=True)
+                follow_up_df_medians = pd.concat(
+                    [follow_up_df_medians, medians.to_frame().T], ignore_index=True
+                )
                 # Delete TIME_NAME
                 follow_up_df_medians.columns = follow_up_df_medians.columns.str.strip()
                 follow_up_df_medians = follow_up_df_medians.drop([TIME_NAME], axis=1)
                 # Remove na values
-                follow_up_df_medians = follow_up_df_medians.dropna(how='any')
+                follow_up_df_medians = follow_up_df_medians.dropna(how="any")
 
         full_info_dict: dict[str, Any] = {}
 
@@ -377,12 +428,18 @@ class ConstellabBioprocessLoadData(Task):
         # Récupérer tous les couples distincts des deux tables
         couples_info = info_df[[BATCH_NAME, FERMENTOR_NAME]].drop_duplicates()
         couples_raw_data = raw_data_df[[BATCH_NAME, FERMENTOR_NAME]].drop_duplicates()
-        couples_follow_up = pd.DataFrame(couples_follow_up_data) if couples_follow_up_data else pd.DataFrame(
-            columns=[BATCH_NAME, FERMENTOR_NAME])
+        couples_follow_up = (
+            pd.DataFrame(couples_follow_up_data)
+            if couples_follow_up_data
+            else pd.DataFrame(columns=[BATCH_NAME, FERMENTOR_NAME])
+        )
 
         # Combiner tous les couples distincts (union)
-        tous_couples = pd.concat([couples_info, couples_raw_data, couples_follow_up]
-                                 ).drop_duplicates().reset_index(drop=True)
+        tous_couples = (
+            pd.concat([couples_info, couples_raw_data, couples_follow_up])
+            .drop_duplicates()
+            .reset_index(drop=True)
+        )
 
         for _, row in tous_couples.iterrows():
             essai = row[BATCH_NAME]
@@ -392,39 +449,48 @@ class ConstellabBioprocessLoadData(Task):
             if fermentor not in full_info_dict[essai]:
                 full_info_dict[essai][fermentor] = {}
 
-            if 'medium' in full_info_dict[essai][fermentor]:
+            if "medium" in full_info_dict[essai][fermentor]:
                 continue
 
             # Récupérer le medium depuis info_df si disponible
-            info_filtered = info_df[(info_df[BATCH_NAME] == essai) & (info_df[FERMENTOR_NAME] == fermentor)]
+            info_filtered = info_df[
+                (info_df[BATCH_NAME] == essai) & (info_df[FERMENTOR_NAME] == fermentor)
+            ]
             if not info_filtered.empty:
                 medium = info_filtered[MEDIUM_NAME].values[0]
-                full_info_dict[essai][fermentor]['medium'] = medium
-                full_info_dict[essai][fermentor]['info'] = info_filtered
+                full_info_dict[essai][fermentor]["medium"] = medium
+                full_info_dict[essai][fermentor]["info"] = info_filtered
             else:
-                full_info_dict[essai][fermentor]['medium'] = None
-                full_info_dict[essai][fermentor]['info'] = pd.DataFrame()
+                full_info_dict[essai][fermentor]["medium"] = None
+                full_info_dict[essai][fermentor]["info"] = pd.DataFrame()
 
             # Récupérer les raw_data si disponibles
-            raw_data_filtered = raw_data_df[(raw_data_df[BATCH_NAME] == essai) & (raw_data_df[FERMENTOR_NAME] == fermentor)]
-            full_info_dict[essai][fermentor]['raw_data'] = raw_data_filtered
+            raw_data_filtered = raw_data_df[
+                (raw_data_df[BATCH_NAME] == essai) & (raw_data_df[FERMENTOR_NAME] == fermentor)
+            ]
+            full_info_dict[essai][fermentor]["raw_data"] = raw_data_filtered
 
             # Récupérer les medium_data si le medium existe
-            if full_info_dict[essai][fermentor]['medium'] is not None and MEDIUM_NAME in medium_df.columns:
-                medium_data_filtered = medium_df[medium_df[MEDIUM_NAME] == full_info_dict[essai][fermentor]['medium']]
+            if (
+                full_info_dict[essai][fermentor]["medium"] is not None
+                and MEDIUM_NAME in medium_df.columns
+            ):
+                medium_data_filtered = medium_df[
+                    medium_df[MEDIUM_NAME] == full_info_dict[essai][fermentor]["medium"]
+                ]
                 medium_data_filtered = medium_data_filtered.drop(columns=[MEDIUM_NAME])
-                full_info_dict[essai][fermentor]['medium_data'] = medium_data_filtered
+                full_info_dict[essai][fermentor]["medium_data"] = medium_data_filtered
             else:
-                full_info_dict[essai][fermentor]['medium_data'] = pd.DataFrame()
+                full_info_dict[essai][fermentor]["medium_data"] = pd.DataFrame()
 
             # Vérifier si un fichier de suivi existe pour ce couple
             follow_up_key = f"{essai} {fermentor}"
-            full_info_dict[essai][fermentor]['has_follow_up'] = follow_up_key in follow_up_dict
+            full_info_dict[essai][fermentor]["has_follow_up"] = follow_up_key in follow_up_dict
             if follow_up_key in follow_up_dict:
-                full_info_dict[essai][fermentor]['follow_up_table'] = follow_up_dict[follow_up_key]
+                full_info_dict[essai][fermentor]["follow_up_table"] = follow_up_dict[follow_up_key]
                 print(f"Follow-up file found for {follow_up_key}")
             else:
-                full_info_dict[essai][fermentor]['follow_up_table'] = Table(pd.DataFrame())
+                full_info_dict[essai][fermentor]["follow_up_table"] = Table(pd.DataFrame())
                 print(f"No follow-up file for {follow_up_key}")
 
         res: ResourceSet = ResourceSet()
@@ -432,13 +498,12 @@ class ConstellabBioprocessLoadData(Task):
         for essai, fermentors in full_info_dict.items():
             for fermentor, data in fermentors.items():
                 try:
-                    row_data_df: pd.DataFrame = data['raw_data']
+                    row_data_df: pd.DataFrame = data["raw_data"]
                     # Utiliser les informations stockées dans full_info_dict
-                    follow_up_df: pd.DataFrame = data['follow_up_table'].get_data()
+                    follow_up_df: pd.DataFrame = data["follow_up_table"].get_data()
 
                     # Merger raw_data_df et follow_up_df sur la colonne TIME_NAME
                     if not row_data_df.empty and not follow_up_df.empty:
-
                         # Filtrer les lignes avec temps négatif dans follow_up_df
                         if TIME_NAME in follow_up_df.columns:
                             follow_up_df = follow_up_df[follow_up_df[TIME_NAME] >= 0]
@@ -454,7 +519,7 @@ class ConstellabBioprocessLoadData(Task):
                             row_data_df,
                             follow_up_df,
                             on=TIME_NAME,
-                            how='outer'  # outer join pour garder toutes les données
+                            how="outer",  # outer join pour garder toutes les données
                         )
                     elif not row_data_df.empty:
                         full_df = row_data_df.copy()
@@ -467,14 +532,14 @@ class ConstellabBioprocessLoadData(Task):
                     else:
                         # Aucune donnée temporelle (ni raw_data ni follow_up)
                         # Créer un DataFrame avec juste les infos si elles existent
-                        if not data['info'].empty:
-                            full_df = data['info'].copy()
+                        if not data["info"].empty:
+                            full_df = data["info"].copy()
                         else:
                             full_df = pd.DataFrame()
 
                     # Créer une Table pour chaque couple (essai, fermentor)
                     # même si full_df est vide, pour avoir les tags batch/sample dans le ResourceSet
-                    if not full_df.empty or not data['info'].empty:
+                    if not full_df.empty or not data["info"].empty:
                         # Supprimer les colonnes entièrement vides (toutes NaN/None/null/chaînes vides)
                         # Conserver seulement les colonnes qui ont au moins une valeur non-null et non-vide
                         columns_to_keep = []
@@ -490,12 +555,14 @@ class ConstellabBioprocessLoadData(Task):
 
                             # Pour les colonnes de type object/string, vérifier aussi les chaînes vides
                             is_all_empty = False
-                            if not is_all_nan and col_data.dtype == 'object':
+                            if not is_all_nan and col_data.dtype == "object":
                                 # Ne convertir que les valeurs non-NaN en string
                                 non_null_values = col_data.dropna()
                                 if len(non_null_values) > 0:
                                     # Vérifier si toutes les valeurs non-null sont des chaînes vides
-                                    is_all_empty = non_null_values.astype(str).str.strip().eq('').all()
+                                    is_all_empty = (
+                                        non_null_values.astype(str).str.strip().eq("").all()
+                                    )
                                 else:
                                     is_all_empty = True
 
@@ -508,7 +575,9 @@ class ConstellabBioprocessLoadData(Task):
                         # Si des colonnes ont été supprimées, les enlever du DataFrame
                         if removed_columns:
                             full_df = full_df[columns_to_keep]
-                            print(f"Empty columns removed for {essai}_{fermentor}: {removed_columns}")
+                            print(
+                                f"Empty columns removed for {essai}_{fermentor}: {removed_columns}"
+                            )
 
                         # Vérifier si le DataFrame n'est pas complètement vide après suppression des colonnes
                         if full_df.empty or len(columns_to_keep) == 0:
@@ -537,64 +606,77 @@ class ConstellabBioprocessLoadData(Task):
                         merged_table: Table = Table(full_df)
                         merged_table.name = f"{essai}_{fermentor}"
 
-                        tags = [
-                            Tag('batch', essai),
-                            Tag('sample', fermentor)
-                        ]
+                        tags = [Tag("batch", essai), Tag("sample", fermentor)]
 
                         # Vérifier les données manquantes et ajouter les tags correspondants
                         missing_values = []
 
                         # Vérifier si les informations (info) manquent
-                        if data['info'].empty:
-                            missing_values.append('info')
+                        if data["info"].empty:
+                            missing_values.append("info")
 
                         # Vérifier si les données brutes (raw_data) manquent
-                        if data['raw_data'].empty:
-                            missing_values.append('raw_data')
+                        if data["raw_data"].empty:
+                            missing_values.append("raw_data")
 
                         # Vérifier si les données de medium manquent
-                        if data['medium'] is None or data['medium_data'].empty:
-                            missing_values.append('medium')
+                        if data["medium"] is None or data["medium_data"].empty:
+                            missing_values.append("medium")
 
                         # Vérifier si les fichiers de suivi manquent
                         follow_up_key = f"{essai} {fermentor}"
                         has_follow_up_file = follow_up_key in follow_up_dict
 
                         # Debug: log follow-up detection
-                        self.log_info_message(f"Checking follow-up for {follow_up_key}: has_file={has_follow_up_file}")
+                        self.log_info_message(
+                            f"Checking follow-up for {follow_up_key}: has_file={has_follow_up_file}"
+                        )
 
                         # Vérifier l'état du fichier de suivi
                         if not has_follow_up_file:
                             # Pas de fichier de suivi du tout
-                            missing_values.append('follow_up')
-                            self.log_info_message(f"  → No follow-up file, added 'follow_up' to missing_values")
+                            missing_values.append("follow_up")
+                            self.log_info_message(
+                                f"  → No follow-up file, added 'follow_up' to missing_values"
+                            )
                         else:
                             # Le fichier existe, vérifier s'il est vide
                             follow_up_data = follow_up_dict[follow_up_key].get_data()
                             if follow_up_data.empty:
-                                missing_values.append('follow_up_empty')
+                                missing_values.append("follow_up_empty")
                                 self.log_info_message(
-                                    f"  → Follow-up file is empty, added 'follow_up_empty' to missing_values")
+                                    f"  → Follow-up file is empty, added 'follow_up_empty' to missing_values"
+                                )
                             else:
                                 self.log_info_message(f"  → Follow-up file exists and is not empty")
 
                         # Ajouter le tag missing_value si des données manquent
                         if missing_values:
-                            tags.append(Tag('missing_value', ', '.join(missing_values)))
+                            tags.append(Tag("missing_value", ", ".join(missing_values)))
 
-                        if data['medium'] is not None:
-                            medium_data: dict = data['medium_data'].iloc[0].to_dict(
-                            ) if not data['medium_data'].empty else {}
-                            tags.append(Tag('medium', data['medium'], additional_info={'composed': medium_data}))
+                        if data["medium"] is not None:
+                            medium_data: dict = (
+                                data["medium_data"].iloc[0].to_dict()
+                                if not data["medium_data"].empty
+                                else {}
+                            )
+                            tags.append(
+                                Tag(
+                                    "medium",
+                                    data["medium"],
+                                    additional_info={"composed": medium_data},
+                                )
+                            )
 
                         # Ajouter les tags à la table
                         for tag in tags:
                             merged_table.tags.add_tag(tag)
 
                         # Ajouter les tags spéciaux pour les colonnes ESSAI et FERMENTEUR
-                        merged_table.add_column_tag_by_name(BATCH_NAME, 'column_name', 'Essai')
-                        merged_table.add_column_tag_by_name(FERMENTOR_NAME, 'column_name', 'Fermenteur')
+                        merged_table.add_column_tag_by_name(BATCH_NAME, "column_name", "Essai")
+                        merged_table.add_column_tag_by_name(
+                            FERMENTOR_NAME, "column_name", "Fermenteur"
+                        )
 
                         for col in merged_table.column_names:
                             # Ignorer les colonnes ESSAI et FERMENTEUR car elles sont déjà traitées
@@ -602,7 +684,7 @@ class ConstellabBioprocessLoadData(Task):
                                 continue
 
                             # Pattern pour capturer le nom et l'unité entre parenthèses
-                            match = re.match(r'^(.+?)\s*\(([^)]+)\)\s*$', col)
+                            match = re.match(r"^(.+?)\s*\(([^)]+)\)\s*$", col)
 
                             if match:
                                 # Colonne avec unité
@@ -614,9 +696,9 @@ class ConstellabBioprocessLoadData(Task):
                                 unit = None
 
                             # Créer les variables pour cette colonne
-                            merged_table.add_column_tag_by_name(col, 'column_name', column_name)
+                            merged_table.add_column_tag_by_name(col, "column_name", column_name)
                             if unit is not None:
-                                merged_table.add_column_tag_by_name(col, 'unit', unit)
+                                merged_table.add_column_tag_by_name(col, "unit", unit)
 
                             # Ajouter les tags is_index_column et is_data_column
                             # Identifier les colonnes métadonnées (batch, sample, medium)
@@ -624,18 +706,18 @@ class ConstellabBioprocessLoadData(Task):
                             medium_related_columns = [MEDIUM_NAME]  # Colonne liée au milieu
 
                             # Identifier les colonnes de temps (index)
-                            time_columns = ['Time']
-                            is_time_column = (col in time_columns)
+                            time_columns = ["Time"]
+                            is_time_column = col in time_columns
 
                             # Identifier si c'est une colonne de milieu
-                            is_medium_column = (col in medium_related_columns)
+                            is_medium_column = col in medium_related_columns
 
                             if is_time_column:
                                 # Tag pour colonne d'index (TIME_NAME)
-                                merged_table.add_column_tag_by_name(col, 'is_index_column', 'true')
+                                merged_table.add_column_tag_by_name(col, "is_index_column", "true")
                             elif col not in metadata_columns and not is_medium_column:
                                 # Tag pour colonne de données (ni metadata, ni temps, ni milieu)
-                                merged_table.add_column_tag_by_name(col, 'is_data_column', 'true')
+                                merged_table.add_column_tag_by_name(col, "is_data_column", "true")
 
                         res.add_resource(merged_table)
                 except Exception as e:
@@ -643,11 +725,7 @@ class ConstellabBioprocessLoadData(Task):
                     continue
 
         # Calculate statistics for Venn diagram - Track (batch, sample) pairs for each data type
-        sample_sets = {
-            'info': set(),
-            'raw_data': set(),
-            'follow_up': set()
-        }
+        sample_sets = {"info": set(), "raw_data": set(), "follow_up": set()}
 
         # Analyze all resources to build sets of samples with each data type
         for resource_name, resource in res.get_resources().items():
@@ -657,13 +735,13 @@ class ConstellabBioprocessLoadData(Task):
                 sample = ""
                 missing_value = ""
 
-                if hasattr(resource, 'tags') and resource.tags:
+                if hasattr(resource, "tags") and resource.tags:
                     for tag in resource.tags.get_tags():
-                        if tag.key == 'batch':
+                        if tag.key == "batch":
                             batch = tag.value
-                        elif tag.key == 'sample':
+                        elif tag.key == "sample":
                             sample = tag.value
-                        elif tag.key == 'missing_value':
+                        elif tag.key == "missing_value":
                             missing_value = tag.value
 
                 if batch and sample:
@@ -671,7 +749,11 @@ class ConstellabBioprocessLoadData(Task):
 
                     # Determine which data types this sample has
                     # Parse missing types (empty string means no missing data for basic types)
-                    missing_types = [t.strip() for t in missing_value.split(',') if t.strip()] if missing_value else []
+                    missing_types = (
+                        [t.strip() for t in missing_value.split(",") if t.strip()]
+                        if missing_value
+                        else []
+                    )
 
                     # Debug logging
                     self.log_info_message(f"DEBUG - Sample {batch}/{sample}:")
@@ -679,14 +761,14 @@ class ConstellabBioprocessLoadData(Task):
                     self.log_info_message(f"  missing_types parsed: {missing_types}")
 
                     # Add to sets for data types that are NOT missing
-                    if 'info' not in missing_types:
-                        sample_sets['info'].add(sample_tuple)
+                    if "info" not in missing_types:
+                        sample_sets["info"].add(sample_tuple)
                         self.log_info_message(f"  ✓ Added to info")
-                    if 'raw_data' not in missing_types:
-                        sample_sets['raw_data'].add(sample_tuple)
+                    if "raw_data" not in missing_types:
+                        sample_sets["raw_data"].add(sample_tuple)
                         self.log_info_message(f"  ✓ Added to raw_data")
-                    if 'follow_up' not in missing_types and 'follow_up_empty' not in missing_types:
-                        sample_sets['follow_up'].add(sample_tuple)
+                    if "follow_up" not in missing_types and "follow_up_empty" not in missing_types:
+                        sample_sets["follow_up"].add(sample_tuple)
                         self.log_info_message(f"  ✓ Added to follow_up")
 
         # Create Venn diagram
@@ -707,14 +789,18 @@ class ConstellabBioprocessLoadData(Task):
         )
 
         return {
-            'resource_set': res,
-            'venn_diagram': venn_diagram,
-            'medium_table': medium_table_processed,
-            'metadata_table': metadata_table
+            "resource_set": res,
+            "venn_diagram": venn_diagram,
+            "medium_table": medium_table_processed,
+            "metadata_table": metadata_table,
         }
 
-    def _create_metadata_data_table(self, full_info_dict: dict[str, Any], medium_df: pd.DataFrame,
-                                    follow_up_medians_df: pd.DataFrame) -> Table:
+    def _create_metadata_data_table(
+        self,
+        full_info_dict: dict[str, Any],
+        medium_df: pd.DataFrame,
+        follow_up_medians_df: pd.DataFrame,
+    ) -> Table:
         """
         Create a metadata DataFrame for machine learning purposes.
         """
@@ -723,7 +809,7 @@ class ConstellabBioprocessLoadData(Task):
         for essai, fermentors in full_info_dict.items():
             for fermentor, data in fermentors.items():
                 # Skip experiments without a medium
-                medium = data.get('medium', '')
+                medium = data.get("medium", "")
                 if not medium or medium is None:
                     continue
 
@@ -731,10 +817,7 @@ class ConstellabBioprocessLoadData(Task):
                 serie = f"{essai}_{fermentor}"
 
                 # Initialize row
-                metadata_row = {
-                    'Series': serie,
-                    'Medium': medium
-                }
+                metadata_row = {"Series": serie, "Medium": medium}
 
                 # Add medium composition
                 if MEDIUM_NAME in medium_df.columns:
@@ -747,10 +830,10 @@ class ConstellabBioprocessLoadData(Task):
                                 # Convert to numeric if possible
                                 metadata_row[col] = self._to_numeric(value)
                 # Add follow-up medians
-                follow_up_median_row = follow_up_medians_df[follow_up_medians_df['Series'] == serie]
+                follow_up_median_row = follow_up_medians_df[follow_up_medians_df["Series"] == serie]
                 if not follow_up_median_row.empty:
                     for col in follow_up_median_row.columns:
-                        if col != 'Series':
+                        if col != "Series":
                             value = follow_up_median_row[col].iloc[0]
                             # Convert to numeric if possible
                             metadata_row[col] = self._to_numeric(value)
@@ -762,9 +845,9 @@ class ConstellabBioprocessLoadData(Task):
         # Remove columns that only contain NaN or 0 (except experiment_id)
         cols_to_remove = []
         for col in metadata_df.columns:
-            if col == 'Series' or col == 'Medium':
+            if col == "Series" or col == "Medium":
                 continue
-            col_values = pd.to_numeric(metadata_df[col], errors='coerce')
+            col_values = pd.to_numeric(metadata_df[col], errors="coerce")
             non_nan_values = col_values.dropna()
 
             # Remove if all NaN or all values are 0
@@ -840,16 +923,16 @@ class ConstellabBioprocessLoadData(Task):
         Returns:
             Float value or 0 for invalid/empty values
         """
-        if pd.isna(value) or value == '':
+        if pd.isna(value) or value == "":
             return 0.0
 
         value_str = str(value).strip().lower()
 
-        if value_str == 'x' or value_str == '':
+        if value_str == "x" or value_str == "":
             return 0.0
 
         # Replace comma with dot for decimal separator
-        value_str = value_str.replace(',', '.')
+        value_str = value_str.replace(",", ".")
 
         try:
             return float(value_str)

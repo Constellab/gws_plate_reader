@@ -1,5 +1,6 @@
 import streamlit as st
 from gws_core.streamlit import StreamlitContainers, StreamlitTranslateLang
+
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 
 
@@ -14,9 +15,9 @@ def render_settings_page(cell_culture_state: CellCultureState):
     }
     """
 
-    with StreamlitContainers.container_full_min_height('container-center_settings_page',
-                                                       additional_style=style):
-
+    with StreamlitContainers.container_full_min_height(
+        "container-center_settings_page", additional_style=style
+    ):
         translate_service = cell_culture_state.get_translate_service()
 
         st.title(f"⚙️ {translate_service.translate('settings_title')}")
@@ -33,7 +34,7 @@ def render_settings_page(cell_culture_state: CellCultureState):
         lang_options = ["English", "Français"]
         lang_enum_map = {
             "English": StreamlitTranslateLang.EN,
-            "Français": StreamlitTranslateLang.FR
+            "Français": StreamlitTranslateLang.FR,
         }
 
         # Convert current enum to index
@@ -48,7 +49,7 @@ def render_settings_page(cell_culture_state: CellCultureState):
             translate_service.translate("select_language"),
             options=lang_options,
             index=current_index,
-            key=cell_culture_state.LANG_KEY
+            key=cell_culture_state.LANG_KEY,
         )
 
         # Convert selected string back to enum
@@ -67,19 +68,19 @@ def render_settings_page(cell_culture_state: CellCultureState):
         # Section 2: Interpolation Preferences
         st.subheader(f"📈 {translate_service.translate('interpolation_settings')}")
 
-        st.info(translate_service.translate('interpolation_description'))
+        st.info(translate_service.translate("interpolation_description"))
 
         with st.expander(f"📋 {translate_service.translate('available_methods')}", expanded=False):
             st.markdown(f"""
-            - **Linear**: {translate_service.translate('method_linear')}
-            - **Nearest**: {translate_service.translate('method_nearest')}
-            - **Quadratic**: {translate_service.translate('method_quadratic')}
-            - **Cubic**: {translate_service.translate('method_cubic')}
-            - **PCHIP**: {translate_service.translate('method_pchip')}
-            - **Akima**: {translate_service.translate('method_akima')}
-            - **Cubic Spline**: {translate_service.translate('method_cubic_spline')}
-            - **Univariate Spline**: {translate_service.translate('method_univariate_spline')}
-            - **Spline**: {translate_service.translate('method_spline')}
+            - **Linear**: {translate_service.translate("method_linear")}
+            - **Nearest**: {translate_service.translate("method_nearest")}
+            - **Quadratic**: {translate_service.translate("method_quadratic")}
+            - **Cubic**: {translate_service.translate("method_cubic")}
+            - **PCHIP**: {translate_service.translate("method_pchip")}
+            - **Akima**: {translate_service.translate("method_akima")}
+            - **Cubic Spline**: {translate_service.translate("method_cubic_spline")}
+            - **Univariate Spline**: {translate_service.translate("method_univariate_spline")}
+            - **Spline**: {translate_service.translate("method_spline")}
             """)
 
         st.markdown("---")
@@ -87,15 +88,15 @@ def render_settings_page(cell_culture_state: CellCultureState):
         # Section 3: About
         st.subheader(f"ℹ️ {translate_service.translate('about')}")
 
-        st.markdown(translate_service.translate('dashboard_description'))
+        st.markdown(translate_service.translate("dashboard_description"))
 
         st.markdown(f"**{translate_service.translate('features_title')}:**")
         st.markdown(f"""
-        - 📤 {translate_service.translate('feature_upload')}
-        - ⚙️ {translate_service.translate('feature_processing')}
-        - ✅ {translate_service.translate('feature_quality')}
-        - 🎯 {translate_service.translate('feature_selection')}
-        - 📊 {translate_service.translate('feature_visualization')}
-        - 📈 {translate_service.translate('feature_statistics')}
-        - 🔄 {translate_service.translate('feature_comparison')}
+        - 📤 {translate_service.translate("feature_upload")}
+        - ⚙️ {translate_service.translate("feature_processing")}
+        - ✅ {translate_service.translate("feature_quality")}
+        - 🎯 {translate_service.translate("feature_selection")}
+        - 📊 {translate_service.translate("feature_visualization")}
+        - 📈 {translate_service.translate("feature_statistics")}
+        - 🔄 {translate_service.translate("feature_comparison")}
         """)

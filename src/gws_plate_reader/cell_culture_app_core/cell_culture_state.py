@@ -2,15 +2,24 @@
 Base State class for Cell Culture Dashboards
 Manages common state and session management - Abstract base class
 """
-import streamlit as st
+
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
-from gws_core import ScenarioProxy, Scenario, ResourceSet, ResourceOrigin
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+import streamlit as st
+from gws_core import (
+    EntityTagList,
+    ResourceOrigin,
+    ResourceSet,
+    Scenario,
+    ScenarioProxy,
+    Table,
+    Tag,
+    TagEntityType,
+)
 from gws_core.resource.resource_model import ResourceModel
 from gws_core.streamlit import StreamlitTranslateService
-import pandas as pd
-
-from gws_core import Table, EntityTagList, TagEntityType, Tag
 
 from .cell_culture_recipe import CellCultureRecipe
 
@@ -70,25 +79,37 @@ class CellCultureState(ABC):
 
     # Common output names
     LOAD_SCENARIO_METADATA_OUTPUT_NAME = "metadata_table"
-    LOAD_SCENARIO_OUTPUT_NAME = 'load_scenario_output'
-    INTERPOLATION_SCENARIO_OUTPUT_NAME = 'interpolation_scenario_output'
-    QUALITY_CHECK_SCENARIO_OUTPUT_NAME = 'quality_check_scenario_output'
-    QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME = 'quality_check_scenario_interpolated_output'
-    QUALITY_CHECK_SCENARIO_METADATA_OUTPUT_NAME = 'quality_check_scenario_metadata_output'
+    LOAD_SCENARIO_OUTPUT_NAME = "load_scenario_output"
+    INTERPOLATION_SCENARIO_OUTPUT_NAME = "interpolation_scenario_output"
+    QUALITY_CHECK_SCENARIO_OUTPUT_NAME = "quality_check_scenario_output"
+    QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME = "quality_check_scenario_interpolated_output"
+    QUALITY_CHECK_SCENARIO_METADATA_OUTPUT_NAME = "quality_check_scenario_metadata_output"
 
     # Process names (subclasses must override)
-    PROCESS_NAME_DATA_PROCESSING = 'data_processing'  # Must be set by subclasses
+    PROCESS_NAME_DATA_PROCESSING = "data_processing"  # Must be set by subclasses
 
     ANALYSIS_TREE: Dict[str, Any] = {
         "medium_pca": {"title": "medium_pca_analysis", "icon": "scatter_plot", "children": []},
         "medium_umap": {"title": "medium_umap_analysis", "icon": "bubble_chart", "children": []},
-        "feature_extraction": {"title": "feature_extraction_analysis", "icon": "functions", "children": []}
+        "feature_extraction": {
+            "title": "feature_extraction_analysis",
+            "icon": "functions",
+            "children": [],
+        },
     }
 
     POST_FEATURE_EXTRACTION_ANALYSIS_TREE: Dict[str, Any] = {
-        "metadata_feature_umap": {"title": "metadata_feature_umap_analysis", "icon": "bubble_chart", "children": []},
+        "metadata_feature_umap": {
+            "title": "metadata_feature_umap_analysis",
+            "icon": "bubble_chart",
+            "children": [],
+        },
         "pls_regression": {"title": "pls_regression_analysis", "icon": "insights", "children": []},
-        "random_forest_regression": {"title": "random_forest_regression_analysis", "icon": "account_tree", "children": []},
+        "random_forest_regression": {
+            "title": "random_forest_regression_analysis",
+            "icon": "account_tree",
+            "children": [],
+        },
         "causal_effect": {"title": "causal_effect_analysis", "icon": "link", "children": []},
         "optimization": {"title": "optimization_analysis", "icon": "auto_mode", "children": []},
     }
@@ -348,7 +369,7 @@ class CellCultureState(ABC):
         if recipe:
             current_scenarios = recipe.get_selection_scenarios()
             current_scenarios.append(scenario)
-            recipe.add_scenarios_by_step('selection', current_scenarios)
+            recipe.add_scenarios_by_step("selection", current_scenarios)
 
     def get_latest_selection_scenario(self) -> Optional[Scenario]:
         """Get the most recent selection scenario."""
@@ -386,10 +407,7 @@ class CellCultureState(ABC):
         """Get the selected folder ID."""
         return st.session_state.get("selected_folder_id")
 
-    def save_df_as_table(self,
-                         df: pd.DataFrame,
-                         table_name: str,
-                         scenario: Scenario):
+    def save_df_as_table(self, df: pd.DataFrame, table_name: str, scenario: Scenario):
         """Save a DataFrame as a Table in the given scenario."""
         table = Table(data=df)
         table.name = table_name
@@ -405,12 +423,18 @@ class CellCultureState(ABC):
             tags.append(Tag(key=self.TAG_FERMENTOR, value=tags_dict[self.TAG_FERMENTOR]))
 
         if self.TAG_FERMENTOR_RECIPE_NAME in tags_dict:
-            tags.append(Tag(key=self.TAG_FERMENTOR_RECIPE_NAME,
-                            value=tags_dict[self.TAG_FERMENTOR_RECIPE_NAME]))
+            tags.append(
+                Tag(
+                    key=self.TAG_FERMENTOR_RECIPE_NAME,
+                    value=tags_dict[self.TAG_FERMENTOR_RECIPE_NAME],
+                )
+            )
 
         table.tags.add_tags(tags)
 
-        table_resource_model = ResourceModel.from_resource(table, origin = ResourceOrigin.UPLOADED,scenario=scenario)
+        table_resource_model = ResourceModel.from_resource(
+            table, origin=ResourceOrigin.UPLOADED, scenario=scenario
+        )
 
         table_resource_model.save()
 
@@ -439,21 +463,25 @@ class CellCultureState(ABC):
             scenario_proxy = ScenarioProxy.from_existing_scenario(main_scenario.id)
             protocol_proxy = scenario_proxy.get_protocol()
 
-            return protocol_proxy.get_output('venn_diagram')
+            return protocol_proxy.get_output("venn_diagram")
         except Exception:
             return None
 
     def get_quality_check_scenario_output_resource_model(
-            self, quality_check_scenario: Scenario) -> Optional[ResourceModel]:
+        self, quality_check_scenario: Scenario
+    ) -> Optional[ResourceModel]:
         """Get the filtered real data ResourceSet from a quality check scenario (for analyses)"""
         from gws_core.protocol.protocol_proxy import ProtocolProxy
+
         protocol_proxy = self.get_quality_check_protocol_proxy(quality_check_scenario)
         if not protocol_proxy:
             return None
 
         return protocol_proxy.get_output_resource_model(self.QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
 
-    def get_interpolation_scenario_output(self, selection_scenario: Scenario) -> Optional[ResourceSet]:
+    def get_interpolation_scenario_output(
+        self, selection_scenario: Scenario
+    ) -> Optional[ResourceSet]:
         """Get the subsampled ResourceSet from a selection scenario"""
         try:
             scenario_proxy = ScenarioProxy.from_existing_scenario(selection_scenario.id)
@@ -466,6 +494,7 @@ class CellCultureState(ABC):
     def get_quality_check_protocol_proxy(self, quality_check_scenario: Scenario):
         """Get the protocol proxy from a quality check scenario"""
         from gws_core.protocol.protocol_proxy import ProtocolProxy
+
         try:
             scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
             protocol_proxy = scenario_proxy.get_protocol()
@@ -475,13 +504,16 @@ class CellCultureState(ABC):
             return None
 
     def get_quality_check_scenario_interpolated_output_resource_model(
-            self, quality_check_scenario: Scenario) -> Optional[ResourceModel]:
+        self, quality_check_scenario: Scenario
+    ) -> Optional[ResourceModel]:
         """Get the filtered subsampled ResourceSet from a quality check scenario"""
         protocol_proxy = self.get_quality_check_protocol_proxy(quality_check_scenario)
         if not protocol_proxy:
             return None
 
-        return protocol_proxy.get_output_resource_model(self.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME)
+        return protocol_proxy.get_output_resource_model(
+            self.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
+        )
 
     def reset_recipe_scenarios(self) -> None:
         """Reset all recipe scenario data."""
@@ -514,8 +546,8 @@ class CellCultureState(ABC):
                             continue
 
                         col_tags = resource.get_column_tags_by_name(col_name)
-                        is_index_column = col_tags.get('is_index_column') == 'true'
-                        is_data_column = col_tags.get('is_data_column') == 'true'
+                        is_index_column = col_tags.get("is_index_column") == "true"
+                        is_data_column = col_tags.get("is_data_column") == "true"
 
                         # Time columns go first
                         if is_index_column:
@@ -549,7 +581,7 @@ class CellCultureState(ABC):
                             continue
 
                         col_tags = resource.get_column_tags_by_name(col_name)
-                        is_index_column = col_tags.get('is_index_column') == 'true'
+                        is_index_column = col_tags.get("is_index_column") == "true"
 
                         if is_index_column:
                             index_columns.append(col_name)
@@ -571,7 +603,7 @@ class CellCultureState(ABC):
                             continue
 
                         col_tags = resource.get_column_tags_by_name(col_name)
-                        is_data_column = col_tags.get('is_data_column') == 'true'
+                        is_data_column = col_tags.get("is_data_column") == "true"
 
                         if is_data_column:
                             data_columns.append(col_name)
@@ -595,7 +627,7 @@ class CellCultureState(ABC):
                 if isinstance(resource, Table):
                     if column_name in resource.get_column_names():
                         col_tags = resource.get_column_tags_by_name(column_name)
-                        unit = col_tags.get('unit')
+                        unit = col_tags.get("unit")
 
                         if unit:
                             return f"{column_name} ({unit})"
@@ -605,12 +637,12 @@ class CellCultureState(ABC):
         except Exception:
             return column_name
 
-    def build_selected_column_df_from_resource_set(self, resource_set: ResourceSet,
-                                                   index_column: str,
-                                                   selected_column: str) -> pd.DataFrame:
+    def build_selected_column_df_from_resource_set(
+        self, resource_set: ResourceSet, index_column: str, selected_column: str
+    ) -> pd.DataFrame:
         """Build a DataFrame for a specific selected column from the ResourceSet
-            The dataframe will contain the index column and data columns.
-            One data column per couple batch/sample, the column name will be Batch_Sample and its values will be the values of the selected column.
+        The dataframe will contain the index column and data columns.
+        One data column per couple batch/sample, the column name will be Batch_Sample and its values will be the values of the selected column.
         """
         try:
             resources = resource_set.get_resources()
@@ -624,7 +656,7 @@ class CellCultureState(ABC):
                         batch = ""
                         sample = ""
 
-                        if hasattr(resource, 'tags') and resource.tags:
+                        if hasattr(resource, "tags") and resource.tags:
                             for tag in resource.tags.get_tags():
                                 if tag.key == self.TAG_BATCH:
                                     batch = tag.value
@@ -643,7 +675,9 @@ class CellCultureState(ABC):
                         if combined_data.empty:
                             combined_data = temp_df
                         else:
-                            combined_data = pd.merge(combined_data, temp_df, on=index_column, how='outer')
+                            combined_data = pd.merge(
+                                combined_data, temp_df, on=index_column, how="outer"
+                            )
 
             # Sort by index column if not empty
             if not combined_data.empty and index_column in combined_data.columns:
@@ -667,7 +701,7 @@ class CellCultureState(ABC):
                     sample = ""
                     medium = ""
 
-                    if hasattr(resource, 'tags') and resource.tags:
+                    if hasattr(resource, "tags") and resource.tags:
                         for tag in resource.tags.get_tags():
                             if tag.key == self.TAG_BATCH:
                                 batch = tag.value
@@ -676,12 +710,14 @@ class CellCultureState(ABC):
                             elif tag.key == self.TAG_MEDIUM:
                                 medium = tag.value
 
-                    visualization_data.append({
-                        'Batch': batch,
-                        'Sample': sample,
-                        'Medium': medium,
-                        'Resource_Name': resource_name
-                    })
+                    visualization_data.append(
+                        {
+                            "Batch": batch,
+                            "Sample": sample,
+                            "Medium": medium,
+                            "Resource_Name": resource_name,
+                        }
+                    )
 
             return visualization_data
         except Exception:

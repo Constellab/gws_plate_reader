@@ -22,6 +22,8 @@ from gws_core import (
     ZipCompress,
     task_decorator,
 )
+from gws_core.config.param.param_spec import DictParam
+from gws_core.tag.tag_key_model import TagKeyModel
 
 # Fixed variables
 BATCH_NAME = "Batch"
@@ -376,6 +378,17 @@ class ConstellabBioprocessLoadData(Task):
         info_table.name = "Info table"
         raw_data_table.name = "Raw data table"
         medium_table.name = "Medium table"
+
+        # Ensure "medium" tag key exists with "composed" additional info
+        if medium_table is not None:
+            tag_key_model = TagKeyModel.find_by_key("medium")
+            if not tag_key_model:
+                tag_key_model = TagKeyModel.create_tag_key_model(key="medium", label="Medium")
+                composed_additional_info_spec = DictParam(optional=False, human_name="Composed")
+                tag_key_model.additional_infos_specs = {
+                    "composed": composed_additional_info_spec.to_dto().to_json_dict()
+                }
+                tag_key_model.save()
 
         follow_up_folder_path = os.path.splitext(follow_up_file.path)[0]
 

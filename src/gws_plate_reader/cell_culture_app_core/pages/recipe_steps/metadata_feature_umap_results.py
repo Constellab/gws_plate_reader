@@ -73,40 +73,40 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
         fig = umap_2d_plot.figure
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("""
-        **Interprétation** :
-        - Chaque point = une série (essai/fermenteur)
-        - Couleur = milieu de culture
-        - Proximité = composition ET comportement de croissance similaires
-        - Clusters = groupes de séries avec profils intégrés similaires
+        st.markdown(f"""
+        **{translate_service.translate('pls_train_interpretation').split(':')[0]}** :
+        - {translate_service.translate('umap_help_plot_point')}
+        - {translate_service.translate('umap_help_plot_color')}
+        - {translate_service.translate('umap_help_plot_proximity')}
+        - {translate_service.translate('umap_help_plot_groups')}
         """)
     else:
-        st.warning("⚠️ Graphique UMAP 2D non disponible")
+        st.warning(f"⚠️ {translate_service.translate('umap_2d_plot_not_found')}")
 
     st.markdown("---")
 
     # Display 3D UMAP plot
-    st.markdown(f"### 🎲 Projection UMAP 3D")
-    st.markdown("Visualisation en 3 dimensions (permet de mieux distinguer certaines structures)")
+    st.markdown(f"### 🎲 {translate_service.translate('umap_3d_projection')}")
+    st.markdown(translate_service.translate('3d_visualization_description'))
 
     umap_3d_plot = protocol_proxy.get_output('umap_3d_plot')
     if umap_3d_plot and isinstance(umap_3d_plot, PlotlyResource):
         fig = umap_3d_plot.figure
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("""
-        **Conseils** :
-        - Faites tourner le graphique pour explorer sous différents angles
-        - Zoomez pour examiner des zones spécifiques
-        - Comparez avec la projection 2D pour une meilleure compréhension
+        st.markdown(f"""
+        **{translate_service.translate('usage_tips')}** :
+        - {translate_service.translate('rotate_graph_tip')}
+        - {translate_service.translate('zoom_specific_areas')}
+        - {translate_service.translate('compare_2d_3d')}
         """)
     else:
-        st.warning("⚠️ Graphique UMAP 3D non disponible")
+        st.warning(f"⚠️ {translate_service.translate('umap_3d_plot_not_found')}")
 
     st.markdown("---")
 
     # Display 2D coordinates table
-    st.markdown(f"### 📊 Coordonnées UMAP 2D")
+    st.markdown(f"### 📊 {translate_service.translate('umap_2d_coordinates_title')}")
     umap_2d_table = protocol_proxy.get_output('umap_2d_table')
     if umap_2d_table and isinstance(umap_2d_table, Table):
         df_2d = umap_2d_table.get_data()
@@ -115,11 +115,11 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
         with col1:
             st.dataframe(df_2d, width='stretch', height=400)
         with col2:
-            st.metric("Nombre de séries", len(df_2d))
-            st.metric("Colonnes", len(df_2d.columns))
+            st.metric(translate_service.translate('number_of_series_label'), len(df_2d))
+            st.metric(translate_service.translate('columns_label'), len(df_2d.columns))
 
             # Show column names
-            st.caption("**Colonnes disponibles** :")
+            st.caption(f"**{translate_service.translate('available_columns_caption')}**")
             for col in df_2d.columns:
                 st.caption(f"- {col}")
 
@@ -137,7 +137,7 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
     st.markdown("---")
 
     # Display 3D coordinates table
-    st.markdown(f"### 📊 Coordonnées UMAP 3D")
+    st.markdown(f"### 📊 {translate_service.translate('umap_3d_coordinates_title')}")
     umap_3d_table = protocol_proxy.get_output('umap_3d_table')
     if umap_3d_table and isinstance(umap_3d_table, Table):
         df_3d = umap_3d_table.get_data()
@@ -146,11 +146,11 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
         with col1:
             st.dataframe(df_3d, width='stretch', height=400)
         with col2:
-            st.metric("Nombre de séries", len(df_3d))
-            st.metric("Colonnes", len(df_3d.columns))
+            st.metric(translate_service.translate('number_of_series_label'), len(df_3d))
+            st.metric(translate_service.translate('columns_label'), len(df_3d.columns))
 
             # Show column names
-            st.caption("**Colonnes disponibles** :")
+            st.caption(f"**{translate_service.translate('available_columns_caption')}**")
             for col in df_3d.columns:
                 st.caption(f"- {col}")
 
@@ -166,91 +166,91 @@ def render_metadata_feature_umap_results(recipe: CellCultureRecipe, cell_culture
         st.warning(f"⚠️ {translate_service.translate('coordinates_3d_table_unavailable')}")
 
     # Info box with interpretation guide
-    with st.expander(f"💡 Guide d'interprétation détaillé"):
-        st.markdown(f"### Comprendre les résultats UMAP")
+    with st.expander(f"💡 {translate_service.translate('detailed_interpretation_guide')}"):
+        st.markdown(f"### {translate_service.translate('understanding_umap_results_title')}")
 
-        st.markdown("""
-        #### Que montre cette analyse ?
+        st.markdown(f"""
+        #### {translate_service.translate('what_does_analysis_show')}
 
-        Cette analyse UMAP combine **deux types d'informations** :
+        {translate_service.translate('umap_combines_two_types')}
 
-        1. **Métadonnées (composition)** :
-           - Concentrations en nutriments, vitamines, minéraux
-           - Formulation du milieu de culture
-           - Conditions initiales
+        1. {translate_service.translate('metadata_composition')}
+           {translate_service.translate('metadata_nutrients')}
+           {translate_service.translate('metadata_formulation')}
+           {translate_service.translate('metadata_initial')}
 
-        2. **Features (performances)** :
-           - Paramètres de croissance (µ, lag, asymptote)
-           - Métriques statistiques des fits
-           - Intervalles de croissance
-           - Temps caractéristiques
+        2. {translate_service.translate('features_performance')}
+           {translate_service.translate('features_growth')}
+           {translate_service.translate('features_metrics')}
+           {translate_service.translate('features_intervals')}
+           {translate_service.translate('features_times')}
 
-        La projection UMAP révèle comment ces deux dimensions sont liées.
+        {translate_service.translate('umap_reveals_link')}
 
-        #### Patterns à rechercher
+        #### {translate_service.translate('patterns_to_look_for')}
 
-        **1. Clusters de milieux similaires** :
-        - Points de même couleur regroupés → milieux de composition proche donnent des résultats similaires
-        - Points de couleurs différentes regroupés → compositions différentes, performances similaires (milieux alternatifs !)
+        {translate_service.translate('clusters_similar_media')}
+        {translate_service.translate('same_color_grouped')}
+        {translate_service.translate('different_colors_grouped')}
 
-        **2. Séries isolées** :
-        - Points éloignés → comportements uniques ou aberrants
-        - Peuvent indiquer des innovations ou des problèmes
+        {translate_service.translate('isolated_series')}
+        {translate_service.translate('points_far_away')}
+        {translate_service.translate('may_indicate')}
 
-        **3. Gradients** :
-        - Transition progressive entre groupes → effet continu d'un paramètre
-        - Utile pour identifier des relations dose-réponse
+        {translate_service.translate('gradients')}
+        {translate_service.translate('progressive_transition')}
+        {translate_service.translate('useful_identify')}
 
-        **4. Forme globale** :
-        - Structure en branches → différentes stratégies de croissance
-        - Structure en nuage → grande variabilité
-        - Plusieurs clusters distincts → catégories bien définies
+        {translate_service.translate('global_shape')}
+        {translate_service.translate('branching_structure')}
+        {translate_service.translate('cloud_structure')}
+        {translate_service.translate('distinct_clusters')}
 
-        #### Applications pratiques
+        #### {translate_service.translate('practical_applications')}
 
-        **Optimisation de milieux** :
-        - Identifiez les milieux donnant les meilleures performances (zone spécifique du graphique)
-        - Trouvez les caractéristiques communes de ces milieux dans la table combinée
-        - Formulez de nouveaux milieux en interpolant dans cette zone
+        {translate_service.translate('medium_optimization')}
+        {translate_service.translate('identify_best_media')}
+        {translate_service.translate('find_common_characteristics')}
+        {translate_service.translate('formulate_new_media')}
 
-        **Réduction des coûts** :
-        - Cherchez des points proches mais de compositions différentes
-        - Testez si des ingrédients moins chers donnent des résultats équivalents
+        {translate_service.translate('cost_reduction')}
+        {translate_service.translate('look_close_points')}
+        {translate_service.translate('test_cheaper_ingredients')}
 
-        **Contrôle qualité** :
-        - Les nouveaux lots doivent tomber dans la même région que les références
-        - Les déviations révèlent des problèmes de formulation ou de process
+        {translate_service.translate('quality_control')}
+        {translate_service.translate('new_batches_same_region')}
+        {translate_service.translate('deviations_reveal')}
 
-        **Design d'expériences** :
-        - Les zones peu explorées méritent investigation
-        - Planifiez de nouveaux tests pour remplir les gaps
+        {translate_service.translate('experiment_design')}
+        {translate_service.translate('unexplored_areas')}
+        {translate_service.translate('plan_new_tests')}
 
-        #### Limites et précautions
+        #### {translate_service.translate('limitations_precautions')}
 
-        - UMAP préserve la structure locale mais peut déformer les distances globales
-        - La normalisation est cruciale (métadonnées et features ont des échelles très différentes)
-        - Plusieurs projections peuvent donner des vues complémentaires
-        - Validez toujours les insights avec des tests biologiques
+        {translate_service.translate('umap_preserves_local')}
+        {translate_service.translate('normalization_crucial')}
+        {translate_service.translate('multiple_projections')}
+        {translate_service.translate('always_validate')}
 
-        #### Export et suite de l'analyse
+        #### {translate_service.translate('export_further_analysis')}
 
-        Utilisez les tables de coordonnées téléchargées pour :
-        - Analyser statistiquement les clusters (ANOVA, tests post-hoc)
-        - Corréler avec d'autres variables non incluses dans l'UMAP
-        - Créer des modèles prédictifs (régression, classification)
-        - Communiquer les résultats (les coordonnées sont faciles à visualiser dans d'autres outils)
+        {translate_service.translate('use_coordinate_tables')}
+        {translate_service.translate('statistically_analyze')}
+        {translate_service.translate('correlate_other_variables')}
+        {translate_service.translate('create_predictive_models')}
+        {translate_service.translate('communicate_results')}
         """)
 
         st.markdown("---")
 
-        st.markdown(f"### Paramètres UMAP utilisés")
-        st.markdown("""
-        Les paramètres UMAP influencent la projection finale :
+        st.markdown(f"### {translate_service.translate('umap_parameters_used')}")
+        st.markdown(f"""
+        {translate_service.translate('umap_parameters_influence')}
 
-        - **n_neighbors** : Structure locale (faible) vs globale (élevé)
-        - **min_dist** : Dispersion des points
-        - **metric** : Définition de la "distance" entre séries
-        - **scale_data** : Normalisation préalable (fortement recommandée)
+        {translate_service.translate('n_neighbors_structure')}
+        {translate_service.translate('min_dist_dispersion')}
+        {translate_service.translate('metric_distance')}
+        {translate_service.translate('scale_data_normalization')}
 
-        Si les résultats ne sont pas satisfaisants, essayez avec différents paramètres.
+        {translate_service.translate('unsatisfactory_results')}
         """)

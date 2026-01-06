@@ -174,7 +174,6 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         if not recipes_dict:
             # No recipes found - show getting started guide
             st.subheader(f"🚀 {translate_service.translate('getting_started')}")
-            st.info(translate_service.translate('no_recipe_found'))
 
             # Show example of what the recipe includes
             with st.expander(f"ℹ️ {translate_service.translate('what_is_recipe')}"):

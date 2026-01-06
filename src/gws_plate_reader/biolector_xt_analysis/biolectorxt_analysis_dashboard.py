@@ -4,8 +4,12 @@ from typing import Any, Dict
 
 import streamlit as st
 from gws_core.tag.tag import Tag
+
 from gws_plate_reader.biolector_xt_analysis.biolector_state import (
-    CROSSED_OUT_WELLS, BiolectorState, BiolectorStateMode)
+    CROSSED_OUT_WELLS,
+    BiolectorState,
+    BiolectorStateMode,
+)
 
 from .analysis_tab import render_analysis_tab
 from .plot_tab import render_plot_tab
@@ -109,6 +113,11 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
 
             # Create css code
             css_template = """
+                div[class*="st-key-{label}"] .stButton .stTooltipHoverTarget {{
+                    width: 41px !important;  /* Adjust width and height as needed */
+                    height: 41px;
+                }}
+
                 div[class*="st-key-{label}"] .stButton button:not([kind="primary"]) {{
                     display: inline-block;
                     width: 41px;  /* Adjust width and height as needed */
@@ -127,7 +136,7 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
 
                 """
             css_code = "".join(css_template.format(label=label, color=color) for label, color in label_colors.items())
-            
+
             # Add CSS for primary buttons to keep normal styling
             primary_button_css = """
                 button[kind="primary"] {
@@ -139,7 +148,7 @@ def run(data: Dict[str, Any], is_standalone: bool, input_tag: Tag):
                     font-size: 14px !important;
                 }
                 """
-            
+
             active = """ button:active {
                         position:relative;
                         top:1px;

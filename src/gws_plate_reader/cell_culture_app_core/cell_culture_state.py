@@ -63,9 +63,10 @@ class CellCultureState(ABC):
     TAG_COLUMN_NAME = "column_name"
 
     # Column name constants (to be overridden by subclasses)
-    BASE_TIME_COLUMN_NAME = "Temps de culture (h)"
-    BATCH_COLUMN_NAME = "ESSAI"
-    SAMPLE_COLUMN_NAME = "FERMENTEUR"
+    BASE_TIME_COLUMN_NAME = "Time"
+    BATCH_COLUMN_NAME = "Batch"
+    SAMPLE_COLUMN_NAME = "Fermentor"
+    MEDIUM_COLUMN_NAME = "Medium"
 
     # Common output names
     LOAD_SCENARIO_METADATA_OUTPUT_NAME = "metadata_table"

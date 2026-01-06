@@ -202,7 +202,7 @@ class CellCultureSubsampling(Task):
     ### ResourceSet Structure
     - **Source**: CellCultureLoadData or Filter task output
     - **Contents**: Table resources with time series data
-    - **Required Column**: `"Temps de culture (h)"` (culture time in hours)
+    - **Required Column**: `"Time"` (culture time in hours)
     - **Required Tags**:
       - `batch`: Experiment identifier (preserved in output)
       - `sample`: Sample identifier (preserved in output)
@@ -232,9 +232,9 @@ class CellCultureSubsampling(Task):
     Contains one Table per input sample with:
 
     #### Columns
-    - `Temps de culture (h)`: Uniform time grid
+    - `Time`: Uniform time grid
     - All measurement columns: Interpolated values
-    - Metadata columns: Preserved as-is (ESSAI, FERMENTEUR, MILIEU)
+    - Metadata columns: Preserved as-is (Batch, Fermentor, Medium)
 
     #### Tags (Preserved)
     - `batch`: Original experiment ID
@@ -383,7 +383,7 @@ class CellCultureSubsampling(Task):
 
     ## Notes
 
-    - Time column name is hardcoded: `"Temps de culture (h)"`
+    - Time column name is hardcoded: `"Time"`
     - All numeric columns are interpolated (metadata columns preserved)
     - Original data is never modified (creates new Tables)
     - Interpolation tag added for traceability
@@ -421,7 +421,7 @@ class CellCultureSubsampling(Task):
         'time_column': StrParam(
             human_name="Time column name",
             short_description="Name of the time column",
-            default_value="Temps de culture (h)"
+            default_value="Time"
         ),
         'batch_column': StrParam(
             human_name="Batch column name",

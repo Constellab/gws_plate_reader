@@ -126,7 +126,7 @@ def launch_medium_umap_scenario(
             )
 
             # Set filter parameters
-            filter_task.set_param('medium_column', 'MILIEU')
+            filter_task.set_param('medium_column', cell_culture_state.MEDIUM_COLUMN_NAME)
             filter_task.set_param('selected_medium', selected_media)
 
             # Add the UMAP task
@@ -146,8 +146,8 @@ def launch_medium_umap_scenario(
             umap_task.set_param('min_dist', min_dist)
             umap_task.set_param('metric', metric)
             umap_task.set_param('scale_data', scale_data)
-            umap_task.set_param('color_by', 'MILIEU')
-            umap_task.set_param('columns_to_exclude', ['MILIEU'])
+            umap_task.set_param('color_by', cell_culture_state.MEDIUM_COLUMN_NAME)
+            umap_task.set_param('columns_to_exclude', [cell_culture_state.MEDIUM_COLUMN_NAME])
             if n_clusters is not None:
                 umap_task.set_param('n_clusters', n_clusters)
 
@@ -377,7 +377,7 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
                 )
 
                 if umap_scenario:
-                    st.success(translate_service.translate('umap_launched_success').format(id=umap_scenario.id))
+                    st.success(translate_service.translate('umap_launched_success'))
                     st.info(translate_service.translate('analysis_running'))
 
                     # Add to recipe

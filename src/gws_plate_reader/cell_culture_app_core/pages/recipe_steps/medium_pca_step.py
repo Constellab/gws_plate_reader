@@ -116,7 +116,7 @@ def launch_medium_pca_scenario(
             )
 
             # Set filter parameters
-            filter_task.set_param('medium_column', 'MILIEU')
+            filter_task.set_param('medium_column', cell_culture_state.MEDIUM_COLUMN_NAME)
             filter_task.set_param('selected_medium', selected_media)
 
             # Add the Medium PCA task
@@ -132,7 +132,7 @@ def launch_medium_pca_scenario(
             )
 
             # Set PCA parameters
-            pca_task.set_param('medium_column', 'MILIEU')
+            pca_task.set_param('medium_column', cell_culture_state.MEDIUM_COLUMN_NAME)
 
             # Add outputs
             protocol_proxy.add_output(
@@ -302,7 +302,7 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 )
 
                 if pca_scenario:
-                    st.success(f"✅ {translate_service.translate('pca_launched_success')} ID : {pca_scenario.id}")
+                    st.success(f"✅ {translate_service.translate('pca_launched_success')}")
                     st.info(translate_service.translate('analysis_running'))
 
                     # Add to recipe

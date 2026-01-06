@@ -11,6 +11,11 @@ from gws_core import (File, InputSpec, OutputSpec, InputSpecs, OutputSpecs, Tabl
 
 from typing import Dict, Any, Set, Tuple
 
+# Fixed variables
+BATCH_NAME = "Batch"
+FERMENTOR_NAME = "Fermentor"
+MEDIUM_NAME = "Medium"
+TIME_NAME = "Time"
 
 def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> go.Figure:
     """
@@ -167,34 +172,32 @@ class ConstellabBioprocessLoadData(Task):
 
     ### 1. Info CSV (`info_csv`)
     Contains experiment and fermenter information with columns:
-    - `ESSAI`: Experiment/trial identifier (e.g., "EPA-WP3-25-001")
-    - `FERMENTEUR`: Fermenter identifier (e.g., "23A", "23B")
-    - `MILIEU`: Culture medium used
+    - `Batch`: Experiment/trial identifier (e.g., "A")
+    - `Fermentor`: Fermenter identifier (e.g., "1", "2")
+    - `Medium`: Culture medium used
     - Additional metadata columns describing experimental conditions
 
     ### 2. Raw Data CSV (`raw_data_csv`)
     Contains raw measurement data with columns:
-    - `ESSAI`: Experiment identifier (must match Info CSV)
-    - `FERMENTEUR`: Fermenter identifier (must match Info CSV)
-    - `Temps de culture (h)`: Culture time in hours
+    - `Batch`: Experiment identifier (must match Info CSV)
+    - `Fermentor`: Fermenter identifier (must match Info CSV)
     - Multiple measurement columns (e.g., biomass, pH, temperature)
 
     ### 3. Medium CSV (`medium_csv`)
     Contains culture medium composition with columns:
-    - `MILIEU`: Medium identifier (must match Info CSV)
+    - `Medium`: Medium identifier (must match Info CSV)
     - Composition columns describing medium components and concentrations
 
     ### 4. Follow-up ZIP (`follow_up_zip`)
     ZIP archive containing CSV files with temporal tracking data:
-    - Filenames must follow pattern: `<ESSAI> <FERMENTEUR>.csv`
-    - Example: "EPA-WP3-25-001 23A.csv"
+    - Filenames must follow pattern: `<BATCH> <FERMENTOR>.csv`
+    - Example: "A 1.csv"
     - Contains time-series data with temporal measurements
-    - Column `Temps (h)` will be renamed to `Temps de culture (h)` for consistency
 
     ## Processing Steps
 
     1. **File Loading**: Imports all CSV files and unzips follow-up data
-    2. **Data Indexing**: Creates lookup tables for each (ESSAI, FERMENTEUR) pair
+    2. **Data Indexing**: Creates lookup tables for each (BATCH, FERMENTOR) pair
     3. **Data Merging**:
        - Merges Raw Data and Follow-up data on time column
        - Normalizes decimal formats (comma → dot)
@@ -206,16 +209,16 @@ class ConstellabBioprocessLoadData(Task):
     6. **Column Tagging**: Automatically tags columns as:
        - `is_index_column`: Time columns
        - `is_data_column`: Measurement columns
-       - Metadata columns (ESSAI, FERMENTEUR, MILIEU)
+       - Metadata columns (BATCH, FERMENTOR, MEDIUM)
 
     ## Outputs
 
     ### 1. Resource set (`resource_set`)
-    A ResourceSet containing one Table per (ESSAI, FERMENTEUR) combination:
-    - **Table Name**: `<ESSAI>_<FERMENTEUR>`
+    A ResourceSet containing one Table per (BATCH, FERMENTOR) combination:
+    - **Table Name**: `<BATCH>_<FERMENTOR>`
     - **Tags**:
-      - `batch`: Experiment identifier (ESSAI)
-      - `sample`: Fermenter identifier (FERMENTEUR)
+      - `batch`: Experiment identifier (BATCH)
+      - `sample`: Fermenter identifier (FERMENTOR)
       - `medium`: Culture medium name
       - `missing_value`: Comma-separated list of missing data types (if any)
         - Possible values: "info", "raw_data", "medium", "follow_up", "follow_up_empty"
@@ -237,7 +240,7 @@ class ConstellabBioprocessLoadData(Task):
 
     ### 3. Medium Table (`medium_table`) - Optional
     The medium composition CSV file converted to a Table resource with proper data types:
-    - **First column** (MILIEU): Kept as string (medium name/identifier)
+    - **First column** (MEDIUM): Kept as string (medium name/identifier)
     - **Other columns**: Converted to float (handles both comma and dot as decimal separator)
     - **Missing values**: Empty cells or non-numeric text converted to NaN
 
@@ -257,7 +260,7 @@ class ConstellabBioprocessLoadData(Task):
     - Samples with empty Follow-up files will have tag including "follow_up_empty"
 
     ### Data Validation
-    - Checks for matching (ESSAI, FERMENTEUR) pairs across all data sources
+    - Checks for matching (BATCH, FERMENTOR) pairs across all data sources
     - Normalizes decimal separators for consistent numeric parsing
     - Filters out negative time values from follow-up data
     - Preserves all original columns and metadata
@@ -347,21 +350,21 @@ class ConstellabBioprocessLoadData(Task):
             table.name = os.path.splitext(file_path)[0]
             follow_up_dict[table.name] = table
 
-            parts = table.name.split(' ', 1)  # Split sur le premier espace uniquement
+            parts = table.name.split(' ', 1)  # Split on first space only
             if len(parts) == 2:
-                couples_follow_up_data.append({'ESSAI': parts[0], 'FERMENTEUR': parts[1]})
+                couples_follow_up_data.append({BATCH_NAME: parts[0], FERMENTOR_NAME: parts[1]})
 
-                # Calcul des médianes pour chaque colonne numérique
+                # Calculate medians for each numeric column
                 df = table.get_data()
                 df = df.apply(pd.to_numeric, errors="coerce")
-                if "Temps (h)" in df.columns:
-                    df = df[df["Temps (h)"] >= 25]
+                if TIME_NAME in df.columns:
+                    df = df[df[TIME_NAME] >= 25]
                 medians = df.median(numeric_only=True)
                 medians["Series"] = f"{parts[0]}_{parts[1]}"
                 follow_up_df_medians = pd.concat([follow_up_df_medians, medians.to_frame().T], ignore_index=True)
-                # Delete Temps(h) and Dates
+                # Delete TIME_NAME
                 follow_up_df_medians.columns = follow_up_df_medians.columns.str.strip()
-                follow_up_df_medians = follow_up_df_medians.drop(["Temps (h)", "Dates"], axis=1)
+                follow_up_df_medians = follow_up_df_medians.drop([TIME_NAME], axis=1)
                 # Remove na values
                 follow_up_df_medians = follow_up_df_medians.dropna(how='any')
 
@@ -372,18 +375,18 @@ class ConstellabBioprocessLoadData(Task):
         medium_df: pd.DataFrame = medium_table.get_data()
 
         # Récupérer tous les couples distincts des deux tables
-        couples_info = info_df[['ESSAI', 'FERMENTEUR']].drop_duplicates()
-        couples_raw_data = raw_data_df[['ESSAI', 'FERMENTEUR']].drop_duplicates()
+        couples_info = info_df[[BATCH_NAME, FERMENTOR_NAME]].drop_duplicates()
+        couples_raw_data = raw_data_df[[BATCH_NAME, FERMENTOR_NAME]].drop_duplicates()
         couples_follow_up = pd.DataFrame(couples_follow_up_data) if couples_follow_up_data else pd.DataFrame(
-            columns=['ESSAI', 'FERMENTEUR'])
+            columns=[BATCH_NAME, FERMENTOR_NAME])
 
         # Combiner tous les couples distincts (union)
         tous_couples = pd.concat([couples_info, couples_raw_data, couples_follow_up]
                                  ).drop_duplicates().reset_index(drop=True)
 
         for _, row in tous_couples.iterrows():
-            essai = row['ESSAI']
-            fermentor = row['FERMENTEUR']
+            essai = row[BATCH_NAME]
+            fermentor = row[FERMENTOR_NAME]
             if essai not in full_info_dict:
                 full_info_dict[essai] = {}
             if fermentor not in full_info_dict[essai]:
@@ -393,9 +396,9 @@ class ConstellabBioprocessLoadData(Task):
                 continue
 
             # Récupérer le medium depuis info_df si disponible
-            info_filtered = info_df[(info_df['ESSAI'] == essai) & (info_df['FERMENTEUR'] == fermentor)]
+            info_filtered = info_df[(info_df[BATCH_NAME] == essai) & (info_df[FERMENTOR_NAME] == fermentor)]
             if not info_filtered.empty:
-                medium = info_filtered['MILIEU'].values[0]
+                medium = info_filtered[MEDIUM_NAME].values[0]
                 full_info_dict[essai][fermentor]['medium'] = medium
                 full_info_dict[essai][fermentor]['info'] = info_filtered
             else:
@@ -403,13 +406,13 @@ class ConstellabBioprocessLoadData(Task):
                 full_info_dict[essai][fermentor]['info'] = pd.DataFrame()
 
             # Récupérer les raw_data si disponibles
-            raw_data_filtered = raw_data_df[(raw_data_df['ESSAI'] == essai) & (raw_data_df['FERMENTEUR'] == fermentor)]
+            raw_data_filtered = raw_data_df[(raw_data_df[BATCH_NAME] == essai) & (raw_data_df[FERMENTOR_NAME] == fermentor)]
             full_info_dict[essai][fermentor]['raw_data'] = raw_data_filtered
 
             # Récupérer les medium_data si le medium existe
-            if full_info_dict[essai][fermentor]['medium'] is not None and 'MILIEU' in medium_df.columns:
-                medium_data_filtered = medium_df[medium_df['MILIEU'] == full_info_dict[essai][fermentor]['medium']]
-                medium_data_filtered = medium_data_filtered.drop(columns=['MILIEU'])
+            if full_info_dict[essai][fermentor]['medium'] is not None and MEDIUM_NAME in medium_df.columns:
+                medium_data_filtered = medium_df[medium_df[MEDIUM_NAME] == full_info_dict[essai][fermentor]['medium']]
+                medium_data_filtered = medium_data_filtered.drop(columns=[MEDIUM_NAME])
                 full_info_dict[essai][fermentor]['medium_data'] = medium_data_filtered
             else:
                 full_info_dict[essai][fermentor]['medium_data'] = pd.DataFrame()
@@ -419,10 +422,10 @@ class ConstellabBioprocessLoadData(Task):
             full_info_dict[essai][fermentor]['has_follow_up'] = follow_up_key in follow_up_dict
             if follow_up_key in follow_up_dict:
                 full_info_dict[essai][fermentor]['follow_up_table'] = follow_up_dict[follow_up_key]
-                print(f"Fichier de suivi trouvé pour {follow_up_key}")
+                print(f"Follow-up file found for {follow_up_key}")
             else:
                 full_info_dict[essai][fermentor]['follow_up_table'] = Table(pd.DataFrame())
-                print(f"Aucun fichier de suivi pour {follow_up_key}")
+                print(f"No follow-up file for {follow_up_key}")
 
         res: ResourceSet = ResourceSet()
 
@@ -433,65 +436,32 @@ class ConstellabBioprocessLoadData(Task):
                     # Utiliser les informations stockées dans full_info_dict
                     follow_up_df: pd.DataFrame = data['follow_up_table'].get_data()
 
-                    # Merger raw_data_df et follow_up_df sur la colonne 'Temps de culture (h)'
+                    # Merger raw_data_df et follow_up_df sur la colonne TIME_NAME
                     if not row_data_df.empty and not follow_up_df.empty:
-                        # Renommer la colonne de temps dans follow_up_df pour correspondre à raw_data_df
-                        if 'Temps (h)' in follow_up_df.columns:
-                            follow_up_df = follow_up_df.rename(columns={'Temps (h)': 'Temps de culture (h)'})
-
-                        # Normaliser les formats numériques des colonnes de temps
-                        def normalize_decimal_format(df, column_name):
-                            """Convertit les virgules en points et assure le type float"""
-                            if column_name in df.columns:
-                                # Convertir en string puis remplacer virgules par points
-                                df[column_name] = df[column_name].astype(str).str.replace(',', '.', regex=False)
-                                # Convertir en float
-                                df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
-                            return df
-
-                        # Normaliser les deux DataFrames
-                        row_data_df = normalize_decimal_format(row_data_df.copy(), 'Temps de culture (h)')
-                        follow_up_df = normalize_decimal_format(follow_up_df.copy(), 'Temps de culture (h)')
 
                         # Filtrer les lignes avec temps négatif dans follow_up_df
-                        if 'Temps de culture (h)' in follow_up_df.columns:
-                            follow_up_df = follow_up_df[follow_up_df['Temps de culture (h)'] >= 0]
+                        if TIME_NAME in follow_up_df.columns:
+                            follow_up_df = follow_up_df[follow_up_df[TIME_NAME] >= 0]
 
                         # Assurer que les colonnes de temps ont le même type (float) pour éviter le warning
-                        if 'Temps de culture (h)' in row_data_df.columns:
-                            row_data_df['Temps de culture (h)'] = row_data_df['Temps de culture (h)'].astype(float)
-                        if 'Temps de culture (h)' in follow_up_df.columns:
-                            follow_up_df['Temps de culture (h)'] = follow_up_df['Temps de culture (h)'].astype(float)
+                        if TIME_NAME in row_data_df.columns:
+                            row_data_df[TIME_NAME] = row_data_df[TIME_NAME].astype(float)
+                        if TIME_NAME in follow_up_df.columns:
+                            follow_up_df[TIME_NAME] = follow_up_df[TIME_NAME].astype(float)
 
-                        # Merge sur la colonne 'Temps de culture (h)'
+                        # Merge sur la colonne TIME_NAME
                         full_df = pd.merge(
                             row_data_df,
                             follow_up_df,
-                            on='Temps de culture (h)',
+                            on=TIME_NAME,
                             how='outer'  # outer join pour garder toutes les données
                         )
                     elif not row_data_df.empty:
                         full_df = row_data_df.copy()
                     elif not follow_up_df.empty:
-                        # Renommer la colonne de temps si nécessaire
-                        if 'Temps (h)' in follow_up_df.columns:
-                            follow_up_df = follow_up_df.rename(columns={'Temps (h)': 'Temps de culture (h)'})
-
-                        # Normaliser le format et filtrer les temps négatifs
-                        def normalize_decimal_format(df, column_name):
-                            """Convertit les virgules en points et assure le type float"""
-                            if column_name in df.columns:
-                                # Convertir en string puis remplacer virgules par points
-                                df[column_name] = df[column_name].astype(str).str.replace(',', '.', regex=False)
-                                # Convertir en float
-                                df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
-                            return df
-
-                        follow_up_df = normalize_decimal_format(follow_up_df.copy(), 'Temps de culture (h)')
-
                         # Filtrer les lignes avec temps négatif
-                        if 'Temps de culture (h)' in follow_up_df.columns:
-                            follow_up_df = follow_up_df[follow_up_df['Temps de culture (h)'] >= 0]
+                        if TIME_NAME in follow_up_df.columns:
+                            follow_up_df = follow_up_df[follow_up_df[TIME_NAME] >= 0]
 
                         full_df = follow_up_df.copy()
                     else:
@@ -538,73 +508,31 @@ class ConstellabBioprocessLoadData(Task):
                         # Si des colonnes ont été supprimées, les enlever du DataFrame
                         if removed_columns:
                             full_df = full_df[columns_to_keep]
-                            print(f"Colonnes vides supprimées pour {essai}_{fermentor}: {removed_columns}")
+                            print(f"Empty columns removed for {essai}_{fermentor}: {removed_columns}")
 
                         # Vérifier si le DataFrame n'est pas complètement vide après suppression des colonnes
                         if full_df.empty or len(columns_to_keep) == 0:
-                            print(f"Aucune donnée valide pour {essai}_{fermentor}, passage au suivant")
+                            print(f"No valid data for {essai}_{fermentor}, moving to next")
                             continue
 
-                        # Normaliser toutes les valeurs numériques (remplacer virgules par points)
-                        def normalize_all_numeric_columns(df):
-                            """Normalise toutes les colonnes qui pourraient contenir des valeurs numériques"""
-                            df_normalized = df.copy()
-
-                            for col in df_normalized.columns:
-                                # Ignorer les colonnes clairement non-numériques
-                                if col in ['ESSAI', 'FERMENTEUR', 'MILIEU']:
-                                    continue
-
-                                # Pour toutes les autres colonnes, essayer de normaliser
-                                try:
-                                    # Convertir en string pour pouvoir remplacer les virgules
-                                    col_str = df_normalized[col].astype(str)
-
-                                    # Remplacer les virgules par des points (format français -> anglais)
-                                    col_str = col_str.str.replace(',', '.', regex=False)
-
-                                    # Essayer de convertir en numérique
-                                    # Si ça marche, c'est une colonne numérique
-                                    numeric_values = pd.to_numeric(col_str, errors='coerce')
-
-                                    # Vérifier si la colonne contient des valeurs numériques valides
-                                    # (au moins une valeur non-NaN après conversion)
-                                    if not numeric_values.isna().all():
-                                        # Si oui, remplacer la colonne par les valeurs normalisées
-                                        df_normalized[col] = numeric_values
-                                        print(
-                                            f"Colonne '{col}' normalisée (virgules -> points) pour {essai}_{fermentor}")
-                                    # Sinon, garder les valeurs originales (probablement du texte)
-
-                                except Exception as e:
-                                    # En cas d'erreur, garder les valeurs originales
-                                    print(
-                                        f"Impossible de normaliser la colonne '{col}' pour {essai}_{fermentor}: {str(e)}")
-                                    continue
-
-                            return df_normalized
-
-                        # Appliquer la normalisation
-                        full_df = normalize_all_numeric_columns(full_df)
-
                         # Ajouter les colonnes ESSAI et FERMENTEUR au début du DataFrame seulement si elles n'existent pas déjà
-                        if 'ESSAI' not in full_df.columns:
-                            full_df.insert(0, 'ESSAI', essai)
+                        if BATCH_NAME not in full_df.columns:
+                            full_df.insert(0, BATCH_NAME, essai)
                         else:
                             # Si la colonne existe déjà, s'assurer qu'elle contient la bonne valeur
-                            full_df['ESSAI'] = essai
+                            full_df[BATCH_NAME] = essai
 
-                        if 'FERMENTEUR' not in full_df.columns:
-                            # Trouver la bonne position d'insertion (après ESSAI si elle existe)
-                            if 'ESSAI' in full_df.columns:
-                                essai_index = full_df.columns.get_loc('ESSAI')
+                        if FERMENTOR_NAME not in full_df.columns:
+                            # Trouver la bonne position d'insertion (après BATCH_NAME si elle existe)
+                            if BATCH_NAME in full_df.columns:
+                                essai_index = full_df.columns.get_loc(BATCH_NAME)
                                 insert_index = essai_index + 1
                             else:
                                 insert_index = 0
-                            full_df.insert(insert_index, 'FERMENTEUR', fermentor)
+                            full_df.insert(insert_index, FERMENTOR_NAME, fermentor)
                         else:
                             # Si la colonne existe déjà, s'assurer qu'elle contient la bonne valeur
-                            full_df['FERMENTEUR'] = fermentor
+                            full_df[FERMENTOR_NAME] = fermentor
 
                         merged_table: Table = Table(full_df)
                         merged_table.name = f"{essai}_{fermentor}"
@@ -665,12 +593,12 @@ class ConstellabBioprocessLoadData(Task):
                             merged_table.tags.add_tag(tag)
 
                         # Ajouter les tags spéciaux pour les colonnes ESSAI et FERMENTEUR
-                        merged_table.add_column_tag_by_name('ESSAI', 'column_name', 'Essai')
-                        merged_table.add_column_tag_by_name('FERMENTEUR', 'column_name', 'Fermenteur')
+                        merged_table.add_column_tag_by_name(BATCH_NAME, 'column_name', 'Essai')
+                        merged_table.add_column_tag_by_name(FERMENTOR_NAME, 'column_name', 'Fermenteur')
 
                         for col in merged_table.column_names:
                             # Ignorer les colonnes ESSAI et FERMENTEUR car elles sont déjà traitées
-                            if col in ['ESSAI', 'FERMENTEUR']:
+                            if col in [BATCH_NAME, FERMENTOR_NAME]:
                                 continue
 
                             # Pattern pour capturer le nom et l'unité entre parenthèses
@@ -692,23 +620,18 @@ class ConstellabBioprocessLoadData(Task):
 
                             # Ajouter les tags is_index_column et is_data_column
                             # Identifier les colonnes métadonnées (batch, sample, medium)
-                            metadata_columns = ['ESSAI', 'FERMENTEUR']
-                            medium_related_columns = ['MILIEU', 'MEDIUM']  # Colonnes liées au milieu
+                            metadata_columns = [BATCH_NAME, FERMENTOR_NAME]
+                            medium_related_columns = [MEDIUM_NAME]  # Colonne liée au milieu
 
                             # Identifier les colonnes de temps (index)
-                            time_columns = ['Temps de culture (h)', 'Temps (h)', 'Temps']
-                            is_time_column = (col in time_columns or
-                                              column_name.lower() in ['temps', 'time'] or
-                                              'temps' in column_name.lower())
+                            time_columns = ['Time']
+                            is_time_column = (col in time_columns)
 
                             # Identifier si c'est une colonne de milieu
-                            is_medium_column = (col in medium_related_columns or
-                                                column_name.upper() in medium_related_columns or
-                                                'milieu' in column_name.lower() or
-                                                'medium' in column_name.lower())
+                            is_medium_column = (col in medium_related_columns)
 
                             if is_time_column:
-                                # Tag pour colonne d'index (Temps)
+                                # Tag pour colonne d'index (TIME_NAME)
                                 merged_table.add_column_tag_by_name(col, 'is_index_column', 'true')
                             elif col not in metadata_columns and not is_medium_column:
                                 # Tag pour colonne de données (ni metadata, ni temps, ni milieu)
@@ -814,12 +737,12 @@ class ConstellabBioprocessLoadData(Task):
                 }
 
                 # Add medium composition
-                if 'MILIEU' in medium_df.columns:
-                    medium_row = medium_df[medium_df['MILIEU'] == medium]
+                if MEDIUM_NAME in medium_df.columns:
+                    medium_row = medium_df[medium_df[MEDIUM_NAME] == medium]
                     if not medium_row.empty:
-                        # Add all columns except MILIEU
+                        # Add all columns except MEDIUM
                         for col in medium_row.columns:
-                            if col != 'MILIEU':
+                            if col != MEDIUM_NAME:
                                 value = medium_row[col].iloc[0]
                                 # Convert to numeric if possible
                                 metadata_row[col] = self._to_numeric(value)
@@ -858,31 +781,11 @@ class ConstellabBioprocessLoadData(Task):
 
         return metadata_table
 
-    def _get_follow_up_df_medians(self, batch: str, sample: str, follow_up_df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Get the median values for each column in the follow-up DataFrame.
-        Only for columns after "Temps (h)" >= 25.
-
-        Args:
-            follow_up_df: DataFrame with follow-up data
-
-        Returns:
-            DataFrame with median values for each column
-        """
-        df = follow_up_df.copy()
-        df = df.apply(pd.to_numeric, errors='coerce')
-
-        if 'Temps (h)' not in df.columns:
-            return pd.DataFrame()
-        df = df[df['Temps (h)'] >= 25]
-        medians = df.median(numeric_only=True)
-        medians["Series"] = f"{batch}_{sample}"
-
     def _process_medium_table(self, medium_table: Table) -> Table:
         """
         Process the medium table to convert numeric columns to float.
 
-        The first column (MILIEU) is kept as string.
+        The first column (Medium) is kept as string.
         All other columns are converted to float, handling both comma and dot as decimal separator.
         NaN values are replaced with 0.
 
@@ -904,7 +807,7 @@ class ConstellabBioprocessLoadData(Task):
         if not columns:
             return medium_table
 
-        # First column should stay as string (MILIEU)
+        # First column should stay as string (MEDIUM)
         # All other columns should be converted to float
         for col_idx, col_name in enumerate(columns):
             if col_idx == 0:

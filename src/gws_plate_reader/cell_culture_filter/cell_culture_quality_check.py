@@ -161,7 +161,7 @@ class CellCultureQualityCheck(Task):
     #### `required_columns` (List[String])
     - **Default**: []
     - **Description**: Columns that must exist with ≥ 1 non-NaN value
-    - **Example**: `["Temps de culture (h)", "Biomasse (g/L)"]`
+    - **Example**: `["Time", "Biomasse (g/L)"]`
     - **Action**: Samples missing these columns are excluded
 
     ### Data Point Count Parameters
@@ -206,7 +206,7 @@ class CellCultureQualityCheck(Task):
     - **Requirements**:
       - Must contain Table resources
       - Tables must have numeric data columns
-      - Recommended: `Temps de culture (h)` column for time series
+      - Recommended: `Time` column for time series
     - **Tags Used**:
       - `batch`, `sample`, `medium` (preserved in output)
     - **Purpose**: Quality checks are performed on this ResourceSet
@@ -377,7 +377,7 @@ class CellCultureQualityCheck(Task):
         'outlier_threshold': 2.5,
         'max_missing_percentage': 10.0,
         'required_columns': [
-            'Temps de culture (h)',
+            'Time',
             'Biomasse (g/L)',
             'Glucose (g/L)'
         ],

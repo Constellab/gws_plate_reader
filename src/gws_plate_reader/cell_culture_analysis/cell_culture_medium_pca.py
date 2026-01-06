@@ -30,12 +30,11 @@ class CellCultureMediumPCA(Task):
     - A biplot combining scores and variable loadings
 
     ## Input
-    - **medium_table**: Table with medium composition data. Must contain a 'MILIEU' column
+    - **medium_table**: Table with medium composition data. Must contain a 'Medium' column
       identifying different medium, and numeric columns for compositional features.
 
     ## Configuration
-    - **medium_column**: Name of the column containing medium identifiers (default: 'MILIEU')
-
+    - **medium_column**: Name of the column containing medium identifiers (default: 'Medium')
     ## Outputs
     - **scores_table**: Table containing PCA scores (principal components) for each sample
     - **scatter_plot**: Plotly scatter plot of PC1 vs PC2 with color-coded medium groups
@@ -51,7 +50,7 @@ class CellCultureMediumPCA(Task):
         'medium_table': InputSpec(
             Table,
             human_name="Medium Table",
-            short_description="Table containing medium composition data with MILIEU column"
+            short_description="Table containing medium composition data with Medium column"
         )
     })
 
@@ -75,7 +74,7 @@ class CellCultureMediumPCA(Task):
 
     config_specs = ConfigSpecs({
         'medium_column': StrParam(
-            default_value='MILIEU',
+            default_value='Medium',
             human_name="Medium Column Name",
             short_description="Name of the column containing medium identifiers",
             visibility='public'

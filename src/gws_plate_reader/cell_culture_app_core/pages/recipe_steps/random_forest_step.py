@@ -382,7 +382,7 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
 
             if rf_scenario:
                 st.success(translate_service.translate('analysis_launched_success').format(
-                    analysis_type='Random Forest', id=rf_scenario.id))
+                    analysis_type='Random Forest'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe

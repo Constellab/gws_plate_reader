@@ -344,7 +344,7 @@ def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: Cel
 
             if causal_scenario:
                 st.success(translate_service.translate('analysis_launched_success').format(
-                    analysis_type='Causal Effect', id=causal_scenario.id))
+                    analysis_type='Causal Effect'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe

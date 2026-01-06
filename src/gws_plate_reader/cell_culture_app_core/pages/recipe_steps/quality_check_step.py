@@ -484,7 +484,7 @@ def _render_selection_quality_checks(
                     )
 
                     if qc_scenario:
-                        st.success(translate_service.translate('qc_launch_success').format(id=qc_scenario.id))
+                        st.success(translate_service.translate('qc_launch_success'))
                         st.info(translate_service.translate('qc_scenario_running_info'))
 
                         # Add to recipe

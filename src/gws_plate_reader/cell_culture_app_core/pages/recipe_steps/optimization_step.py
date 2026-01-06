@@ -455,7 +455,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
 
             if optimization_scenario:
                 st.success(translate_service.translate('analysis_launched_success').format(
-                    analysis_type='Optimization', id=optimization_scenario.id))
+                    analysis_type='Optimization'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe

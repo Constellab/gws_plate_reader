@@ -430,7 +430,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
             width='stretch',
             disabled=cell_culture_state.get_is_standalone()
         )
-        
+
         if cell_culture_state.get_is_standalone():
 	        st.info(translate_service.translate('standalone_mode_function_blocked'))
 
@@ -452,7 +452,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
             )
 
             if umap_scenario:
-                st.success(translate_service.translate('umap_launched_success').format(id=umap_scenario.id))
+                st.success(translate_service.translate('umap_launched_success'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe

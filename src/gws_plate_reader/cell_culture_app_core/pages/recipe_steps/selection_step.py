@@ -270,8 +270,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                         )
 
                         if selection_scenario:
-                            st.success(translate_service.translate(
-                                'selection_launched_success').format(id=selection_scenario.id))
+                            st.success(translate_service.translate('selection_launched_success'))
                             st.info(translate_service.translate('scenario_running'))
 
                             updated_selection_scenarios = [selection_scenario] + existing_selections

@@ -404,7 +404,7 @@ def render_pls_regression_step(recipe: CellCultureRecipe, cell_culture_state: Ce
 
             if pls_scenario:
                 st.success(translate_service.translate('analysis_launched_success').format(
-                    analysis_type='PLS', id=pls_scenario.id))
+                    analysis_type='PLS'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe

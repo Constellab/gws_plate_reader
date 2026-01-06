@@ -209,7 +209,7 @@ def render_stats_tab():
             if os.path.exists(kruskal_summary_path):
                 kruskal_summary = pd.read_csv(kruskal_summary_path)
                 st.write("**Kruskal-Wallis Summary Results**")
-                st.dataframe(kruskal_summary, use_container_width=True)
+                st.dataframe(kruskal_summary, width='stretch')
             else:
                 st.warning("No Kruskal-Wallis summary results found.")
             # Display Dunn's post-hoc test summary results
@@ -270,7 +270,7 @@ def render_stats_tab():
             if os.path.exists(csv_path):
                 csv_data = pd.read_csv(csv_path, index_col=0)
                 st.write("**Post-hoc test results (Dunn's Test)**")
-                st.dataframe(csv_data, use_container_width=True)
+                st.dataframe(csv_data, width='stretch')
 
             else:
                 st.warning("No corresponding CSV data found for this plot.")
@@ -293,7 +293,7 @@ def _run_analysis_tab(filter_selection: str, selected_well_or_replicate: str,
             with st.expander("Dataframe", expanded=False):
                 with StreamlitContainers.full_width_dataframe_container('container-full-dataframe-growth-rate'):
                     st.dataframe(df_analysis.style.format(
-                        thousands=" ", precision=4), use_container_width=True)
+                        thousands=" ", precision=4), width='stretch')
 
         except:
             st.error("Optimal parameters not found for some wells, try deselecting some wells.")

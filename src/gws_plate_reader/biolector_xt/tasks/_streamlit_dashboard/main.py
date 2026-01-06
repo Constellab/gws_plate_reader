@@ -78,7 +78,7 @@ def experiments_page():
     try:
         st.header("Biolector experiments")
         experiments_df = get_experiments(service)
-        st.dataframe(experiments_df, use_container_width=True,
+        st.dataframe(experiments_df, width='stretch',
                      hide_index=True, height=600)
     except Exception as e:
         st.error(f"An error occurred while fetching experiments: {str(e)}")
@@ -88,7 +88,7 @@ def protocols_page():
     try:
         st.header("Bioxlector protocols")
         protocols_df = get_protocols(service)
-        st.dataframe(protocols_df, use_container_width=True,
+        st.dataframe(protocols_df, width='stretch',
                      hide_index=True, height=600)
     except Exception as e:
         st.error(f"An error occurred while fetching protocols: {str(e)}")

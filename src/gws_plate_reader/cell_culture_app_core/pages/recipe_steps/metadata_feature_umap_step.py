@@ -225,6 +225,7 @@ def launch_metadata_feature_umap_scenario(
             return new_scenario
 
     except Exception as e:
+        translate_service = cell_culture_state.get_translate_service()
         st.error(translate_service.translate('error_launching_scenario_generic').format(
             scenario_type='Metadata Feature UMAP', error=str(e)))
         import traceback
@@ -426,8 +427,12 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
         submit_button = st.form_submit_button(
             translate_service.translate('launch_analysis_button_with_type').format(analysis_type='UMAP'),
             type="primary",
-            use_container_width=True
+            width='stretch',
+            disabled=cell_culture_state.get_is_standalone()
         )
+
+        if cell_culture_state.get_is_standalone():
+	        st.info(translate_service.translate('standalone_mode_function_blocked'))
 
         if submit_button:
             # Launch UMAP scenario
@@ -447,7 +452,7 @@ def render_metadata_feature_umap_step(recipe: CellCultureRecipe, cell_culture_st
             )
 
             if umap_scenario:
-                st.success(translate_service.translate('umap_launched_success').format(id=umap_scenario.id))
+                st.success(translate_service.translate('umap_launched_success'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe

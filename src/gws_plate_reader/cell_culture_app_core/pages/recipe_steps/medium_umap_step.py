@@ -25,6 +25,7 @@ def get_available_media_from_quality_check(
     :param cell_culture_state: The cell culture state
     :return: List of unique medium names
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         # Get the filtered interpolated ResourceSet from quality check
         scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
@@ -51,7 +52,7 @@ def get_available_media_from_quality_check(
         return sorted(list(media))
     except Exception as e:
         # Handle any exception during media extraction
-        st.error(f"Erreur lors de l'extraction des milieux : {str(e)}")
+        st.error(translate_service.translate('error_extracting_media').format(error=str(e)))
         return []
 
 
@@ -79,6 +80,7 @@ def launch_medium_umap_scenario(
     :param n_clusters: Number of clusters for K-Means (optional)
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for Medium UMAP
@@ -103,7 +105,7 @@ def launch_medium_umap_scenario(
             ).get_output_resource_model('medium_table')
 
             if not medium_table_resource_model:
-                raise ValueError("La sortie 'medium_table' n'est pas disponible dans le scénario de chargement")
+                raise ValueError(translate_service.translate('medium_table_output_unavailable'))
 
             # Add input task for the medium_table from load scenario
             medium_input_task = protocol_proxy.add_process(
@@ -124,7 +126,7 @@ def launch_medium_umap_scenario(
             )
 
             # Set filter parameters
-            filter_task.set_param('medium_column', 'MILIEU')
+            filter_task.set_param('medium_column', cell_culture_state.MEDIUM_COLUMN_NAME)
             filter_task.set_param('selected_medium', selected_media)
 
             # Add the UMAP task
@@ -144,8 +146,8 @@ def launch_medium_umap_scenario(
             umap_task.set_param('min_dist', min_dist)
             umap_task.set_param('metric', metric)
             umap_task.set_param('scale_data', scale_data)
-            umap_task.set_param('color_by', 'MILIEU')
-            umap_task.set_param('columns_to_exclude', ['MILIEU'])
+            umap_task.set_param('color_by', cell_culture_state.MEDIUM_COLUMN_NAME)
+            umap_task.set_param('columns_to_exclude', [cell_culture_state.MEDIUM_COLUMN_NAME])
             if n_clusters is not None:
                 umap_task.set_param('n_clusters', n_clusters)
 
@@ -351,8 +353,11 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
         submit_button = st.form_submit_button(
             translate_service.translate('launch_analysis_button_with_type').format(analysis_type='UMAP'),
             type="primary",
-            use_container_width=True
+            width='stretch',
+            disabled=cell_culture_state.get_is_standalone()
         )
+        if cell_culture_state.get_is_standalone():
+            st.info(translate_service.translate('standalone_mode_function_blocked'))
 
         if submit_button:
             if not selected_media:
@@ -372,7 +377,7 @@ def render_medium_umap_step(recipe: CellCultureRecipe, cell_culture_state: CellC
                 )
 
                 if umap_scenario:
-                    st.success(translate_service.translate('umap_launched_success').format(id=umap_scenario.id))
+                    st.success(translate_service.translate('umap_launched_success'))
                     st.info(translate_service.translate('analysis_running'))
 
                     # Add to recipe

@@ -4,6 +4,7 @@ Displays the results of an Optimization analysis scenario
 """
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Settings
+
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 
 
@@ -19,7 +20,6 @@ def render_optimization_results(cell_culture_state: CellCultureState, optimizati
     st.markdown("### ⚙️ " + translate_service.translate('optimization_results_title'))
 
     st.markdown("**" + translate_service.translate('scenario_label') + "** : " + optimization_scenario.title)
-    st.markdown(f"**ID** : `{optimization_scenario.id}`")
 
     # Display scenario status
     status = optimization_scenario.status
@@ -37,21 +37,21 @@ def render_optimization_results(cell_culture_state: CellCultureState, optimizati
             if protocol_proxy:
                 st.error("**" + translate_service.translate('error_details_label') + "** :")
                 st.code(protocol_proxy.get_error_message() if hasattr(
-                    protocol_proxy, 'get_error_message') else "Erreur inconnue")
+                    protocol_proxy, 'get_error_message') else translate_service.translate('unknown_error'))
         except Exception as e:
             st.warning(translate_service.translate('unable_retrieve_error_details').format(error=str(e)))
 
         return
-    elif status == ScenarioStatus.RUNNING or status == ScenarioStatus.IN_QUEUE:
+    elif status in (ScenarioStatus.RUNNING, ScenarioStatus.IN_QUEUE):
         st.info(f"⏳ **{translate_service.translate('status_label')}** : {translate_service.translate('analysis_in_progress')}")
         st.markdown(translate_service.translate('analysis_in_progress_refresh'))
 
-        if st.button("🔄 Actualiser", key=f"refresh_optimization_{optimization_scenario.id}"):
+        if st.button(f"🔄 {translate_service.translate('refresh')}", key=f"refresh_optimization_{optimization_scenario.id}"):
             st.rerun()
 
         return
     else:
-        st.warning(f"⚠️ **Statut** : {status.name}")
+        st.warning(f"⚠️ **{translate_service.translate('status')}** : {status.name}")
         return
 
     # Get the Streamlit app resource from scenario output
@@ -62,26 +62,21 @@ def render_optimization_results(cell_culture_state: CellCultureState, optimizati
         streamlit_app_resource_model = protocol_proxy.get_output_resource_model('streamlit_app')
 
         if not streamlit_app_resource_model:
-            st.warning("⚠️ La ressource de dashboard Streamlit n'est pas encore disponible.")
+            st.error(f"⚠️ {translate_service.translate('streamlit_app_resource_unavailable')}")
             return
 
         # Build the URL to the Streamlit app resource
         front_url = Settings.get_front_url()
         resource_url = f"{front_url}/app/resource/{streamlit_app_resource_model.id}"
 
-        st.success("✅ Le dashboard d'optimisation est disponible !")
-
         st.markdown("---")
-        st.markdown("### 📊 Dashboard interactif")
+        st.markdown(f"### {translate_service.translate('interactive_dashboard')}")
 
-        st.markdown("""
-Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'analyse Optimization :
-- **Summary** : Meilleure solution trouvée et métriques
-- **3D Surface Explorer** : Exploration interactive de l'espace de recherche
-- **Feature Importance** : Importance des variables dans le modèle
-- **Observed vs Predicted** : Validation du modèle prédictif
-- **Data Explorer** : Toutes les solutions trouvées
-        """)
+        st.markdown(translate_service.translate('optimization_dashboard_description'))
+
+        if cell_culture_state.get_is_standalone():
+            st.info(translate_service.translate('standalone_mode_function_blocked'))
+            return
 
         # Button to open the Streamlit app
         st.markdown(
@@ -97,7 +92,7 @@ Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'ana
             f'font-weight: 600; '
             f'width: 100%;'
             f'">'
-            f'🚀 Ouvrir le Dashboard Optimization'
+            f'{translate_service.translate("open_interactive_dashboard")}'
             f'</button>'
             f'</a>',
             unsafe_allow_html=True
@@ -107,49 +102,6 @@ Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'ana
 
         # Additional info
         with st.expander(f"ℹ️ {translate_service.translate('results_info_label')}"):
-            st.markdown(f"""
-**Ressource ID** : `{streamlit_app_resource_model.id}`
-
-**Comment utiliser le dashboard :**
-1. Cliquez sur le bouton ci-dessus pour ouvrir le dashboard dans un nouvel onglet
-2. Explorez les solutions optimales proposées
-3. Visualisez les compromis entre différents objectifs avec le 3D Surface Explorer
-4. Identifiez les paramètres optimaux pour votre application
-
-**Interprétation des résultats :**
-
-** Best Solution**:
-- Valeurs optimales trouvées pour chaque variable d'entrée
-- Prédictions pour chaque variable cible
-- Score de fitness global
-
-**3D Surface Explorer**:
-- Visualisation de la surface de réponse
-- Interaction avec les axes pour explorer différentes perspectives
-- Points rouges=solutions générées
-
-** Feature Importance**:
-- Importance relative de chaque variable d'entrée
-- Basé sur le modèle Random Forest/XGBoost/CatBoost
-- Plus la valeur est élevée, plus la variable est importante
-
-** Observed vs Predicted**:
-- Validation croisée du modèle prédictif
-- Points alignés sur la diagonale=bonnes prédictions
-- R² score indique la qualité du modèle
-
-** Data Explorer**:
-- Tableau complet de toutes les solutions trouvées
-- Tri et filtrage interactifs
-- Export CSV possible
-
-# Actions possibles
-
-1. ** Analyser les solutions**: Identifier les conditions optimales
-2. ** Valider les prédictions**: Vérifier le R² et les graphiques
-3. ** Explorer l'espace**: Utiliser le 3D Surface Explorer
-4. ** Exporter les données**: Télécharger les CSV depuis le dashboard
-5. ** Réitérer**: Lancer une nouvelle optimisation avec des contraintes ajustées
-        """)
+            st.markdown(translate_service.translate('optimization_dashboard_usage_guide'))
     except Exception as e:
         st.error(translate_service.translate('error_retrieving_results').format(error=str(e)))

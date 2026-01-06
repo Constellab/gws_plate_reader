@@ -98,4 +98,4 @@ def render_table_tab():
                     BiolectorState.set_display_success_message_resource_table(False)
 
             with StreamlitContainers.full_width_dataframe_container('container-full-dataframe-' + str(filter_selection)):
-                st.dataframe(df.style.format(thousands=" ", precision=4), use_container_width=True)
+                st.dataframe(df.style.format(thousands=" ", precision=4), width='stretch')

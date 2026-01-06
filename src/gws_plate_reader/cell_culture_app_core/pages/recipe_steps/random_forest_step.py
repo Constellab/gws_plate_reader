@@ -6,7 +6,7 @@ import streamlit as st
 from typing import List, Optional
 from datetime import datetime
 
-from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag, ScenarioStatus
+from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser
@@ -19,7 +19,6 @@ from gws_design_of_experiments.random_forest.random_forest_task import RandomFor
 def launch_random_forest_scenario(
         quality_check_scenario: Scenario,
         cell_culture_state: CellCultureState,
-        load_scenario: Scenario,
         feature_extraction_scenario: Scenario,
         target_column: str,
         columns_to_exclude: Optional[List[str]],
@@ -36,6 +35,7 @@ def launch_random_forest_scenario(
     :param test_size: Proportion of data for testing (0.0 to 1.0)
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for Random Forest Regression
@@ -59,7 +59,7 @@ def launch_random_forest_scenario(
             )
 
             if not metadata_table_resource_model:
-                raise ValueError("La sortie 'metadata_table' n'est pas disponible dans le scénario de quality check")
+                raise ValueError(translate_service.translate('rf_metadata_output_unavailable'))
 
             # Get the results_table from feature extraction scenario
             fe_scenario_proxy = ScenarioProxy.from_existing_scenario(feature_extraction_scenario.id)
@@ -68,8 +68,7 @@ def launch_random_forest_scenario(
             results_table_resource_model = fe_protocol_proxy.get_output_resource_model('results_table')
 
             if not results_table_resource_model:
-                raise ValueError(
-                    "La sortie 'results_table' n'est pas disponible dans le scénario d'extraction de caractéristiques")
+                raise ValueError(translate_service.translate('rf_results_table_unavailable'))
 
             # Add input task for metadata_table
             metadata_input_task = protocol_proxy.add_process(
@@ -203,6 +202,7 @@ def launch_random_forest_scenario(
             return new_scenario
 
     except Exception as e:
+        translate_service = cell_culture_state.get_translate_service()
         st.error(translate_service.translate('error_launching_random_forest').format(error=str(e)))
         import traceback
         st.code(traceback.format_exc())
@@ -222,11 +222,8 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown("## 🌲 Random Forest Regression")
-    st.markdown("""
-    Analysez les relations entre les métadonnées (composition du milieu) et les features biologiques
-    extraites en utilisant un modèle Random Forest avec optimisation automatique des hyperparamètres.
-    """)
+    st.markdown(f"## 🌲 {translate_service.translate('rf_step_title')}")
+    st.markdown(translate_service.translate('rf_step_description'))
 
     # Get load scenario from recipe
     load_scenario = recipe.get_load_scenario()
@@ -367,7 +364,8 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Random Forest'),
         type="primary",
         key=f"rf_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        use_container_width=True
+        width='stretch',
+        disabled=cell_culture_state.get_is_standalone()
     ):
         if not target_column:
             st.error(translate_service.translate('select_target_first'))
@@ -376,7 +374,6 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
             rf_scenario = launch_random_forest_scenario(
                 quality_check_scenario,
                 cell_culture_state,
-                load_scenario,
                 feature_extraction_scenario,
                 target_column,
                 columns_to_exclude,
@@ -385,7 +382,7 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
 
             if rf_scenario:
                 st.success(translate_service.translate('analysis_launched_success').format(
-                    analysis_type='Random Forest', id=rf_scenario.id))
+                    analysis_type='Random Forest'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe
@@ -395,52 +392,9 @@ def render_random_forest_step(recipe: CellCultureRecipe, cell_culture_state: Cel
             else:
                 st.error(translate_service.translate('analysis_launch_error').format(analysis_type='Random Forest'))
 
+    if cell_culture_state.get_is_standalone():
+        st.info(translate_service.translate('standalone_mode_function_blocked'))
+
     # Info box with explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='Random Forest Regression')):
-        st.markdown("""
-### Qu'est-ce que la régression Random Forest ?
-
-La régression Random Forest est une méthode d'apprentissage automatique qui :
-
-1. **Combine plusieurs arbres de décision** :
-   - Chaque arbre est entraîné sur un sous-ensemble aléatoire des données
-   - La prédiction finale est la moyenne des prédictions de tous les arbres
-
-2. **Optimisation automatique** :
-   - Optimisation des hyperparamètres (nombre d'arbres, profondeur maximale)
-   - Validation croisée pour trouver les meilleurs paramètres
-
-3. **Robustesse** :
-   - Résiste bien au surapprentissage
-   - Gère naturellement les relations non-linéaires
-   - Moins sensible aux valeurs aberrantes
-
-### Résultats fournis
-
-**Tableaux** :
-- **Summary Table** : Performances du modèle (R², RMSE) pour train et test
-- **VIP Table** : Importance des variables (features importances)
-
-**Graphiques** :
-- **Estimators Plot** : Performance en fonction des hyperparamètres
-- **VIP Plot** : Importance relative des variables
-- **Train/Test Predictions** : Valeurs prédites vs observées
-
-### Applications
-
-- Identifier quels facteurs influencent le plus une variable cible
-- Prédire des performances biologiques à partir de conditions expérimentales
-- Comprendre les relations complexes et non-linéaires
-- Sélectionner les variables les plus importantes
-
-### Paramètres recommandés
-
-- **Test size** : 0.2 (20% pour validation)
-- **Variable cible** : Un seul paramètre biologique d'intérêt
-
-### Différence avec PLS Regression
-
-- **Random Forest** : Meilleur pour les relations non-linéaires, plus robuste
-- **PLS** : Meilleur pour la multicolinéarité, interprétation plus simple
-- Utilisez les deux pour comparer les résultats !
-""")
+        st.markdown(translate_service.translate('rf_help_content'))

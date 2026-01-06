@@ -63,6 +63,7 @@ def launch_feature_extraction_scenario(
     :param models_to_fit: List of models to fit
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for Feature Extraction
@@ -281,7 +282,7 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
         selected_models = st.multiselect(
             translate_service.translate('feature_extraction_model_selection'),
             options=all_models,
-            default=all_models,
+            default=["Logistic_4P"],
             help=translate_service.translate('feature_extraction_model_help')
         )
 
@@ -293,8 +294,11 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
         submit_button = st.form_submit_button(
             f"🚀 {translate_service.translate('feature_extraction_launch_button')}",
             type="primary",
-            use_container_width=True
+            width='stretch',
+            disabled=cell_culture_state.get_is_standalone()
         )
+        if cell_culture_state.get_is_standalone():
+            st.info(translate_service.translate('standalone_mode_function_blocked'))
 
         if submit_button:
             if not selected_data_columns:
@@ -335,32 +339,4 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
 
     # Info box with Feature Extraction explanation
     with st.expander(f"💡 {translate_service.translate('about_feature_extraction')}"):
-        st.markdown("""
-        **Extraction de Caractéristiques (Growth Curve Fitting)**
-
-        Cette analyse ajuste plusieurs modèles de croissance sigmoidaux aux courbes de culture cellulaire
-        pour extraire des paramètres biologiques quantitatifs.
-
-        **Modèles disponibles (6) :**
-        1. **Logistic 4P** : Modèle logistique classique
-        2. **Gompertz 4P** : Croissance asymétrique avec phase de latence
-        3. **Modified Gompertz 4P** : Formulation alternative du Gompertz
-        4. **Richards 5P** : Logistique généralisée avec paramètre de forme
-        5. **Weibull Sigmoid 4P** : Courbe de croissance basée sur Weibull
-        6. **Baranyi-Roberts 4P** : Modèle de croissance microbienne
-
-        **Paramètres extraits :**
-        - **Paramètres du modèle** : y0 (valeur initiale), A (asymptote), μ (taux de croissance), lag (phase de latence)
-        - **Métriques statistiques** : R², AIC, BIC, RMSE, MAE
-        - **Intervalles de croissance** : t5, t10, t20, t50, t80, t90, t95 (temps à % d'amplitude)
-        - **Caractéristiques dynamiques** : slope_max (taux de croissance max), doubling_time (temps de doublement)
-
-        **Sorties générées :**
-        1. **Table de résultats** : Tous les paramètres, métriques et intervalles pour chaque modèle
-        2. **Graphiques** : ResourceSet contenant les courbes ajustées et comparaisons
-
-        **Notes :**
-        - Optimisation multi-départ (10 points initiaux) pour robustesse
-        - Intervalles de confiance à 95% pour tous les paramètres
-        - Fonction de perte soft_l1 pour gérer les valeurs aberrantes
-        """)
+        st.markdown(translate_service.translate('feature_extraction_help_content'))

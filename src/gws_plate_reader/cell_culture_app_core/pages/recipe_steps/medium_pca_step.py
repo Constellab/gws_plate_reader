@@ -24,6 +24,7 @@ def get_available_media_from_quality_check(
     :param cell_culture_state: The cell culture state
     :return: List of unique medium names
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         # Get the filtered interpolated ResourceSet from quality check
         scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
@@ -50,7 +51,7 @@ def get_available_media_from_quality_check(
         return sorted(list(media))
     except Exception as e:
         # Handle any exception during media extraction
-        st.error(f"Erreur lors de l'extraction des milieux : {str(e)}")
+        st.error(translate_service.translate('error_extracting_media').format(error=str(e)))
         return []
 
 
@@ -68,6 +69,7 @@ def launch_medium_pca_scenario(
     :param selected_media: List of selected medium names to include in analysis
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for Medium PCA
@@ -93,7 +95,7 @@ def launch_medium_pca_scenario(
             ).get_output_resource_model('medium_table')
 
             if not medium_table_resource_model:
-                raise ValueError("La sortie 'medium_table' n'est pas disponible dans le scénario de chargement")
+                raise ValueError(translate_service.translate('medium_table_output_unavailable'))
 
             # Add input task for the medium_table from load scenario
             medium_input_task = protocol_proxy.add_process(
@@ -114,7 +116,7 @@ def launch_medium_pca_scenario(
             )
 
             # Set filter parameters
-            filter_task.set_param('medium_column', 'MILIEU')
+            filter_task.set_param('medium_column', cell_culture_state.MEDIUM_COLUMN_NAME)
             filter_task.set_param('selected_medium', selected_media)
 
             # Add the Medium PCA task
@@ -130,7 +132,7 @@ def launch_medium_pca_scenario(
             )
 
             # Set PCA parameters
-            pca_task.set_param('medium_column', 'MILIEU')
+            pca_task.set_param('medium_column', cell_culture_state.MEDIUM_COLUMN_NAME)
 
             # Add outputs
             protocol_proxy.add_output(
@@ -281,8 +283,11 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
         submit_button = st.form_submit_button(
             f"🚀 {translate_service.translate('pca_launch_button')}",
             type="primary",
-            use_container_width=True
+            width='stretch',
+            disabled=cell_culture_state.get_is_standalone()
         )
+        if cell_culture_state.get_is_standalone():
+            st.info(translate_service.translate('standalone_mode_function_blocked'))
 
         if submit_button:
             if not selected_media:
@@ -297,7 +302,7 @@ def render_medium_pca_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 )
 
                 if pca_scenario:
-                    st.success(f"✅ {translate_service.translate('pca_launched_success')} ID : {pca_scenario.id}")
+                    st.success(f"✅ {translate_service.translate('pca_launched_success')}")
                     st.info(translate_service.translate('analysis_running'))
 
                     # Add to recipe

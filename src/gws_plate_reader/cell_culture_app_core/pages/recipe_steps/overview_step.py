@@ -7,9 +7,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Any
+from typing import List, Dict, Any
 
-from gws_core import Table, Scenario
+from gws_core import Table
 from gws_core.resource.resource_set.resource_set import ResourceSet
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
@@ -402,7 +402,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
 
                 st.dataframe(
                     df_display,
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True,
                     column_config={
                         'Batch': st.column_config.TextColumn(translate_service.translate('column_batch')),

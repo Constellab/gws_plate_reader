@@ -450,11 +450,6 @@ def _render_selection_quality_checks(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    # Extract timestamp from title
-    timestamp = translate_service.translate('not_defined')
-    if "Sélection - " in selection.title:
-        timestamp = selection.title.replace("Sélection - ", "")
-
     # Get quality check scenarios for this selection
     quality_check_scenarios = recipe.get_quality_check_scenarios_for_selection(selection.id)
     qc_count = len(quality_check_scenarios)
@@ -479,7 +474,7 @@ def _render_selection_quality_checks(
 
         # Launch button
         if st.button(f"🚀 {translate_service.translate('qc_launch_button')}", key=f"launch_qc_{selection.id}",
-                     type="primary", use_container_width=True):
+                    type="primary", width='stretch', disabled=cell_culture_state.get_is_standalone()):
             try:
                 # Authenticate for scenario creation
                 with StreamlitAuthenticateUser():
@@ -489,7 +484,7 @@ def _render_selection_quality_checks(
                     )
 
                     if qc_scenario:
-                        st.success(translate_service.translate('qc_launch_success').format(id=qc_scenario.id))
+                        st.success(translate_service.translate('qc_launch_success'))
                         st.info(translate_service.translate('qc_scenario_running_info'))
 
                         # Add to recipe
@@ -501,6 +496,8 @@ def _render_selection_quality_checks(
 
             except Exception:
                 st.error(translate_service.translate('error_creating_scenario'))    # Render in expander or directly
+        if cell_culture_state.get_is_standalone():
+            st.info(translate_service.translate('standalone_mode_function_blocked'))
     if show_in_expander:
         with st.expander(f"**{idx + 1}. {selection.title}** - ID: {selection.id} - {qc_count} {translate_service.translate('qc_quality_checks')}"):
             render_content()

@@ -455,16 +455,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
             router = StreamlitRouter.load_from_session()
 
             if st.button(translate_service.translate('recipes_list'),
-                         icon=":material/arrow_back:", use_container_width=True):
+                         icon=":material/arrow_back:", width='stretch'):
                 router.navigate("first-page")
                 st.rerun()
 
             # Add refresh button
-            if st.button(translate_service.translate('refresh'),
-                         icon=":material/refresh:", use_container_width=True):
-                # Reload all scenarios from database to get updated status
-                recipe.reload_scenarios()
-                st.rerun()
+            if not cell_culture_state.get_is_standalone():
+                if st.button(translate_service.translate('refresh'),
+                            icon=":material/refresh:", width='stretch'):
+                    # Reload all scenarios from database to get updated status
+                    recipe.reload_scenarios()
+                    st.rerun()
 
             st.markdown("---")  # Separator line
 

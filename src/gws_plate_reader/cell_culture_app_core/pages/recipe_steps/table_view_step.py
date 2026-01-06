@@ -8,7 +8,6 @@ from typing import List, Dict, Any, Optional
 
 from gws_core import Table, Scenario, ScenarioStatus, ScenarioProxy
 from gws_core.resource.resource_set.resource_set import ResourceSet
-from gws_core.tag.tag_list import TagList
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 
@@ -192,7 +191,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 st.write(translate_service.translate('batch_selection_label'))
             with col1_button:
                 if st.button(translate_service.translate('select_all_batches'),
-                             key="select_all_batches_table", use_container_width=True):
+                             key="select_all_batches_table", width='stretch'):
                     st.session_state.table_view_batches = unique_batches
                     st.rerun()
 
@@ -213,7 +212,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                 st.write(translate_service.translate('sample_selection'))
             with col2_button:
                 if st.button(translate_service.translate('select_all_samples'),
-                             key="select_all_samples_table", use_container_width=True):
+                             key="select_all_samples_table", width='stretch'):
                     st.session_state.table_view_samples = unique_samples
                     st.rerun()
 
@@ -254,7 +253,7 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
             filtered_data_columns = data_columns
 
         with col4:
-            st.write(translate_service.translate('column_selection'))
+            st.write(f"**{translate_service.translate('column_selection')}:**")
             selected_columns = st.multiselect(
                 translate_service.translate('choose_columns'),
                 options=filtered_data_columns,
@@ -367,25 +366,19 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
                         # Display the table for this column
                         st.dataframe(
                             filtered_column_df,
-                            use_container_width=True,
+                            width='stretch',
                             hide_index=True,
                             column_config=column_config
                         )
 
                         # Download button for this specific column
-                        if st.button(translate_service.translate('save_table'), key=f"download_{column_name}_{i}"):
+                        if st.button(translate_service.translate('save_table'), key=f"download_{column_name}_{i}", disabled=cell_culture_state.get_is_standalone()):
                             cell_culture_state.save_df_as_table(
                                 filtered_column_df,
                                 f"cell_culture_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}",
                                 scenario=target_scenario)
-                        # csv_data = filtered_column_df.to_csv(index=False)
-                        # st.download_button(
-                        #     label=translate_service.translate('download_column').format(column=column_name),
-                        #     data=csv_data,
-                        #     file_name=f"cell_culture_{column_name}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        #     mime="text/csv",
-                        #     key=f"download_{column_name}_{i}"
-                        # )
+                        if cell_culture_state.get_is_standalone():
+                            st.info(translate_service.translate('standalone_mode_function_blocked'))
                     else:
                         st.warning(translate_service.translate('no_data_matches_column').format(column=column_name))
                 else:
@@ -399,4 +392,4 @@ def render_table_view_step(recipe: CellCultureRecipe, cell_culture_state: CellCu
             st.info(translate_service.translate('select_columns_table_hint'))
 
     except Exception as e:
-        st.error(f"❌ Erreur lors du chargement de la vue tableau: {str(e)}")
+        st.error(translate_service.translate('error_loading_table_view').format(error=str(e)))

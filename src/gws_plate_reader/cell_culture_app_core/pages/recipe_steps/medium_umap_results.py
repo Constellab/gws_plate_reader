@@ -55,7 +55,7 @@ def render_medium_umap_results(recipe: CellCultureRecipe, cell_culture_state: Ce
     umap_2d_table = protocol_proxy.get_output('umap_2d_table')
     if umap_2d_table and isinstance(umap_2d_table, Table):
         df = umap_2d_table.get_data()
-        st.dataframe(df, use_container_width=True, height=400)
+        st.dataframe(df, width='stretch', height=400)
 
         # Download button
         csv = df.to_csv(index=False)
@@ -73,7 +73,7 @@ def render_medium_umap_results(recipe: CellCultureRecipe, cell_culture_state: Ce
     umap_3d_table = protocol_proxy.get_output('umap_3d_table')
     if umap_3d_table and isinstance(umap_3d_table, Table):
         df = umap_3d_table.get_data()
-        st.dataframe(df, use_container_width=True, height=400)
+        st.dataframe(df, width='stretch', height=400)
 
         # Download button
         csv = df.to_csv(index=False)

@@ -5,7 +5,6 @@ from gws_core import Tag, ScenarioSearchBuilder, Scenario
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
-from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.cell_culture_app_core.functions_steps import (
     render_recipe_table,
     create_recipe_table_data
@@ -35,11 +34,12 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             st.markdown(f"## {translate_service.translate('recipes_list_title')}")
 
         with col_button_new:
-            if st.button(translate_service.translate("create_new_recipe"),
-                         icon=":material/add:", use_container_width=False, type="primary"):
-                # Navigate to new recipe page
-                router = StreamlitRouter.load_from_session()
-                router.navigate("new-analysis")
+            if not cell_culture_state.get_is_standalone():
+                if st.button(translate_service.translate("create_new_recipe"),
+                            icon=":material/add:", width='content', type="primary"):
+                    # Navigate to new recipe page
+                    router = StreamlitRouter.load_from_session()
+                    router.navigate("new-analysis")
 
         # Search for existing cell culture analyses (both load and selection scenarios)
         # Get load scenarios
@@ -174,7 +174,6 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         if not recipes_dict:
             # No recipes found - show getting started guide
             st.subheader(f"🚀 {translate_service.translate('getting_started')}")
-            st.info(translate_service.translate('no_recipe_found'))
 
             # Show example of what the recipe includes
             with st.expander(f"ℹ️ {translate_service.translate('what_is_recipe')}"):
@@ -200,8 +199,9 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                 """)
 
             # Add direct call-to-action
-            st.markdown("---")
-            if st.button(f"🆕 {translate_service.translate('create_first_analysis')}", type="primary",
-                         use_container_width=True):
-                router = StreamlitRouter.load_from_session()
-                router.navigate("new-analysis")
+            if not cell_culture_state.get_is_standalone():
+                st.markdown("---")
+                if st.button(f"🆕 {translate_service.translate('create_first_analysis')}", type="primary",
+                            width='stretch'):
+                    router = StreamlitRouter.load_from_session()
+                    router.navigate("new-analysis")

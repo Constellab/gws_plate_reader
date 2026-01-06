@@ -5,9 +5,9 @@ Allows users to run optimization on combined metadata and feature extraction dat
 import streamlit as st
 from typing import List, Optional
 from datetime import datetime
+import traceback
 
-from gws_core import (Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag, ScenarioStatus,
-                      ResourceModel, JSONDict)
+from gws_core import (Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag)
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.streamlit import StreamlitAuthenticateUser, StreamlitResourceSelect
@@ -39,6 +39,7 @@ def launch_optimization_scenario(
     :param columns_to_exclude: List of column names to exclude from analysis
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         with StreamlitAuthenticateUser():
             # Create a new scenario for Optimization
@@ -62,7 +63,7 @@ def launch_optimization_scenario(
             )
 
             if not metadata_table_resource_model:
-                raise ValueError("La sortie 'metadata_table' n'est pas disponible dans le scénario de quality check")
+                raise ValueError(translate_service.translate('metadata_table_missing'))
 
             # Get the results_table from feature extraction scenario
             fe_scenario_proxy = ScenarioProxy.from_existing_scenario(feature_extraction_scenario.id)
@@ -71,8 +72,7 @@ def launch_optimization_scenario(
             results_table_resource_model = fe_protocol_proxy.get_output_resource_model('results_table')
 
             if not results_table_resource_model:
-                raise ValueError(
-                    "La sortie 'results_table' n'est pas disponible dans le scénario d'extraction de caractéristiques")
+                raise ValueError(translate_service.translate('results_table_not_available'))
 
             # Add input task for metadata_table
             metadata_input_task = protocol_proxy.add_process(
@@ -199,6 +199,7 @@ def launch_optimization_scenario(
             return new_scenario
 
     except Exception as e:
+        translate_service = cell_culture_state.get_translate_service()
         st.error(translate_service.translate('error_launching_scenario_generic').format(
             scenario_type='Optimization', error=str(e)))
         import traceback
@@ -237,8 +238,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
         )
 
         if not metadata_table_resource_model:
-            st.warning(
-                "⚠️ La table des métadonnées (metadata_table) n'est pas disponible dans le scénario de quality check.")
+            st.warning(translate_service.translate('metadata_table_missing'))
             return
 
         metadata_table = metadata_table_resource_model.get_resource()
@@ -288,8 +288,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
             st.markdown("**" + translate_service.translate('preview') + "** : " + cols_preview)
 
     except Exception as e:
-        st.error(f"Erreur lors de la lecture des tables : {str(e)}")
-        import traceback
+        st.error(f"{translate_service.translate('error_reading_tables')} : {str(e)}")
         st.code(traceback.format_exc())
         return
 
@@ -298,15 +297,19 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
         feature_extraction_scenario.id)
 
     if existing_optimization_scenarios:
-        st.markdown(f"**Analyses Optimization existantes** : {len(existing_optimization_scenarios)}")
-        with st.expander("📊 Voir les analyses Optimization existantes"):
+        st.markdown(f"{translate_service.translate('existing_optimization_analyses')} : {len(existing_optimization_scenarios)}")
+        with st.expander(translate_service.translate('view_existing_optimization_analyses')):
             for idx, opt_scenario in enumerate(existing_optimization_scenarios):
                 st.write(
                     f"{idx + 1}. {opt_scenario.title} - Statut: {opt_scenario.status.name}")
 
     # Configuration form for new Optimization
     st.markdown("---")
-    st.markdown("### ➕ Lancer une nouvelle analyse Optimization")
+    st.markdown(translate_service.translate('launch_new_optimization_analysis'))
+
+    if cell_culture_state.get_is_standalone():
+        st.info(translate_service.translate('standalone_mode_function_blocked'))
+        return
 
     st.markdown(f"**{translate_service.translate('constraints_resource_selection')}**")
 
@@ -331,37 +334,36 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
     # Check if a resource is selected
     if not selected_constraints_id:
         st.warning(f"⚠️ {translate_service.translate('select_jsondict_warning')}")
-        st.info(
-            "💡 Créez une ressource JSONDict contenant les contraintes au format : {\"feature_name\": {\"lower_bound\": value, \"upper_bound\": value}}")
+        st.info(translate_service.translate('constraints_jsondict_info'))
         return
 
-    st.markdown("**Configuration de l'analyse**")
+    st.markdown(translate_service.translate('analysis_configuration'))
 
     col1, col2 = st.columns(2)
 
     with col1:
         population_size = st.number_input(
-            "Taille de population",
+            translate_service.translate('population_size_label'),
             min_value=50,
             max_value=2000,
             value=500,
             step=50,
             key=f"optimization_population_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-            help="Nombre d'individus dans la population de l'algorithme génétique"
+            help=translate_service.translate('population_size_help')
         )
 
     with col2:
         iterations = st.number_input(
-            "Nombre d'itérations",
+            translate_service.translate('iterations_label'),
             min_value=10,
             max_value=1000,
             value=100,
             step=10,
             key=f"optimization_iterations_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-            help="Nombre d'itérations de l'algorithme d'optimisation"
+            help=translate_service.translate('iterations_help')
         )
 
-    st.markdown("**Cibles et objectifs**")
+    st.markdown(translate_service.translate('targets_objectives_label'))
 
     # Dynamic target/threshold pairs
     if 'num_targets' not in st.session_state:
@@ -374,7 +376,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
 
         with col_target:
             target = st.selectbox(
-                f"Cible {i+1}",
+                translate_service.translate('target_label').format(number=i+1),
                 options=all_numeric_columns,
                 key=f"optimization_target_{i}_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
                 help=translate_service.translate('variable_to_optimize')
@@ -382,10 +384,10 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
 
         with col_threshold:
             threshold = st.number_input(
-                f"Objectif {i+1}",
+                translate_service.translate('objective_label').format(number=i+1),
                 value=0.0,
                 key=f"optimization_threshold_{i}_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-                help="Valeur objectif minimale pour cette cible"
+                help=translate_service.translate('objective_help')
             )
 
         targets_thresholds.append({"targets": target, "thresholds": int(threshold)})
@@ -433,7 +435,8 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Optimization'),
         type="primary",
         key=f"optimization_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        use_container_width=True
+        width='stretch',
+        disabled=cell_culture_state.get_is_standalone()
     ):
         if len(targets_thresholds) == 0:
             st.error(translate_service.translate('select_target_first'))
@@ -452,7 +455,7 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
 
             if optimization_scenario:
                 st.success(translate_service.translate('analysis_launched_success').format(
-                    analysis_type='Optimization', id=optimization_scenario.id))
+                    analysis_type='Optimization'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe
@@ -461,68 +464,9 @@ def render_optimization_step(recipe: CellCultureRecipe, cell_culture_state: Cell
                 st.rerun()
             else:
                 st.error(translate_service.translate('analysis_launch_error').format(analysis_type='Optimization'))
+    if cell_culture_state.get_is_standalone():
+        st.info(translate_service.translate('standalone_mode_function_blocked'))
 
     # Info box with explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='Optimization')):
-        st.markdown("""
-### Qu'est-ce que l'analyse Optimization ?
-
-L'analyse Optimization utilise des algorithmes évolutionnaires (NSGA-II ou GA) pour trouver les conditions optimales :
-- **Variables d'entrée** : Composition des milieux de culture (métadonnées)
-- **Variables cibles** : Caractéristiques biologiques à maximiser
-
-### Algorithmes utilisés
-
-1. **Entraînement de modèles ML** :
-   - Random Forest
-   - XGBoost
-   - CatBoost
-   - Sélection automatique du meilleur modèle basé sur R² CV
-
-2. **Optimisation** :
-   - NSGA-II pour multi-objectifs
-   - GA pour objectif unique
-   - Respect des contraintes définies
-
-### Configuration requise
-
-**Ressource de contraintes (JSONDict)** :
-```json
-{
-  "Temperature": {"lower_bound": 20, "upper_bound": 40},
-  "pH": {"lower_bound": 6.0, "upper_bound": 8.0},
-  "Nutrient_A": {"lower_bound": 0, "upper_bound": 100}
-}
-```
-
-**Cibles et objectifs** :
-- Une ou plusieurs variables à optimiser
-- Valeur seuil minimale pour chaque cible
-
-### Résultats fournis
-
-**Dashboard interactif Streamlit** avec :
-- **Best Solution** : Meilleure solution trouvée
-- **3D Surface Explorer** : Visualisation 3D interactive
-- **Feature Importance** : Importance des variables
-- **Observed vs Predicted** : Validation du modèle
-
-**Fichiers CSV** :
-- `generalized_solutions.csv` : Toutes les solutions trouvées
-- `best_generalized_solution.csv` : Meilleure solution
-- `feature_importance_matrix.csv` : Importance des features
-- `optimization_progress.csv` : Historique de convergence
-
-### Applications
-
-- Optimiser la composition des milieux de culture
-- Maximiser la croissance et le rendement
-- Identifier les conditions optimales de production
-- Explorer l'espace des solutions possibles
-
-### Paramètres
-
-- **Population size** : Plus grand = exploration plus large (plus lent)
-- **Iterations** : Plus élevé = convergence meilleure (plus long)
-- **Contraintes** : Définissent l'espace de recherche réaliste
-        """)
+        st.markdown(translate_service.translate('optimization_help_content'))

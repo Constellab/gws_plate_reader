@@ -11,7 +11,7 @@ SAMPLE_TAG_KEY = "sample"
 @task_decorator("FilterFermentorAnalyseLoadedResourceSetBySelection",
                 human_name="Filter Cell Culture ResourceSet by Selection",
                 short_description="Filter cell culture data by selecting specific batch/sample combinations",
-                style=TypingStyle.community_icon(icon_technical_name="filter", background_color="#28a745"))
+                style=TypingStyle.material_icon(material_icon_name="filter", background_color="#28a745"))
 class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     """
     Filter fermentation data ResourceSet by selecting specific batch/sample combinations.

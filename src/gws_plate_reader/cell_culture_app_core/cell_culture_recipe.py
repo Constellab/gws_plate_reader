@@ -2,14 +2,18 @@
 Base Recipe class for Cell Culture Dashboards
 Encapsulates recipe information and scenarios - Abstract base class
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
 from gws_core import Scenario, User
-from gws_core.tag.entity_tag_list import EntityTagList
+from gws_core.tag.entity_tag_list import EntityTagList,TagEntityType
 
+# Tag constants (matching CellCultureState)
+_TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION = "fermentor_quality_check_parent_selection"
+_TAG_FERMENTOR_ANALYSES_PARENT_SELECTION = "fermentor_analyses_parent_selection"
+_TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK = "fermentor_analyses_parent_quality_check"
 
 @dataclass
 class CellCultureRecipe(ABC):
@@ -36,7 +40,6 @@ class CellCultureRecipe(ABC):
     has_data_raw: bool = True  # Whether this recipe has raw data (for feature extraction)
 
     @classmethod
-    @abstractmethod
     def from_scenario(cls, scenario: Scenario) -> 'CellCultureRecipe':
         """
         Create a Recipe object from a scenario (independent of state).
@@ -45,7 +48,44 @@ class CellCultureRecipe(ABC):
         :param scenario: The main scenario of the recipe
         :return: Recipe instance
         """
-        raise NotImplementedError("Subclasses must implement from_scenario()")
+        # Get tags from scenario
+        entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+
+        # Extract recipe name using specific tag
+        name = cls._extract_tag_value(entity_tag_list, "fermentor_recipe_name", scenario.title)
+
+        # Extract pipeline ID using specific tag
+        pipeline_id = cls._extract_tag_value(entity_tag_list, "fermentor_pipeline_id", scenario.id)
+
+        # Extract analysis type (microplate or standard)
+        microplate_value = cls._extract_tag_value(entity_tag_list, "microplate_analysis", "false")
+        analysis_type = "microplate" if microplate_value == "true" else "standard"
+
+        # Extract specific file information
+        file_tags = [
+            ("info_csv_file", "Info CSV"),
+            ("raw_data_csv_file", "Raw Data CSV"),
+            ("medium_csv_file", "Medium CSV"),
+            ("followup_zip_file", "Follow-up ZIP")
+        ]
+        file_info = cls._extract_file_info(entity_tag_list, file_tags)
+
+        # Initialize with main scenario only, other scenarios will be loaded separately
+        scenarios_by_step = {
+            "data_processing": [scenario]
+        }
+
+        return cls(
+            id=scenario.id,
+            name=name,
+            analysis_type=analysis_type,
+            created_by=scenario.created_by,
+            created_at=scenario.created_at,
+            scenarios=scenarios_by_step,
+            main_scenario=scenario,
+            pipeline_id=pipeline_id,
+            file_info=file_info
+        )
 
     @classmethod
     def _extract_tag_value(cls, entity_tag_list: EntityTagList, tag_key: str,
@@ -95,6 +135,53 @@ class CellCultureRecipe(ABC):
         """
         self.scenarios[step] = scenarios
 
+    def add_analyses_scenario(self, selection_id: str, analyses_scenario: Scenario) -> None:
+        """
+        Add an analyses scenario to this recipe
+
+        :param selection_id: ID of the parent selection scenario (not used, for API compatibility)
+        :param analyses_scenario: Analyses scenario to add
+        """
+        # Get existing analyses scenarios
+        existing_analyses_scenarios = self.get_analyses_scenarios()
+
+        # Add new scenario
+        updated_analyses_scenarios = [analyses_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_analyses_scenarios(self) -> List[Scenario]:
+        """
+        Get all analyses scenarios for this recipe
+
+        :return: List of analyses scenarios
+        """
+        return self.get_scenarios_for_step('analyses')
+
+    def get_analyses_scenarios_for_selection(self, selection_id: str) -> List[Scenario]:
+        """
+        Get analyses scenarios linked to a specific selection scenario
+
+        :param selection_id: ID of the parent selection scenario
+        :return: List of analyses scenarios for this selection
+        """
+        all_analyses_scenarios = self.get_analyses_scenarios()
+
+        # Filter by parent selection ID tag
+        filtered_scenarios = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_selection_tags = entity_tag_list.get_tags_by_key(_TAG_FERMENTOR_ANALYSES_PARENT_SELECTION)
+
+            if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
+                filtered_scenarios.append(scenario)
+
+        return filtered_scenarios
+
     def reload_scenarios(self) -> None:
         """
         Reload all scenarios from database to get updated status and sort them by creation date
@@ -139,6 +226,14 @@ class CellCultureRecipe(ABC):
         """
         return self.get_scenarios_for_step('selection')
 
+    def get_quality_check_scenarios(self) -> List[Scenario]:
+        """
+        Get all quality check scenarios for this recipe
+
+        :return: List of quality check scenarios
+        """
+        return self.get_scenarios_for_step('quality_check')
+
     def get_selection_scenarios_organized(self) -> Dict[str, Scenario]:
         """
         Get selection scenarios organized by their display name (timestamp)
@@ -174,6 +269,14 @@ class CellCultureRecipe(ABC):
         :return: True if selection scenarios exist
         """
         return 'selection' in self.scenarios and len(self.scenarios['selection']) > 0
+
+    def has_quality_check_scenarios(self) -> bool:
+        """
+        Check if recipe has quality check scenarios
+
+        :return: True if quality check scenarios exist
+        """
+        return 'quality_check' in self.scenarios and len(self.scenarios['quality_check']) > 0
 
     def has_visualization_scenarios(self) -> bool:
         """
@@ -212,3 +315,403 @@ class CellCultureRecipe(ABC):
                 step: len(scenarios) for step, scenarios in self.scenarios.items()
             }
         }
+
+    def get_quality_check_scenarios_for_selection(self, selection_id: str) -> List[Scenario]:
+        """
+        Get quality check scenarios linked to a specific selection scenario
+
+        :param selection_id: ID of the parent selection scenario
+        :return: List of quality check scenarios for this selection
+        """
+        all_qc_scenarios = self.get_quality_check_scenarios()
+
+        # Filter by parent selection ID tag
+        filtered_scenarios = []
+        for scenario in all_qc_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_selection_tags = entity_tag_list.get_tags_by_key(_TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION)
+
+            if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
+                filtered_scenarios.append(scenario)
+
+        return filtered_scenarios
+
+    def add_quality_check_scenario(self, selection_id: str, quality_check_scenario: Scenario) -> None:
+        """
+        Add a quality check scenario to this recipe
+
+        :param selection_id: ID of the parent selection scenario (not used, for API compatibility)
+        :param quality_check_scenario: Quality check scenario to add
+        """
+        # Get existing quality check scenarios
+        existing_qc_scenarios = self.get_quality_check_scenarios()
+
+        # Add new scenario
+        updated_qc_scenarios = [quality_check_scenario] + existing_qc_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_qc_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('quality_check', updated_qc_scenarios)
+
+    def get_medium_pca_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+        """
+        Get Medium PCA scenarios for a specific quality check
+
+        :param qc_id: Quality check scenario ID
+        :return: List of Medium PCA scenarios for this quality check
+        """
+        # Get all analyses scenarios (medium_pca scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent quality check tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_qc_tags = entity_tag_list.get_tags_by_key(_TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK)
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a medium_pca analysis for the specified quality check
+            is_medium_pca = analysis_type_tags and analysis_type_tags[0].tag_value == "medium_pca"
+            is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
+
+            if is_medium_pca and is_for_qc:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_medium_pca_scenario(self, qc_id: str, pca_scenario: Scenario) -> None:
+        """
+        Add a Medium PCA scenario to this recipe
+
+        :param qc_id: ID of the parent quality check scenario (not used, for API compatibility)
+        :param pca_scenario: Medium PCA scenario to add
+        """
+        # Get existing analyses scenarios (medium_pca scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [pca_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_medium_umap_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+        """
+        Get Medium UMAP scenarios for a specific quality check
+
+        :param qc_id: Quality check scenario ID
+        :return: List of Medium UMAP scenarios for this quality check
+        """
+        # Get all analyses scenarios (medium_umap scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent quality check tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_qc_tags = entity_tag_list.get_tags_by_key(_TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK)
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a medium_umap analysis for the specified quality check
+            is_medium_umap = analysis_type_tags and analysis_type_tags[0].tag_value == "medium_umap"
+            is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
+
+            if is_medium_umap and is_for_qc:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_medium_umap_scenario(self, qc_id: str, umap_scenario: Scenario) -> None:
+        """
+        Add a Medium UMAP scenario to this recipe
+
+        :param qc_id: ID of the parent quality check scenario (not used, for API compatibility)
+        :param umap_scenario: Medium UMAP scenario to add
+        """
+        # Get existing analyses scenarios (medium_umap scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [umap_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_feature_extraction_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+        """
+        Get Feature Extraction scenarios for a specific quality check
+
+        :param qc_id: Quality check scenario ID
+        :return: List of Feature Extraction scenarios for this quality check
+        """
+        # Get all analyses scenarios (feature_extraction scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent quality check tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_qc_tags = entity_tag_list.get_tags_by_key(_TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK)
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a feature_extraction analysis for the specified quality check
+            is_feature_extraction = analysis_type_tags and analysis_type_tags[0].tag_value == "feature_extraction"
+            is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
+
+            if is_feature_extraction and is_for_qc:
+                filtered.append(scenario)
+
+        return filtered
+
+
+    def add_feature_extraction_scenario(self, qc_id: str, fe_scenario: Scenario) -> None:
+        """
+        Add a Feature Extraction scenario to this recipe
+
+        :param qc_id: ID of the parent quality check scenario (not used, for API compatibility)
+        :param fe_scenario: Feature Extraction scenario to add
+        """
+        # Get existing analyses scenarios (feature_extraction scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [fe_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_metadata_feature_umap_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get Metadata Feature UMAP scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of Metadata Feature UMAP scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (metadata_feature_umap scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a metadata_feature_umap analysis for the specified feature extraction
+            is_metadata_feature_umap = analysis_type_tags and analysis_type_tags[0].tag_value == "metadata_feature_umap"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_metadata_feature_umap and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_metadata_feature_umap_scenario(self, fe_id: str, umap_scenario: Scenario) -> None:
+        """
+        Add a Metadata Feature UMAP scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param umap_scenario: Metadata Feature UMAP scenario to add
+        """
+        # Get existing analyses scenarios (metadata_feature_umap scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [umap_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_pls_regression_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get PLS Regression scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of PLS Regression scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (pls_regression scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a pls_regression analysis for the specified feature extraction
+            is_pls_regression = analysis_type_tags and analysis_type_tags[0].tag_value == "pls_regression"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_pls_regression and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_pls_regression_scenario(self, fe_id: str, pls_scenario: Scenario) -> None:
+        """
+        Add a PLS Regression scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param pls_scenario: PLS Regression scenario to add
+        """
+        # Get existing analyses scenarios (pls_regression scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [pls_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_random_forest_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get Random Forest Regression scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of Random Forest Regression scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (random_forest scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a random_forest_regression analysis for the specified feature extraction
+            is_random_forest = analysis_type_tags and analysis_type_tags[0].tag_value == "random_forest_regression"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_random_forest and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_random_forest_scenario(self, fe_id: str, rf_scenario: Scenario) -> None:
+        """
+        Add a Random Forest Regression scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param rf_scenario: Random Forest Regression scenario to add
+        """
+        # Get existing analyses scenarios (random_forest scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [rf_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_causal_effect_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get Causal Effect scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of Causal Effect scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (causal effect scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a causal_effect analysis for the specified feature extraction
+            is_causal_effect = analysis_type_tags and analysis_type_tags[0].tag_value == "causal_effect"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_causal_effect and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_causal_effect_scenario(self, fe_id: str, causal_scenario: Scenario) -> None:
+        """
+        Add a Causal Effect scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param causal_scenario: Causal Effect scenario to add
+        """
+        # Get existing analyses scenarios (causal effect scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [causal_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)
+
+    def get_optimization_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+        """
+        Get Optimization scenarios for a specific feature extraction scenario
+
+        :param fe_id: Feature extraction scenario ID
+        :return: List of Optimization scenarios for this feature extraction
+        """
+        # Get all analyses scenarios (optimization scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Filter by parent feature extraction tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_fe_tags = entity_tag_list.get_tags_by_key("parent_feature_extraction_scenario")
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is an optimization analysis for the specified feature extraction
+            is_optimization = analysis_type_tags and analysis_type_tags[0].tag_value == "optimization"
+            is_for_fe = parent_fe_tags and parent_fe_tags[0].tag_value == fe_id
+
+            if is_optimization and is_for_fe:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_optimization_scenario(self, fe_id: str, opt_scenario: Scenario) -> None:
+        """
+        Add an Optimization scenario to this recipe
+
+        :param fe_id: ID of the parent feature extraction scenario (not used, for API compatibility)
+        :param opt_scenario: Optimization scenario to add
+        """
+        # Get existing analyses scenarios (optimization scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step('analyses')
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [opt_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step('analyses', updated_analyses_scenarios)

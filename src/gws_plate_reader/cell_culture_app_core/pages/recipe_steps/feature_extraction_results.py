@@ -38,7 +38,7 @@ def render_feature_extraction_results(recipe: CellCultureRecipe, cell_culture_st
         results_table = protocol_proxy.get_output('results_table')
         if results_table and isinstance(results_table, Table):
             df = results_table.get_data()
-            st.dataframe(df, use_container_width=True, height=600)
+            st.dataframe(df, width='stretch', height=600)
 
             # Option to download
             csv = df.to_csv(index=False)
@@ -89,7 +89,7 @@ def render_feature_extraction_results(recipe: CellCultureRecipe, cell_culture_st
                         model_plots["Autre"].append((plot_name, plot_resource))
 
         # Create selection options
-        plot_options = ["📊 Graphiques de Comparaison"] + [f"📈 {model}" for model in
+        plot_options = [f"📊 {translate_service.translate('plot_comparaison')}"] + [f"📈 {model}" for model in
                                                           sorted(model_plots.keys())]
 
         selected_option = st.selectbox(
@@ -131,29 +131,4 @@ def render_feature_extraction_results(recipe: CellCultureRecipe, cell_culture_st
 
     # Info box with interpretation help
     with st.expander(f"💡 {translate_service.translate('interpretation_help')}"):
-        st.markdown("""
-        **Interprétation des résultats d'extraction de caractéristiques**
-
-        **Table de résultats :**
-        - Contient tous les paramètres estimés pour chaque modèle et série
-        - **Paramètres du modèle** : y0 (valeur initiale), A (asymptote), μ (taux), lag (latence)
-        - **Métriques statistiques** : R² (qualité d'ajustement), AIC/BIC (comparaison de modèles), RMSE/MAE (erreurs)
-        - **Intervalles de croissance** : t5, t10, t20, t50, t80, t90, t95 (temps à % d'amplitude)
-        - **Caractéristiques dynamiques** : slope_max (taux max), doubling_time (temps de doublement)
-
-        **Graphiques de comparaison :**
-        - Comparent tous les modèles ajustés pour une même série de données
-        - Permettent d'identifier le meilleur modèle visuellement
-        - Les points sont les données réelles, les lignes sont les ajustements
-
-        **Graphiques par modèle :**
-        - Montrent l'ajustement d'un modèle spécifique à toutes les séries
-        - Utile pour voir les performances d'un modèle particulier
-        - Intervalles de confiance à 95% souvent affichés
-
-        **Comment choisir le meilleur modèle :**
-        1. Regarder le R² : plus proche de 1 = meilleur ajustement
-        2. Comparer AIC/BIC : plus faible = meilleur modèle
-        3. Vérifier visuellement l'ajustement sur les graphiques
-        4. Privilégier la parcimonie : modèles simples si performances similaires
-        """)
+        st.markdown(translate_service.translate('feature_extraction_results_interpretation'))

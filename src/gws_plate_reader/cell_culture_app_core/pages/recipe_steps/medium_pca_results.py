@@ -38,7 +38,7 @@ def render_medium_pca_results(recipe: CellCultureRecipe, cell_culture_state: Cel
     scores_table = protocol_proxy.get_output('pca_scores_table')
     if scores_table and isinstance(scores_table, Table):
         df = scores_table.get_data()
-        st.dataframe(df, use_container_width=True, height=400)
+        st.dataframe(df, width='stretch', height=400)
 
         # Download button
         csv = df.to_csv(index=False)
@@ -74,13 +74,13 @@ def render_medium_pca_results(recipe: CellCultureRecipe, cell_culture_state: Cel
     with st.expander(f"💡 {translate_service.translate('pca_help_title')}"):
         st.markdown(f"### {translate_service.translate('pca_help_intro_title')}")
         st.markdown(translate_service.translate('pca_help_intro_text'))
-        
+
         st.markdown(f"\n### {translate_service.translate('pca_help_scores_title')}")
         st.markdown(f"- {translate_service.translate('pca_help_scores_1')}")
         st.markdown(f"- {translate_service.translate('pca_help_scores_2')}")
         st.markdown(f"- {translate_service.translate('pca_help_scores_3')}")
         st.markdown(f"\n{translate_service.translate('pca_help_scores_tip')}")
-        
+
         st.markdown(f"\n### {translate_service.translate('pca_help_scatter_title')}")
         st.markdown(f"- {translate_service.translate('pca_help_scatter_1')}")
         st.markdown(f"- {translate_service.translate('pca_help_scatter_2')}")
@@ -88,7 +88,7 @@ def render_medium_pca_results(recipe: CellCultureRecipe, cell_culture_state: Cel
         st.markdown(f"- {translate_service.translate('pca_help_scatter_4')}")
         st.markdown(f"- {translate_service.translate('pca_help_scatter_5')}")
         st.markdown(f"- {translate_service.translate('pca_help_scatter_6')}")
-        
+
         st.markdown(f"\n### {translate_service.translate('pca_help_biplot_title')}")
         st.markdown(f"- {translate_service.translate('pca_help_biplot_1')}")
         st.markdown(f"- {translate_service.translate('pca_help_biplot_2')}")

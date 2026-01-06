@@ -20,7 +20,7 @@ class CellCultureMediumTableFilter(Task):
       medium names/identifiers, and other columns contain compositional features.
 
     ## Configuration
-    - **medium_column**: Name of the column containing medium identifiers (default: 'MILIEU')
+    - **medium_column**: Name of the column containing medium identifiers (default: 'Medium')
     - **selected_medium**: List of specific medium names to keep. If empty, all medium are kept.
 
     ## Output
@@ -50,7 +50,7 @@ class CellCultureMediumTableFilter(Task):
 
     config_specs = ConfigSpecs({
         'medium_column': StrParam(
-            default_value='MILIEU',
+            default_value='Medium',
             human_name="Medium Column Name",
             short_description="Name of the column containing medium identifiers",
             visibility='public'

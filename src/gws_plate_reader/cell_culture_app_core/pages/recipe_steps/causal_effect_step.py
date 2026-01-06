@@ -180,6 +180,7 @@ def launch_causal_effect_scenario(
             return new_scenario
 
     except Exception as e:
+        translate_service = cell_culture_state.get_translate_service()
         st.error(translate_service.translate('error_launching_scenario_generic').format(
             scenario_type='Causal Effect', error=str(e)))
         import traceback
@@ -326,7 +327,8 @@ def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: Cel
         translate_service.translate('launch_analysis_button_with_type').format(analysis_type='Causal Effect'),
         type="primary",
         key=f"causal_submit_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        use_container_width=True
+        width='stretch',
+        disabled=cell_culture_state.get_is_standalone()
     ):
         if len(target_columns) == 0:
             st.error(translate_service.translate('select_target_first'))
@@ -342,7 +344,7 @@ def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: Cel
 
             if causal_scenario:
                 st.success(translate_service.translate('analysis_launched_success').format(
-                    analysis_type='Causal Effect', id=causal_scenario.id))
+                    analysis_type='Causal Effect'))
                 st.info(translate_service.translate('analysis_running'))
 
                 # Add to recipe
@@ -351,53 +353,8 @@ def render_causal_effect_step(recipe: CellCultureRecipe, cell_culture_state: Cel
                 st.rerun()
             else:
                 st.error(translate_service.translate('analysis_launch_error').format(analysis_type='Causal Effect'))
-
+    if cell_culture_state.get_is_standalone():
+        st.info(translate_service.translate('standalone_mode_function_blocked'))
     # Info box with explanation
     with st.expander(translate_service.translate('help_title').format(analysis_type='Causal Effect')):
-        st.markdown("""
-### Qu'est-ce que l'analyse Causal Effect ?
-
-L'analyse Causal Effect utilise des méthodes d'inférence causale pour identifier les relations de cause à effet entre :
-- **Variables de traitement** : Composition des milieux de culture (métadonnées)
-- **Variables cibles** : Caractéristiques biologiques extraites des courbes de croissance
-
-### Méthodes utilisées
-
-L'analyse utilise des modèles de machine learning sophistiqués :
-- **LinearDML** : Pour les traitements discrets
-- **CausalForestDML** : Pour les traitements continus
-
-Ces méthodes permettent d'estimer l'effet causal moyen (Average Treatment Effect - ATE) en contrôlant les variables confondantes.
-
-### Résultats fournis
-
-**Dashboard interactif Streamlit** avec :
-- **Heatmaps** : Visualisation matricielle des effets causaux
-- **Barplots** : Comparaison des effets par traitement et cible
-- **Clustermaps** : Analyse hiérarchique des patterns causaux
-
-**Fichiers CSV** :
-- Effets causaux estimés pour chaque paire traitement-cible
-- Statistiques de performance des modèles
-- Progression de l'optimisation
-
-### Applications
-
-- Identifier quels nutriments ont un effet causal sur la croissance
-- Comprendre les mécanismes biologiques sous-jacents
-- Optimiser la composition des milieux de culture
-- Prédire l'impact de modifications de formulation
-
-### Interprétation
-
-**Effet causal positif** : Augmenter le traitement augmente la cible
-**Effet causal négatif** : Augmenter le traitement diminue la cible
-**Effet proche de zéro** : Pas d'effet causal significatif
-
-### Avantages vs régression classique
-
-- Distingue corrélation et causalité
-- Contrôle automatique des variables confondantes
-- Estime l'effet d'interventions (pas seulement des associations)
-- Plus robuste aux biais de sélection
-        """)
+        st.markdown(translate_service.translate('causal_effect_help_content'))

@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from gws_core import (
     ConfigParams,
     ConfigSpecs,
+    DictParam,
     DynamicInputs,
     Folder,
     InputSpec,
@@ -27,6 +28,7 @@ from gws_core import (
 from gws_core.resource.resource_set.resource_list import ResourceList
 from gws_core.tag.tag import Tag, TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
+from gws_core.tag.tag_key_model import TagKeyModel
 from gws_core.user.current_user_service import CurrentUserService
 from pandas import NA, DataFrame, Series
 
@@ -1044,6 +1046,21 @@ class BiolectorXTLoadData(Task):
 
         if medium_table is not None:
             self.log_info_message(f"Found medium_table from dedicated input port: {medium_table.name if hasattr(medium_table, 'name') else 'unnamed'}")
+
+            # Ensure "medium" tag key exists with "composed" additional info
+            tag_key_model = TagKeyModel.find_by_key("medium")
+            if not tag_key_model:
+                self.log_info_message("Creating 'medium' tag key with 'composed' additional info spec")
+                tag_key_model = TagKeyModel.create_tag_key_model(
+                    key="medium",
+                    label="Medium"
+                )
+                composed_additional_info_spec = DictParam(optional=False, human_name="Composed")
+                tag_key_model.additional_infos_specs = {
+                    "composed": composed_additional_info_spec.to_dto().to_json_dict()
+                }
+                tag_key_model.save()
+
         self.log_info_message(f"Processing {num_actual_plates} plate(s)")
 
         # Get plate names from config

@@ -500,9 +500,6 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                     "icon"
                                                 ],
                                             )
-                                                label=post_feature_extraction_analysis_info['title'],
-                                                key=f'analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}',
-                                                material_icon=post_feature_extraction_analysis_info['icon'])
                                             fe_result_item.add_child(fe_opt_launch_item)
 
                                             # Add existing Optimization scenarios as sub-items
@@ -841,6 +838,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         "fermentor_analyses_parent_quality_check"
                     )
 
+                    target_qc_scenario = None
                     if parent_qc_tags:
                         qc_scenario_id = parent_qc_tags[0].tag_value
                         all_qc_scenarios = recipe.get_quality_check_scenarios()
@@ -848,21 +846,23 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                         )
 
-                        if target_qc_scenario:
-                            st.title(f"{recipe.name} - Metadata Feature UMAP Analysis")
-                            # Render the step page to launch new analyses or view existing ones
-                            render_metadata_feature_umap_step(
-                                recipe,
-                                cell_culture_state,
-                                quality_check_scenario=target_qc_scenario,
-                                feature_extraction_scenario=target_fe_scenario,
-                            )
-                        else:
-                            st.error("Quality Check scenario not found")
-                    else:
-                        st.error(
-                            "Parent Quality Check scenario not found for this Feature Extraction"
+                    # Fallback: For microplate recipes, use data_processing scenario as QC
+                    if not target_qc_scenario and recipe.analysis_type == "microplate":
+                        data_processing_scenarios = recipe.get_scenarios_for_step("data_processing")
+                        if data_processing_scenarios:
+                            target_qc_scenario = data_processing_scenarios[0]
+
+                    if target_qc_scenario:
+                        st.title(f"{recipe.name} - Metadata Feature UMAP Analysis")
+                        # Render the step page to launch new analyses or view existing ones
+                        render_metadata_feature_umap_step(
+                            recipe,
+                            cell_culture_state,
+                            quality_check_scenario=target_qc_scenario,
+                            feature_extraction_scenario=target_fe_scenario,
                         )
+                    else:
+                        st.error("Quality Check scenario not found")
                 else:
                     st.error("Feature Extraction scenario not found")
             elif selected_key.startswith("metadata_feature_umap_result_"):
@@ -897,6 +897,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         "fermentor_analyses_parent_quality_check"
                     )
 
+                    target_qc_scenario = None
                     if parent_qc_tags:
                         qc_scenario_id = parent_qc_tags[0].tag_value
                         all_qc_scenarios = recipe.get_quality_check_scenarios()
@@ -904,21 +905,23 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                         )
 
-                        if target_qc_scenario:
-                            st.title(f"{recipe.name} - PLS Regression Analysis")
-                            # Render the step page to launch new analyses or view existing ones
-                            render_pls_regression_step(
-                                recipe,
-                                cell_culture_state,
-                                quality_check_scenario=target_qc_scenario,
-                                feature_extraction_scenario=target_fe_scenario,
-                            )
-                        else:
-                            st.error("Quality Check scenario not found")
-                    else:
-                        st.error(
-                            "Parent Quality Check scenario not found for this Feature Extraction"
+                    # Fallback: For microplate recipes, use data_processing scenario as QC
+                    if not target_qc_scenario and recipe.analysis_type == "microplate":
+                        data_processing_scenarios = recipe.get_scenarios_for_step("data_processing")
+                        if data_processing_scenarios:
+                            target_qc_scenario = data_processing_scenarios[0]
+
+                    if target_qc_scenario:
+                        st.title(f"{recipe.name} - PLS Regression Analysis")
+                        # Render the step page to launch new analyses or view existing ones
+                        render_pls_regression_step(
+                            recipe,
+                            cell_culture_state,
+                            quality_check_scenario=target_qc_scenario,
+                            feature_extraction_scenario=target_fe_scenario,
                         )
+                    else:
+                        st.error("Quality Check scenario not found")
                 else:
                     st.error("Feature Extraction scenario not found")
             elif selected_key.startswith("pls_regression_result_"):
@@ -951,6 +954,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         "fermentor_analyses_parent_quality_check"
                     )
 
+                    target_qc_scenario = None
                     if parent_qc_tags:
                         qc_scenario_id = parent_qc_tags[0].tag_value
                         all_qc_scenarios = recipe.get_quality_check_scenarios()
@@ -958,21 +962,23 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                         )
 
-                        if target_qc_scenario:
-                            st.title(f"{recipe.name} - Random Forest Regression Analysis")
-                            # Render the step page to launch new analyses or view existing ones
-                            render_random_forest_step(
-                                recipe,
-                                cell_culture_state,
-                                quality_check_scenario=target_qc_scenario,
-                                feature_extraction_scenario=target_fe_scenario,
-                            )
-                        else:
-                            st.error("Quality Check scenario not found")
-                    else:
-                        st.error(
-                            "Parent Quality Check scenario not found for this Feature Extraction"
+                    # Fallback: For microplate recipes, use data_processing scenario as QC
+                    if not target_qc_scenario and recipe.analysis_type == "microplate":
+                        data_processing_scenarios = recipe.get_scenarios_for_step("data_processing")
+                        if data_processing_scenarios:
+                            target_qc_scenario = data_processing_scenarios[0]
+
+                    if target_qc_scenario:
+                        st.title(f"{recipe.name} - Random Forest Regression Analysis")
+                        # Render the step page to launch new analyses or view existing ones
+                        render_random_forest_step(
+                            recipe,
+                            cell_culture_state,
+                            quality_check_scenario=target_qc_scenario,
+                            feature_extraction_scenario=target_fe_scenario,
                         )
+                    else:
+                        st.error("Quality Check scenario not found")
                 else:
                     st.error("Feature Extraction scenario not found")
             elif selected_key.startswith("random_forest_result_"):
@@ -1005,6 +1011,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         "fermentor_analyses_parent_quality_check"
                     )
 
+                    target_qc_scenario = None
                     if parent_qc_tags:
                         qc_scenario_id = parent_qc_tags[0].tag_value
                         all_qc_scenarios = recipe.get_quality_check_scenarios()
@@ -1012,21 +1019,23 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                         )
 
-                        if target_qc_scenario:
-                            st.title(f"{recipe.name} - Causal Effect Analysis")
-                            # Render the step page to launch new analyses or view existing ones
-                            render_causal_effect_step(
-                                recipe,
-                                cell_culture_state,
-                                quality_check_scenario=target_qc_scenario,
-                                feature_extraction_scenario=target_fe_scenario,
-                            )
-                        else:
-                            st.error("Quality Check scenario not found")
-                    else:
-                        st.error(
-                            "Parent Quality Check scenario not found for this Feature Extraction"
+                    # Fallback: For microplate recipes, use data_processing scenario as QC
+                    if not target_qc_scenario and recipe.analysis_type == "microplate":
+                        data_processing_scenarios = recipe.get_scenarios_for_step("data_processing")
+                        if data_processing_scenarios:
+                            target_qc_scenario = data_processing_scenarios[0]
+
+                    if target_qc_scenario:
+                        st.title(f"{recipe.name} - Causal Effect Analysis")
+                        # Render the step page to launch new analyses or view existing ones
+                        render_causal_effect_step(
+                            recipe,
+                            cell_culture_state,
+                            quality_check_scenario=target_qc_scenario,
+                            feature_extraction_scenario=target_fe_scenario,
                         )
+                    else:
+                        st.error("Quality Check scenario not found")
                 else:
                     st.error("Feature Extraction scenario not found")
             elif selected_key.startswith("causal_effect_result_"):
@@ -1059,6 +1068,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         "fermentor_analyses_parent_quality_check"
                     )
 
+                    target_qc_scenario = None
                     if parent_qc_tags:
                         qc_scenario_id = parent_qc_tags[0].tag_value
                         all_qc_scenarios = recipe.get_quality_check_scenarios()
@@ -1066,21 +1076,23 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                         )
 
-                        if target_qc_scenario:
-                            st.title(f"{recipe.name} - Optimization Analysis")
-                            # Render the step page to launch new analyses or view existing ones
-                            render_optimization_step(
-                                recipe,
-                                cell_culture_state,
-                                quality_check_scenario=target_qc_scenario,
-                                feature_extraction_scenario=target_fe_scenario,
-                            )
-                        else:
-                            st.error("Quality Check scenario not found")
-                    else:
-                        st.error(
-                            "Parent Quality Check scenario not found for this Feature Extraction"
+                    # Fallback: For microplate recipes, use data_processing scenario as QC
+                    if not target_qc_scenario and recipe.analysis_type == "microplate":
+                        data_processing_scenarios = recipe.get_scenarios_for_step("data_processing")
+                        if data_processing_scenarios:
+                            target_qc_scenario = data_processing_scenarios[0]
+
+                    if target_qc_scenario:
+                        st.title(f"{recipe.name} - Optimization Analysis")
+                        # Render the step page to launch new analyses or view existing ones
+                        render_optimization_step(
+                            recipe,
+                            cell_culture_state,
+                            quality_check_scenario=target_qc_scenario,
+                            feature_extraction_scenario=target_fe_scenario,
                         )
+                    else:
+                        st.error("Quality Check scenario not found")
                 else:
                     st.error("Feature Extraction scenario not found")
             elif selected_key.startswith("optimization_result_"):

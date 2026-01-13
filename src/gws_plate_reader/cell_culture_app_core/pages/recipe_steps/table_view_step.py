@@ -269,71 +269,71 @@ def render_table_view_step(
             # Create 2x2 grid with batches and samples first
             col1, col2 = st.columns(2)
 
-        with col1:
-            col1_header, col1_button = st.columns([3, 1])
-            with col1_header:
-                st.write(translate_service.translate("batch_selection_label"))
-            with col1_button:
-                if st.button(
-                    translate_service.translate("select_all_batches"),
-                    key="select_all_batches_table",
-                    width="stretch",
+            with col1:
+                col1_header, col1_button = st.columns([3, 1])
+                with col1_header:
+                    st.write(translate_service.translate("batch_selection_label"))
+                with col1_button:
+                    if st.button(
+                        translate_service.translate("select_all_batches"),
+                        key="select_all_batches_table",
+                        width="stretch",
+                    ):
+                        st.session_state.table_view_batches = unique_batches
+                        st.rerun()
+
+                # Reset selection if batches changed
+                if (
+                    "table_view_batches" not in st.session_state
+                    or len(
+                        [
+                            batch
+                            for batch in st.session_state.table_view_batches
+                            if batch not in unique_batches
+                        ]
+                    )
+                    > 0
                 ):
-                    st.session_state.table_view_batches = unique_batches
-                    st.rerun()
+                    st.session_state.table_view_batches = []
 
-            # Reset selection if batches changed
-            if (
-                "table_view_batches" not in st.session_state
-                or len(
-                    [
-                        batch
-                        for batch in st.session_state.table_view_batches
-                        if batch not in unique_batches
-                    ]
+                selected_batches = st.multiselect(
+                    translate_service.translate("choose_batches"),
+                    options=unique_batches,
+                    key="table_view_batches",
                 )
-                > 0
-            ):
-                st.session_state.table_view_batches = []
 
-            selected_batches = st.multiselect(
-                translate_service.translate("choose_batches"),
-                options=unique_batches,
-                key="table_view_batches",
-            )
+            with col2:
+                col2_header, col2_button = st.columns([3, 1])
+                with col2_header:
+                    st.write(translate_service.translate("sample_selection"))
+                with col2_button:
+                    if st.button(
+                        translate_service.translate("select_all_samples"),
+                        key="select_all_samples_table",
+                        width="stretch",
+                    ):
+                        st.session_state.table_view_samples = unique_samples
+                        st.rerun()
 
-        with col2:
-            col2_header, col2_button = st.columns([3, 1])
-            with col2_header:
-                st.write(translate_service.translate("sample_selection"))
-            with col2_button:
-                if st.button(
-                    translate_service.translate("select_all_samples"),
-                    key="select_all_samples_table",
-                    width="stretch",
+                # Reset selection if samples changed
+                if (
+                    "table_view_samples" not in st.session_state
+                    or len(
+                        [
+                            sample
+                            for sample in st.session_state.table_view_samples
+                            if sample not in unique_samples
+                        ]
+                    )
+                    > 0
                 ):
-                    st.session_state.table_view_samples = unique_samples
-                    st.rerun()
+                    st.session_state.table_view_samples = []
 
-            # Reset selection if samples changed
-            if (
-                "table_view_samples" not in st.session_state
-                or len(
-                    [
-                        sample
-                        for sample in st.session_state.table_view_samples
-                        if sample not in unique_samples
-                    ]
+                selected_samples = st.multiselect(
+                    translate_service.translate("choose_samples"),
+                    options=unique_samples,
+                    key="table_view_samples",
                 )
-                > 0
-            ):
-                st.session_state.table_view_samples = []
-
-            selected_samples = st.multiselect(
-                translate_service.translate("choose_samples"),
-                options=unique_samples,
-                key="table_view_samples",
-            )
 
         # Second row of the 2x2 grid
         col3, col4 = st.columns(2)

@@ -124,13 +124,14 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
             )
             selection_folder.add_child(graph_sub_item)
 
-            # Add medium view sub-item
-            medium_sub_item = StreamlitTreeMenuItem(
-                label=translate_service.translate("medium"),
-                key=f"medium_{scenario.id}",
-                material_icon="science",
-            )
-            selection_folder.add_child(medium_sub_item)
+            # Add medium view sub-item (only if recipe has medium info)
+            if recipe.has_medium_info:
+                medium_sub_item = StreamlitTreeMenuItem(
+                    label=translate_service.translate('medium'),
+                    key=f'medium_{scenario.id}',
+                    material_icon='science'
+                )
+                selection_folder.add_child(medium_sub_item)
 
             # Add Quality Check folder - clicking on it opens the QC creation form
             quality_check_folder = StreamlitTreeMenuItem(
@@ -172,13 +173,14 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                     )
                     qc_folder.add_child(qc_graph_item)
 
-                    # Add Medium view for QC results
-                    qc_medium_item = StreamlitTreeMenuItem(
-                        label=translate_service.translate("medium"),
-                        key=f"qc_medium_{qc_scenario.id}",
-                        material_icon="science",
-                    )
-                    qc_folder.add_child(qc_medium_item)
+                    # Add Medium view for QC results (only if recipe has medium info)
+                    if recipe.has_medium_info:
+                        qc_medium_item = StreamlitTreeMenuItem(
+                            label=translate_service.translate('medium'),
+                            key=f'qc_medium_{qc_scenario.id}',
+                            material_icon='science'
+                        )
+                        qc_folder.add_child(qc_medium_item)
 
                     # Analysis sub-folder
                     analysis_folder = StreamlitTreeMenuItem(
@@ -191,6 +193,10 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                     for analysis_type, analysis_info in cell_culture_state.ANALYSIS_TREE.items():
                         # Skip feature extraction if recipe doesn't have raw data
                         if analysis_type == "feature_extraction" and not recipe.has_data_raw:
+                            continue
+
+                        # Skip medium PCA and UMAP for microplate recipes
+                        if recipe.analysis_type == "microplate" and analysis_type in ['medium_pca', 'medium_umap']:
                             continue
 
                         analysis_item = StreamlitTreeMenuItem(
@@ -278,14 +284,16 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                         material_icon=get_status_material_icon(fe_scenario.status),
                                     )
 
-                                    for (
-                                        post_feature_extraction_analysis_type,
-                                        post_feature_extraction_analysis_info,
-                                    ) in cell_culture_state.POST_FEATURE_EXTRACTION_ANALYSIS_TREE.items():
-                                        if (
-                                            post_feature_extraction_analysis_type
-                                            == "metadata_feature_umap"
-                                        ):
+                                    for post_feature_extraction_analysis_type, post_feature_extraction_analysis_info in cell_culture_state.POST_FEATURE_EXTRACTION_ANALYSIS_TREE.items():
+                                        # Skip all post feature extraction analyses if recipe has no medium info
+                                        if not recipe.has_medium_info:
+                                            continue
+
+                                        # Skip PLS, Causal Effect, and Optimization for microplate recipes
+                                        if recipe.analysis_type == "microplate" and post_feature_extraction_analysis_type in ['pls_regression', 'causal_effect', 'optimization']:
+                                            continue
+
+                                        if post_feature_extraction_analysis_type == 'metadata_feature_umap':
                                             # Create sub-item for launching new metadata feature UMAP analysis
                                             fe_umap_launch_item = StreamlitTreeMenuItem(
                                                 label=translate_service.translate(
@@ -492,6 +500,9 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                     "icon"
                                                 ],
                                             )
+                                                label=post_feature_extraction_analysis_info['title'],
+                                                key=f'analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}',
+                                                material_icon=post_feature_extraction_analysis_info['icon'])
                                             fe_result_item.add_child(fe_opt_launch_item)
 
                                             # Add existing Optimization scenarios as sub-items

@@ -65,11 +65,11 @@ def get_available_media_from_quality_check(
 
 
 def launch_medium_pca_scenario(
-    quality_check_scenario: Scenario,
-    cell_culture_state: CellCultureState,
-    load_scenario: Scenario,
-    selected_media: List[str],
-) -> Optional[Scenario]:
+        quality_check_scenario: Scenario,
+        cell_culture_state: CellCultureState,
+        load_scenario: Scenario,
+        selected_media: List[str],
+        columns_to_exclude: List[str] = None) -> Optional[Scenario]:
     """
     Launch a Medium PCA analysis scenario
 
@@ -137,7 +137,10 @@ def launch_medium_pca_scenario(
             )
 
             # Set PCA parameters
-            pca_task.set_param("medium_column", cell_culture_state.MEDIUM_COLUMN_NAME)
+            pca_task.set_param('medium_column', cell_culture_state.MEDIUM_COLUMN_NAME)
+
+            if columns_to_exclude:
+                pca_task.set_param('columns_to_exclude', columns_to_exclude)
 
             # Add outputs
             protocol_proxy.add_output(
@@ -325,6 +328,32 @@ def render_medium_pca_step(
     st.markdown(f"### ➕ {translate_service.translate('pca_launch_button')}")
 
     with st.form(key=f"medium_pca_form_{quality_check_scenario.id}"):
+        # Get available columns from medium_table
+        try:
+            load_scenario_proxy = ScenarioProxy.from_existing_scenario(load_scenario.id)
+            load_protocol_proxy = load_scenario_proxy.get_protocol()
+            medium_table_resource_model = load_protocol_proxy.get_process(
+                cell_culture_state.PROCESS_NAME_DATA_PROCESSING
+            ).get_output_resource_model('medium_table')
+
+            # Get the actual table resource to check columns
+            from gws_core import ResourceModel
+            medium_resource = ResourceModel.get_by_id_and_check(medium_table_resource_model.id)
+            medium_df = medium_resource.get_resource().get_data()
+            available_columns = medium_df.columns.tolist()
+            excludable_columns = [col for col in available_columns if col != cell_culture_state.MEDIUM_COLUMN_NAME]
+             # Columns to exclude from PCA
+            columns_to_exclude = st.multiselect(
+                "🚫 Colonnes à exclure de l'analyse PCA",
+                options=excludable_columns,
+                default=[],
+                help="Sélectionnez les colonnes à exclure de l'analyse (ex: colonnes non-numériques, colonnes identifiantes, etc.)"
+            )
+
+        except Exception as e:
+            st.warning(f"⚠️ Impossible de charger les colonnes de la table medium : {str(e)}")
+
+
         st.markdown(f"**{translate_service.translate('pca_select_media')}**")
 
         # Multiselect for media selection
@@ -351,7 +380,11 @@ def render_medium_pca_step(
             else:
                 # Launch PCA scenario
                 pca_scenario = launch_medium_pca_scenario(
-                    quality_check_scenario, cell_culture_state, load_scenario, selected_media
+                    quality_check_scenario,
+                    cell_culture_state,
+                    load_scenario,
+                    selected_media,
+                    columns_to_exclude
                 )
 
                 if pca_scenario:

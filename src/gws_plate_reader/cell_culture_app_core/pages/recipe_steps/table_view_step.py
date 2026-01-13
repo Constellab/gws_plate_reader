@@ -12,6 +12,9 @@ from gws_core.resource.resource_set.resource_set import ResourceSet
 
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.pages.recipe_steps.microplate_selector import (
+    render_microplate_selector,
+)
 
 
 def get_available_columns_from_resource_set(resource_set: ResourceSet) -> Dict[str, Dict[str, str]]:
@@ -40,12 +43,15 @@ def get_available_columns_from_resource_set(resource_set: ResourceSet) -> Dict[s
         return {}
 
 
-def prepare_extended_data_for_visualization(
-    resource_set: ResourceSet,
-    cell_culture_state: CellCultureState,
-    selected_columns: List[str] = None,
-) -> List[Dict[str, Any]]:
-    """Prepare extended data from ResourceSet including selected columns"""
+def prepare_extended_data_for_visualization(resource_set: ResourceSet, cell_culture_state: CellCultureState,
+                                            selected_columns: List[str] = None, include_medium: bool = True) -> List[Dict[str, Any]]:
+    """Prepare extended data from ResourceSet including selected columns
+
+    :param resource_set: The resource set to extract data from
+    :param cell_culture_state: The cell culture state
+    :param selected_columns: Optional list of columns to include
+    :param include_medium: Whether to include the Medium column (default: True)
+    """
     try:
         resources = resource_set.get_resources()
         visualization_data = []
@@ -69,11 +75,14 @@ def prepare_extended_data_for_visualization(
 
                 # Prepare row data
                 row_data = {
-                    "Batch": batch,
-                    "Sample": sample,
-                    "Medium": medium,
-                    "Resource_Name": resource_name,
+                    'Batch': batch,
+                    'Sample': sample,
+                    'Resource_Name': resource_name
                 }
+
+                # Only add Medium column if include_medium is True
+                if include_medium:
+                    row_data['Medium'] = medium
 
                 # Add selected columns data if specified
                 if selected_columns:
@@ -203,8 +212,62 @@ def render_table_view_step(
         st.markdown("---")
         st.markdown(f"### {translate_service.translate('filters_selection_title')}")
 
-        # Create 2x2 grid with batches and samples first
-        col1, col2 = st.columns(2)
+        # Check if this is a microplate recipe
+        is_microplate = recipe.analysis_type == "microplate"
+
+        if is_microplate:
+            # Microplate mode: Display interactive plate selector
+            st.info("🧫 **Microplate Mode**: Select wells from the interactive plate below")
+
+            # Build well data with structure: {well: {plate: data, ...}, ...}
+            well_data = {}
+            for item in visualization_data:
+                sample = item.get('Sample', '')
+                batch = item.get('Batch', '')
+
+                # Use Sample as well name and Batch as plate name
+                if sample and batch:
+                    # Initialize well entry if needed
+                    if sample not in well_data:
+                        well_data[sample] = {}
+
+                    # Add plate data (excluding Resource_Name, Sample, and Batch)
+                    well_data[sample][batch] = {k: v for k, v in item.items() if k not in ['Resource_Name', 'Sample', 'Batch']}
+                elif sample:
+                    # Single plate mode - well is the sample name, no batch
+                    if sample not in well_data:
+                        well_data[sample] = {k: v for k, v in item.items() if k not in ['Resource_Name', 'Sample', 'Batch']}
+
+            # Render microplate selector
+            selected_wells = render_microplate_selector(
+                well_data=well_data,
+                unique_samples=unique_samples,
+                translate_service=translate_service,
+                session_key_prefix="table_view",
+                include_medium=recipe.has_medium_info
+            )
+
+            # For compatibility with existing code, map selected wells to batch/sample
+            # In microplate mode, selected_wells contains plate_name_well format (e.g., "plate_A_C1")
+            # Extract unique plate names (batches) and base wells (samples) from selected wells
+            selected_batches = []
+            selected_samples = []
+            for well in selected_wells:
+                # Extract plate name and base well from "plate_name_well" format
+                if '_' in well:
+                    parts = well.rsplit('_', 1)
+                    if len(parts) == 2:
+                        plate_name = parts[0]
+                        base_well = parts[1]
+                        if plate_name not in selected_batches:
+                            selected_batches.append(plate_name)
+                        if base_well not in selected_samples:
+                            selected_samples.append(base_well)
+
+        else:
+            # Standard mode: Display batch and sample multiselect
+            # Create 2x2 grid with batches and samples first
+            col1, col2 = st.columns(2)
 
         with col1:
             col1_header, col1_button = st.columns([3, 1])
@@ -314,7 +377,7 @@ def render_table_view_step(
 
         # Prepare extended data with selected columns
         extended_data = prepare_extended_data_for_visualization(
-            filtered_resource_set, cell_culture_state, selected_columns
+            filtered_resource_set, cell_culture_state, selected_columns, include_medium=recipe.has_medium_info
         )
 
         # Filter data based on batch and sample selection

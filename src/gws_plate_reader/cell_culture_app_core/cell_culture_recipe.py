@@ -2,8 +2,7 @@
 Base Recipe class for Cell Culture Dashboards
 Encapsulates recipe information and scenarios - Abstract base class
 """
-
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -41,6 +40,7 @@ class CellCultureRecipe(ABC):
     pipeline_id: Optional[str] = None
     file_info: Optional[Dict[str, str]] = None  # Info about uploaded files
     has_data_raw: bool = True  # Whether this recipe has raw data (for feature extraction)
+    has_medium_info: bool = True  # Whether this recipe has medium info (for feature extraction)
 
     @classmethod
     def from_scenario(cls, scenario: Scenario) -> "CellCultureRecipe":

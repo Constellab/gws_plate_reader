@@ -2,9 +2,22 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 
-from gws_core import (ConfigParams, Folder, InputSpec, InputSpecs, JSONDict,
-                      OutputSpec, OutputSpecs, ResourceSet, Table, Task,
-                      TaskInputs, TaskOutputs, TypingStyle, task_decorator)
+from gws_core import (
+    ConfigParams,
+    Folder,
+    InputSpec,
+    InputSpecs,
+    JSONDict,
+    OutputSpec,
+    OutputSpecs,
+    ResourceSet,
+    Table,
+    Task,
+    TaskInputs,
+    TaskOutputs,
+    TypingStyle,
+    task_decorator,
+)
 from gws_core.tag.tag import Tag, TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
 from gws_core.user.current_user_service import CurrentUserService

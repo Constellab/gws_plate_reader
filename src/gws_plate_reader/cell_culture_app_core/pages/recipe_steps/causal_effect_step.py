@@ -376,7 +376,7 @@ def render_causal_effect_step(
         help=translate_service.translate("target_variables_help"),
     )
 
-    st.markdown(f"**{translate_service.translate('advanced_options')}**")
+    st.markdown("**Advanced Options**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns

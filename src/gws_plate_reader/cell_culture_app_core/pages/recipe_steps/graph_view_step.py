@@ -12,6 +12,9 @@ from gws_core import Scenario, ScenarioProxy, ScenarioStatus
 
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_plate_reader.cell_culture_app_core.pages.recipe_steps.microplate_selector import (
+    render_microplate_selector,
+)
 
 
 def render_graph_view_step(
@@ -125,10 +128,12 @@ def render_graph_view_step(
                 # Add rows to the list
                 for _, row in df.iterrows():
                     row_dict = row.to_dict()
-                    row_dict["Batch"] = batch
-                    row_dict["Sample"] = sample
-                    row_dict["Medium"] = medium
-                    row_dict["Resource_Name"] = resource_name
+                    row_dict['Batch'] = batch
+                    row_dict['Sample'] = sample
+                    # Only add Medium if recipe has medium info
+                    if recipe.has_medium_info:
+                        row_dict['Medium'] = medium
+                    row_dict['Resource_Name'] = resource_name
                     all_data_rows.append(row_dict)
 
         df_all = pd.DataFrame(all_data_rows)
@@ -143,8 +148,62 @@ def render_graph_view_step(
         st.markdown("---")
         st.markdown(f"### {translate_service.translate('filters_and_selection')}")
 
-        # Create 2x2 grid for filters
-        col1, col2 = st.columns(2)
+        # Check if this is a microplate recipe
+        is_microplate = recipe.analysis_type == "microplate"
+
+        if is_microplate:
+            # Microplate mode: Display interactive plate selector
+            st.info("🧫 **Microplate Mode**: Select wells from the interactive plate below")
+
+            # Build well data with structure: {well: {plate: data, ...}, ...}
+            well_data = {}
+            for item in visualization_data:
+                sample = item.get('Sample', '')
+                batch = item.get('Batch', '')
+
+                # Use Sample as well name and Batch as plate name
+                if sample and batch:
+                    # Initialize well entry if needed
+                    if sample not in well_data:
+                        well_data[sample] = {}
+
+                    # Add plate data (excluding Resource_Name, Sample, and Batch)
+                    well_data[sample][batch] = {k: v for k, v in item.items() if k not in ['Resource_Name', 'Sample', 'Batch']}
+                elif sample:
+                    # Single plate mode - well is the sample name, no batch
+                    if sample not in well_data:
+                        well_data[sample] = {k: v for k, v in item.items() if k not in ['Resource_Name', 'Sample', 'Batch']}
+
+            # Render microplate selector
+            selected_wells = render_microplate_selector(
+                well_data=well_data,
+                unique_samples=unique_samples,
+                translate_service=translate_service,
+                session_key_prefix="graph_view",
+                include_medium=recipe.has_medium_info
+            )
+
+            # For compatibility with existing code, map selected wells to batch/sample
+            # In microplate mode, selected_wells contains plate_name_well format (e.g., "plate_A_C1")
+            # Extract unique plate names (batches) and base wells (samples) from selected wells
+            selected_batches = []
+            selected_samples = []
+            for well in selected_wells:
+                # Extract plate name and base well from "plate_name_well" format
+                if '_' in well:
+                    parts = well.rsplit('_', 1)
+                    if len(parts) == 2:
+                        plate_name = parts[0]
+                        base_well = parts[1]
+                        if plate_name not in selected_batches:
+                            selected_batches.append(plate_name)
+                        if base_well not in selected_samples:
+                            selected_samples.append(base_well)
+
+        else:
+            # Standard mode: Display batch and sample multiselect
+            # Create 2x2 grid for filters
+            col1, col2 = st.columns(2)
 
         with col1:
             col1_header, col1_button = st.columns([3, 1])
@@ -212,7 +271,7 @@ def render_graph_view_step(
                 key="graph_view_samples",
             )
 
-        # Second row of the 2x2 grid
+        # Second row of the 2x2 grid (same for both modes)
         col3, col4 = st.columns(2)
 
         with col3:

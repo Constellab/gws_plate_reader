@@ -254,7 +254,7 @@ def render_pls_regression_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 📊 {translate_service.translate('pls_regression_title')}")
+    st.markdown(f"### 📊 PLS Regression Analysis")
 
     st.info(translate_service.translate("pls_regression_info"))
 
@@ -287,7 +287,7 @@ def render_pls_regression_step(
             f"{translate_service.translate('metadata_table_available')} : {metadata_table_resource_model.name}"
         )
     except Exception as e:
-        st.warning(f"{translate_service.translate('cannot_verify_metadata')} : {str(e)}")
+        st.warning(f"Cannot verify metadata table: {str(e)}")
         return
 
     # Get available columns from merged table (metadata + features)
@@ -346,10 +346,10 @@ def render_pls_regression_step(
                 f"**{translate_service.translate('preview')}** : {cols_preview}, ... (+{len(all_numeric_columns) - 10} autres)"
             )
         else:
-            st.markdown(f"**{translate_service.translate('preview')}** : {cols_preview}")
+            st.markdown(f"**Preview**: {cols_preview}")
 
     except Exception as e:
-        st.error(f"{translate_service.translate('error_reading_tables')} : {str(e)}")
+        st.error(f"Error reading tables: {str(e)}")
         import traceback
 
         st.code(traceback.format_exc())
@@ -376,7 +376,7 @@ def render_pls_regression_step(
         f"### ➕ {translate_service.translate('create_new_analysis').format(analysis_type='PLS')}"
     )
 
-    st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
+    st.markdown(f"**Analysis Configuration**")
 
     # Target columns selection (must select at least one)
     target_columns = st.multiselect(
@@ -387,7 +387,7 @@ def render_pls_regression_step(
         help=translate_service.translate("target_variables_help"),
     )
 
-    st.markdown(f"**{translate_service.translate('model_parameters')}**")
+    st.markdown(f"**Model Parameters**")
 
     col1, col2 = st.columns(2)
 
@@ -410,7 +410,7 @@ def render_pls_regression_step(
             help=translate_service.translate("test_size_help"),
         )
 
-    st.markdown(f"**{translate_service.translate('advanced_options')}**")
+    st.markdown(f"**Advanced Options**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns

@@ -487,7 +487,7 @@ def render_optimization_step(
                 st.session_state.num_targets -= 1
                 st.rerun()
 
-    st.markdown(f"**{translate_service.translate('advanced_options')}**")
+    st.markdown("**Advanced Options**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns

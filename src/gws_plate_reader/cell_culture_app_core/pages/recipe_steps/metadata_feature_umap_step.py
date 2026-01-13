@@ -415,10 +415,10 @@ def render_metadata_feature_umap_step(
 
     # Configuration form for new UMAP
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('launch_new_umap')}")
+    st.markdown("### ➕ Launch New UMAP Analysis")
 
     with st.form(key=f"metadata_feature_umap_form_{quality_check_scenario.id}"):
-        st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
+        st.markdown("**Analysis Configuration**")
 
         # Medium column selection
         medium_name_column = st.selectbox(
@@ -480,7 +480,7 @@ def render_metadata_feature_umap_step(
                 help=translate_service.translate("n_clusters_help"),
             )
 
-        st.markdown(f"**{translate_service.translate('advanced_options')}**")
+        st.markdown("**Advanced Options**")
 
         # Columns to exclude
         columns_to_exclude = st.multiselect(

@@ -342,6 +342,36 @@ def render_medium_umap_step(
     st.markdown(f"### ➕ {translate_service.translate('launch_new_umap')}")
 
     with st.form(key=f"medium_umap_form_{quality_check_scenario.id}"):
+        # Get available columns from medium_table
+        try:
+            load_scenario_proxy = ScenarioProxy.from_existing_scenario(load_scenario.id)
+            load_protocol_proxy = load_scenario_proxy.get_protocol()
+            medium_table_resource_model = load_protocol_proxy.get_process(
+                cell_culture_state.PROCESS_NAME_DATA_PROCESSING
+            ).get_output_resource_model('medium_table')
+
+            # Get the actual table resource to check columns
+            from gws_core import ResourceModel
+            medium_resource = ResourceModel.get_by_id_and_check(medium_table_resource_model.id)
+            medium_df = medium_resource.get_resource().get_data()
+            available_columns = medium_df.columns.tolist()
+
+            # Try to auto-detect the medium column
+            medium_col_candidates = [col for col in available_columns if col.upper() in ['MILIEU', 'MEDIUM', 'MEDIA']]
+            default_medium_col = medium_col_candidates[0] if medium_col_candidates else (available_columns[0] if available_columns else 'MILIEU')
+        except Exception as e:
+            available_columns = ['MILIEU', 'Medium', 'Media']
+            default_medium_col = 'MILIEU'
+            st.warning(f"⚠️ Impossible de charger les colonnes de la table medium : {str(e)}")
+
+        # Column selection for medium identifier
+        medium_column = st.selectbox(
+            "📋 Colonne contenant les identifiants de milieux",
+            options=available_columns,
+            index=available_columns.index(default_medium_col) if default_medium_col in available_columns else 0,
+            help="Sélectionnez la colonne qui contient les noms/identifiants des milieux de culture"
+        )
+
         st.markdown(f"**{translate_service.translate('media_selection')}**")
 
         # Multiselect for media selection

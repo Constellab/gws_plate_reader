@@ -1,15 +1,26 @@
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import plotly.express as px
 import plotly.graph_objects as go
-
 from gws_core import (
-    ConfigParams, InputSpec, InputSpecs, OutputSpec, OutputSpecs,
-    Task, TaskInputs, TaskOutputs, task_decorator, ConfigSpecs,
-    Table, StrParam, PlotlyResource, Tag
+    ConfigParams,
+    ConfigSpecs,
+    InputSpec,
+    InputSpecs,
+    ListParam,
+    OutputSpec,
+    OutputSpecs,
+    PlotlyResource,
+    StrParam,
+    Table,
+    Tag,
+    Task,
+    TaskInputs,
+    TaskOutputs,
+    task_decorator,
 )
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 
 @task_decorator(
@@ -78,6 +89,12 @@ class CellCultureMediumPCA(Task):
             human_name="Medium Column Name",
             short_description="Name of the column containing medium identifiers",
             visibility='public'
+        ),
+        'columns_to_exclude': ListParam(
+            default_value=[],
+            human_name="Columns to Exclude",
+            short_description="List of column names to exclude from PCA analysis (in addition to medium column)",
+            visibility='public'
         )
     })
 
@@ -88,6 +105,7 @@ class CellCultureMediumPCA(Task):
 
         # Get parameters
         medium_col = params.get_value('medium_column')
+        columns_to_exclude = params.get_value('columns_to_exclude', [])
 
         # Get input table
         medium_table: Table = inputs['medium_table']
@@ -106,7 +124,27 @@ class CellCultureMediumPCA(Task):
 
         # Separate medium identifiers and numeric features
         milieu = df[medium_col].copy()
-        X_num = df.drop(columns=[medium_col])
+
+        # Build list of columns to drop
+        columns_to_drop = [medium_col]
+        if columns_to_exclude:
+            # Filter out columns that don't exist in the dataframe
+            valid_excludes = [col for col in columns_to_exclude if col in df.columns]
+            invalid_excludes = [col for col in columns_to_exclude if col not in df.columns]
+
+            if invalid_excludes:
+                self.log_warning_message(f"Ignoring non-existent columns: {', '.join(invalid_excludes)}")
+
+            if valid_excludes:
+                self.log_info_message(f"Excluding {len(valid_excludes)} columns: {', '.join(valid_excludes)}")
+                columns_to_drop.extend(valid_excludes)
+
+        X_num = df.drop(columns=columns_to_drop)
+
+        if X_num.shape[1] == 0:
+            raise ValueError("No columns remaining after exclusions")
+
+        self.log_info_message(f"Using {X_num.shape[1]} columns for PCA: {', '.join(X_num.columns)}")
 
         if len(X_num) < 2:
             raise ValueError(f"Insufficient data for PCA: only {len(X_num)} samples available")

@@ -261,7 +261,7 @@ def render_random_forest_step(
     load_scenario = recipe.get_load_scenario()
 
     if not load_scenario:
-        st.error(f"⚠️ {translate_service.translate('load_scenario_not_found')}")
+        st.error("⚠️ Load scenario not found")
         return
 
     # Display selected feature extraction scenario
@@ -279,7 +279,7 @@ def render_random_forest_step(
         ).get_output_resource_model("metadata_table")
 
         if not metadata_table_resource_model:
-            st.error(f"⚠️ {translate_service.translate('metadata_table_not_available_load')}")
+            st.error("⚠️ Metadata table is not available in the load scenario")
             return
 
         metadata_table = metadata_table_resource_model.get_resource()
@@ -336,7 +336,7 @@ def render_random_forest_step(
                 f"**{translate_service.translate('preview_label')}** : {cols_preview}{translate_service.translate('more_columns_suffix').format(count=len(all_numeric_columns) - 10)}"
             )
         else:
-            st.markdown(f"**{translate_service.translate('preview_label')}** : {cols_preview}")
+            st.markdown(f"**Preview** : {cols_preview}")
 
     except Exception as e:
         st.error(translate_service.translate("error_reading_tables").format(error=str(e)))
@@ -366,7 +366,7 @@ def render_random_forest_step(
         f"### ➕ {translate_service.translate('create_new_analysis').format(analysis_type='Random Forest')}"
     )
 
-    st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
+    st.markdown("**Analysis Configuration**")
 
     # Target column selection (must select exactly one)
     target_column = st.selectbox(
@@ -377,7 +377,7 @@ def render_random_forest_step(
         help=translate_service.translate("target_variables_help"),
     )
 
-    st.markdown(f"**{translate_service.translate('model_parameters')}**")
+    st.markdown("**Model Parameters**")
 
     test_size = st.slider(
         translate_service.translate("test_size_label"),
@@ -389,7 +389,7 @@ def render_random_forest_step(
         help=translate_service.translate("test_size_help"),
     )
 
-    st.markdown(f"**{translate_service.translate('advanced_options')}**")
+    st.markdown("**Advanced Options**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns

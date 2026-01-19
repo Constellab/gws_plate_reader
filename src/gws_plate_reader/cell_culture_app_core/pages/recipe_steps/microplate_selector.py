@@ -4,7 +4,6 @@ Renders an interactive microplate grid for well selection with color coding by m
 """
 import re
 import unicodedata
-from typing import List
 
 import streamlit as st
 
@@ -15,7 +14,7 @@ def render_microplate_selector(
     translate_service,
     session_key_prefix: str = "graph_view",
     include_medium: bool = True
-) -> List[str]:
+) -> list[str]:
     """Render an interactive microplate selector for well selection
 
     :param well_data: Dictionary with well information.
@@ -70,8 +69,8 @@ def render_microplate_selector(
             num_plates=len(plate_names),
             plate_names=', '.join(plate_names)
         )
-        st.caption(f"📊 {unified_text}")
-        st.caption(f"ℹ️ {translate_service.translate('selecting_well_info')}")
+        st.markdown(f"<p style='font-size: 0.9em;'>📊 {unified_text}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size: 0.9em;'>ℹ️ {translate_service.translate('selecting_well_info')}</p>", unsafe_allow_html=True)
 
     # Check if Medium data is available
     has_medium = False
@@ -523,13 +522,6 @@ def render_microplate_selector(
                 total=total_selected
             )
             st.write(f"**{summary_text}**")
-
-            # Show details per plate
-            with st.expander(f"📋 {translate_service.translate('selection_details_per_plate')}", expanded=False):
-                for plate_name in plate_names:
-                    wells_for_plate = sorted(selected_by_plate[plate_name])
-                    none_text = translate_service.translate('none')
-                    st.write(f"**{plate_name}:** {', '.join(wells_for_plate) if wells_for_plate else none_text}")
         else:
             selected_label = translate_service.translate('selected_wells_label')
             none_text = translate_service.translate('none')

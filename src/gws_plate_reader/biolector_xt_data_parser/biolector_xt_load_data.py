@@ -8,7 +8,6 @@ import plotly.graph_objects as go
 from gws_core import (
     ConfigParams,
     ConfigSpecs,
-    DictParam,
     DynamicInputs,
     Folder,
     InputSpec,
@@ -28,7 +27,6 @@ from gws_core import (
 from gws_core.resource.resource_set.resource_list import ResourceList
 from gws_core.tag.tag import Tag, TagOrigins
 from gws_core.tag.tag_dto import TagOriginType
-from gws_core.tag.tag_key_model import TagKeyModel
 from gws_core.user.current_user_service import CurrentUserService
 from pandas import NA, DataFrame, Series
 
@@ -41,7 +39,7 @@ def create_venn_diagram_wells(well_sets: dict[str, set[str]]) -> go.Figure:
 
     Args:
         well_sets: Dict with sets of well identifiers for each data type
-            Keys: 'cultivation_labels', 'medium_info' (optional), 'raw_data'
+            Keys: 'cultivation_labels', 'medium_info', 'raw_data'
             Values: Set of well identifiers (e.g., 'A01', 'B02')
 
     Returns:
@@ -53,91 +51,7 @@ def create_venn_diagram_wells(well_sets: dict[str, set[str]]) -> go.Figure:
     B = well_sets.get('medium_info', set())  # Wells in medium_info (info_table)
     C = well_sets.get('raw_data', set())  # Wells with raw_data
 
-    # Check if we have medium_info (3 circles) or not (2 circles)
-    has_medium_info = 'medium_info' in well_sets and len(B) > 0
-
-    if not has_medium_info:
-        # 2-circle Venn diagram (cultivation_labels and raw_data only)
-        only_A = len(A - C)  # Only CultivationLabels
-        only_C = len(C - A)  # Only raw_data
-        A_and_C = len(A & C)  # Both (complete wells)
-
-        fig = go.Figure()
-
-        # Circle parameters for 2 circles
-        radius = 0.3
-        Ax, Ay = 0.4, 0.5   # CultivationLabels (left)
-        Cx, Cy = 0.6, 0.5   # raw_data (right)
-
-        # Create circles
-        theta = np.linspace(0, 2 * np.pi, 100)
-
-        # Circle A - CultivationLabels (Blue)
-        x_A = radius * np.cos(theta) + Ax
-        y_A = radius * np.sin(theta) + Ay
-        fig.add_trace(go.Scatter(
-            x=x_A, y=y_A,
-            fill='toself',
-            fillcolor='rgba(33, 150, 243, 0.3)',
-            line=dict(color='rgba(33, 150, 243, 0.8)', width=3),
-            name='CultivationLabels',
-            mode='lines',
-            hoverinfo='skip',
-            showlegend=False
-        ))
-
-        # Circle C - raw_data (Orange)
-        x_C = radius * np.cos(theta) + Cx
-        y_C = radius * np.sin(theta) + Cy
-        fig.add_trace(go.Scatter(
-            x=x_C, y=y_C,
-            fill='toself',
-            fillcolor='rgba(255, 152, 0, 0.3)',
-            line=dict(color='rgba(255, 152, 0, 0.8)', width=3),
-            name='raw_data',
-            mode='lines',
-            hoverinfo='skip',
-            showlegend=False
-        ))
-
-        # Add titles
-        fig.add_annotation(x=Ax, y=Ay + radius + 0.08, text="<b>CultivationLabels</b>",
-                          showarrow=False, font=dict(size=14))
-        fig.add_annotation(x=Cx, y=Cy + radius + 0.08, text="<b>raw_data</b>",
-                          showarrow=False, font=dict(size=14))
-
-        # Add counts
-        fig.add_annotation(x=Ax - 0.15, y=Ay, text=str(only_A),
-                          showarrow=False, font=dict(size=14))
-        fig.add_annotation(x=Cx + 0.15, y=Cy, text=str(only_C),
-                          showarrow=False, font=dict(size=14))
-        fig.add_annotation(
-            x=(Ax + Cx) / 2, y=Ay,
-            text=f"<b>{A_and_C}</b>",
-            showarrow=False,
-            font=dict(size=16, color='darkgreen'),
-            bgcolor='rgba(255, 255, 255, 0.9)',
-            borderpad=4,
-            bordercolor='darkgreen',
-            borderwidth=2
-        )
-
-        # Update layout
-        fig.update_layout(
-            title="Well Data Availability - Venn Diagram (CultivationLabels, raw_data)",
-            showlegend=False,
-            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
-            yaxis=dict(
-                showticklabels=False, showgrid=False, zeroline=False, range=[0.1, 0.9],
-                scaleanchor="x", scaleratio=1),
-            height=600, width=600,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-        )
-
-        return fig
-
-    # 3-circle Venn diagram (original code for when medium_info is present)
+    # Calculate all regions for 3-circle Venn
     only_A = len(A - B - C)  # Only CultivationLabels
     only_B = len(B - A - C)  # Only medium_info
     only_C = len(C - A - B)  # Only raw_data
@@ -920,8 +834,9 @@ class BiolectorXTLoadData(Task):
                     if not medium_row.empty:
                         # Add all medium composition columns (except 'Medium' column)
                         for col in medium_df.columns:
-                            value = medium_row.iloc[0][col]
-                            metadata_row[col] = value
+                            if col != 'Medium':
+                                value = medium_row.iloc[0][col]
+                                metadata_row[col] = value
 
                 metadata_rows.append(metadata_row)
 
@@ -1018,62 +933,38 @@ class BiolectorXTLoadData(Task):
         :return: Task outputs
         """
 
-        # Get medium table (unique across all plates) from dedicated port
+        # Get medium table (unique across all plates)
         medium_table: Table = inputs.get('medium_table')
-        self.log_info_message(f"Medium table from dedicated port: {medium_table is not None}")
 
         # Get all dynamic inputs (plates as ResourceList)
         plates_resource_list: ResourceList = inputs.get('source')
-        self.log_info_message(f"ResourceList type: {type(plates_resource_list)}")
 
         if not isinstance(plates_resource_list, ResourceList):
             raise Exception(f"Expected ResourceList for 'source' input, got {type(plates_resource_list)}")
 
         # Get the actual list of resources from ResourceList
         plates_list = plates_resource_list.get_resources()
-        self.log_info_message(f"Total resources in ResourceList: {len(plates_list)}")
+        num_plates = len(plates_list)
 
-        # Log type of each resource in the list
-        for idx, resource in enumerate(plates_list):
-            self.log_info_message(f"Resource {idx}: type={type(resource).__name__}, name={getattr(resource, 'name', 'N/A')}")
+        # Check if first element is medium_table (Table) instead of ResourceSet
+        medium_table = None
+        start_idx = 0
+        if num_plates > 0 and isinstance(plates_list[0], Table):
+            medium_table = plates_list[0]
+            start_idx = 1
+            self.log_info_message(f"Found medium_table as first input")
 
-        # Filter out None resources (can happen with empty dynamic ports)
-        actual_plates = [plate for plate in plates_list if plate is not None]
+        actual_plates = plates_list[start_idx:]
         num_actual_plates = len(actual_plates)
-
-        if len(actual_plates) < len(plates_list):
-            self.log_warning_message(f"Filtered out {len(plates_list) - len(actual_plates)} None/empty resources from ResourceList")
-
-        if medium_table is not None:
-            self.log_info_message(f"Found medium_table from dedicated input port: {medium_table.name if hasattr(medium_table, 'name') else 'unnamed'}")
-
-            # Ensure "medium" tag key exists with "composed" additional info
-            tag_key_model = TagKeyModel.find_by_key("medium")
-            if not tag_key_model:
-                self.log_info_message("Creating 'medium' tag key with 'composed' additional info spec")
-                tag_key_model = TagKeyModel.create_tag_key_model(
-                    key="medium",
-                    label="Medium"
-                )
-                composed_additional_info_spec = DictParam(optional=False, human_name="Composed")
-                tag_key_model.additional_infos_specs = {
-                    "composed": composed_additional_info_spec.to_dto().to_json_dict()
-                }
-                tag_key_model.save()
-
         self.log_info_message(f"Processing {num_actual_plates} plate(s)")
 
         # Get plate names from config
         plate_names: list[str] = params.get_value('plate_names')
-        self.log_info_message(f"Plate names from config: {plate_names} (count: {len(plate_names) if plate_names else 0})")
 
         # Validate plate names
         if plate_names and len(plate_names) > 0:
             # User provided plate names - validate count
             if len(plate_names) != num_actual_plates:
-                self.log_error_message(
-                    f"MISMATCH: plate_names count={len(plate_names)}, actual_plates count={num_actual_plates}"
-                )
                 raise Exception(
                     f"Number of plate names ({len(plate_names)}) does not match number of input plates ({num_actual_plates}). "
                     f"Please provide either no names (for default names) or exactly {num_actual_plates} names."
@@ -1110,19 +1001,13 @@ class BiolectorXTLoadData(Task):
             # Get inputs for this plate from the ResourceSet
             raw_data: Table = plate_resource_set.get_resource('raw_data')
             folder_metadata: Folder = plate_resource_set.get_resource('folder_metadata')
+            info_table: Table = plate_resource_set.get_resource('info_table')
 
-            # info_table is optional
-            info_table: Table = plate_resource_set.get_resource_or_none('info_table')
-            if info_table is not None:
-                self.log_info_message(f"Found info_table for plate {plate_idx}")
-            else:
-                self.log_info_message(f"No info_table provided for plate {plate_idx}")
-
-            if raw_data is None or folder_metadata is None:
-                available_resources = list(plate_resource_set.get_resources().keys())
+            if raw_data is None or folder_metadata is None or info_table is None:
                 raise Exception(
-                    f"Plate {plate_idx} ResourceSet must contain 'raw_data' (Table) and 'folder_metadata' (Folder). "
-                    f"'info_table' is optional. Found: {available_resources}"
+                    f"Plate {plate_idx} ResourceSet must contain 'raw_data' (Table), "
+                    f"'folder_metadata' (Folder), and 'info_table' (Table). "
+                    f"Found: {list(plate_resource_set.get_resource_names())}"
                 )
 
             # Load metadata file
@@ -1234,38 +1119,11 @@ class BiolectorXTLoadData(Task):
             metadata_table.name = "Metadata table"
 
         # Create Venn diagram for well data availability using combined data
-        self.log_info_message("="*80)
-        self.log_info_message("VENN DIAGRAM CONSTRUCTION")
-        self.log_info_message("="*80)
-
         well_sets = {
             'cultivation_labels': all_cultivation_labels,
+            'medium_info': all_medium_info_wells,
             'raw_data': all_raw_data_wells
         }
-
-        self.log_info_message(f"cultivation_labels count: {len(all_cultivation_labels)}")
-        self.log_info_message(f"cultivation_labels samples: {list(all_cultivation_labels)[:5]}")
-        self.log_info_message(f"raw_data count: {len(all_raw_data_wells)}")
-        self.log_info_message(f"raw_data samples: {list(all_raw_data_wells)[:5]}")
-
-        # Calculate intersections and differences
-        intersection_cult_raw = all_cultivation_labels & all_raw_data_wells
-        only_in_cultivation = all_cultivation_labels - all_raw_data_wells
-        only_in_raw_data = all_raw_data_wells - all_cultivation_labels
-
-        self.log_info_message(f"Intersection (cultivation ∩ raw_data): {len(intersection_cult_raw)} wells")
-        if only_in_cultivation:
-            self.log_info_message(f"Only in cultivation_labels: {len(only_in_cultivation)} wells - {list(only_in_cultivation)[:5]}")
-        if only_in_raw_data:
-            self.log_info_message(f"Only in raw_data: {len(only_in_raw_data)} wells - {list(only_in_raw_data)[:5]}")
-
-        # Only include medium_info in Venn diagram if medium_table was provided
-        if medium_table is not None:
-            well_sets['medium_info'] = all_medium_info_wells
-            self.log_info_message(f"medium_info count: {len(all_medium_info_wells)}")
-            self.log_info_message(f"medium_info samples: {list(all_medium_info_wells)[:5]}")
-        else:
-            self.log_info_message("No medium_table provided - medium_info excluded from Venn diagram")
 
         # Create Venn diagram
         venn_diagram = None

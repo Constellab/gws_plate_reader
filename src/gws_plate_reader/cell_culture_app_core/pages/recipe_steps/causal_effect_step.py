@@ -250,9 +250,11 @@ def render_causal_effect_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown("### 🔗 " + translate_service.translate("causal_effect_title"))
-
-    st.info(translate_service.translate("causal_effect_info"))
+    # Info box with explanation
+    with st.expander(
+        translate_service.translate("help_title").format(analysis_type="Causal Effect")
+    ):
+        st.markdown(translate_service.translate("causal_effect_help_content"))
 
     # Display selected feature extraction scenario
     st.info(
@@ -321,26 +323,6 @@ def render_causal_effect_step(
                 list(set(all_merged_columns) - set(all_numeric_columns))
             )
 
-        st.markdown(
-            "**"
-            + translate_service.translate("numeric_columns_available")
-            + "** : "
-            + str(len(all_numeric_columns))
-        )
-        cols_preview = ", ".join(all_numeric_columns[:10])
-        if len(all_numeric_columns) > 10:
-            st.markdown(
-                "**"
-                + translate_service.translate("preview")
-                + "** : "
-                + cols_preview
-                + translate_service.translate("more_columns").format(
-                    count=len(all_numeric_columns) - 10
-                )
-            )
-        else:
-            st.markdown("**" + translate_service.translate("preview") + "** : " + cols_preview)
-
     except Exception as e:
         st.error(translate_service.translate("error_reading_tables").format(error=str(e)))
         import traceback
@@ -352,14 +334,6 @@ def render_causal_effect_step(
     existing_causal_scenarios = recipe.get_causal_effect_scenarios_for_feature_extraction(
         feature_extraction_scenario.id
     )
-
-    if existing_causal_scenarios:
-        st.markdown(f"**Analyses Causal Effect existantes** : {len(existing_causal_scenarios)}")
-        with st.expander("📊 Voir les analyses Causal Effect existantes"):
-            for idx, causal_scenario in enumerate(existing_causal_scenarios):
-                st.write(
-                    f"{idx + 1}. {causal_scenario.title} - Statut: {causal_scenario.status.name}"
-                )
 
     # Configuration form for new Causal Effect
     st.markdown("---")
@@ -442,8 +416,3 @@ def render_causal_effect_step(
                 )
     if cell_culture_state.get_is_standalone():
         st.info(translate_service.translate("standalone_mode_function_blocked"))
-    # Info box with explanation
-    with st.expander(
-        translate_service.translate("help_title").format(analysis_type="Causal Effect")
-    ):
-        st.markdown(translate_service.translate("causal_effect_help_content"))

@@ -43,5 +43,10 @@
     "results_cleaned": "Cleaned and structured tables per well",
     "results_viz": "Venn diagram of data availability",
     "results_metadata": "Metadata table for ML feature extraction",
-    "results_stats": "Quality check visualizations"
+    "results_stats": "Quality check visualizations",
+    "visualization": "Visualization",
+    "individual_curves": "Individual Curves",
+    "mean_selected_batches": "Mean of Selected Batches",
+    "plot_by_batch": "Plot by Batch",
+    "select_display_mode": "Select Display Mode"
 }

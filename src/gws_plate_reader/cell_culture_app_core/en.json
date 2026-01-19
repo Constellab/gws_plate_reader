@@ -892,5 +892,6 @@
     "selected_wells_summary": "Selected: {unique_wells} unique wells × {num_plates} plates = {total} total selections",
     "selection_details_per_plate": "Selection details per plate",
     "selected_wells_label": "Selected wells:",
-    "none": "None"
+    "none": "None",
+    "visualization": "Visualization"
 }

@@ -23,7 +23,9 @@ def render_feature_extraction_results(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.title(f"{recipe.name} - {fe_scenario.title}")
+    # Info box with interpretation help
+    with st.expander(f"💡 {translate_service.translate('interpretation_help')}"):
+        st.markdown(translate_service.translate("feature_extraction_results_interpretation"))
 
     # Check scenario status
     if fe_scenario.status != ScenarioStatus.SUCCESS:
@@ -134,7 +136,3 @@ def render_feature_extraction_results(
                 st.warning(translate_service.translate("feature_extraction_curves_not_found"))
     else:
         st.warning(translate_service.translate("feature_extraction_curves_not_found"))
-
-    # Info box with interpretation help
-    with st.expander(f"💡 {translate_service.translate('interpretation_help')}"):
-        st.markdown(translate_service.translate("feature_extraction_results_interpretation"))

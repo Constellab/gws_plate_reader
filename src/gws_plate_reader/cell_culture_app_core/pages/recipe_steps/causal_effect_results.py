@@ -22,8 +22,6 @@ def render_causal_effect_results(recipe: CellCultureRecipe, cell_culture_state: 
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 🔗 {translate_service.translate('causal_effect_results_title')}")
-
     st.markdown(f"**{translate_service.translate('scenario_label')}** : {causal_scenario.title}")
     st.markdown(
         f"**{translate_service.translate('creation_date')}** : {causal_scenario.created_at.strftime('%d/%m/%Y %H:%M:%S')}")

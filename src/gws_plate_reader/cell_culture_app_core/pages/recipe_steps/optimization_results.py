@@ -17,8 +17,6 @@ def render_optimization_results(cell_culture_state: CellCultureState, optimizati
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown("### ⚙️ " + translate_service.translate('optimization_results_title'))
-
     st.markdown("**" + translate_service.translate('scenario_label') + "** : " + optimization_scenario.title)
 
     # Display scenario status

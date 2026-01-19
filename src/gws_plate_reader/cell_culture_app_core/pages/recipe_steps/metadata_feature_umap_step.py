@@ -292,9 +292,62 @@ def render_metadata_feature_umap_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown("### 🗺️ " + translate_service.translate("metadata_feature_umap_title"))
+    # Info box with explanation
+    with st.expander(
+        translate_service.translate("help_title").format(
+            analysis_type="UMAP Métadonnées + Features"
+        )
+    ):
+        st.markdown(f"### {translate_service.translate('what_is_this_analysis')}")
+        st.markdown("""
+Cette analyse combine deux types de données complémentaires :
 
-    st.info(translate_service.translate("metadata_feature_umap_info"))
+1. **Métadonnées** : Composition des milieux de culture (nutriments, concentrations, etc.)
+2. **Features** : Paramètres biologiques extraits des courbes de croissance (taux de croissance, phase de latence, etc.)
+
+L'analyse UMAP projette ces données combinées en 2D ou 3D pour révéler les relations entre composition du milieu et performances de croissance.
+
+### Interprétation des résultats
+
+**Graphiques 2D et 3D** :
+- Chaque point représente une série (essai/fermenteur)
+- La couleur distingue les différents milieux
+- Les points proches ont des compositions ET des comportements de croissance similaires
+- Les groupes révèlent des combinaisons milieu-performance cohérentes
+
+**Applications** :
+- Identifier quelles compositions donnent des performances similaires
+- Découvrir des milieux alternatifs avec performances équivalentes
+- Optimiser la formulation en reliant composition et résultats
+- Détecter des patterns inattendus dans les données
+
+### Paramètres recommandés
+
+Pour l'analyse métadonnées + features :
+- **Nombre de voisins** : 10-20 (compromis entre local et global)
+- **Distance minimale** : 0.1-0.3
+- **Normalisation** : Activée (fortement recommandé car les échelles des métadonnées et features diffèrent)
+- **Métrique** : Euclidienne ou corrélation
+
+### Clustering
+
+Le clustering K-Means peut identifier automatiquement des groupes de séries avec profils similaires :
+- Utile pour segmenter vos expériences en catégories
+- Le nombre optimal de clusters dépend de vos données
+- Comparez avec votre connaissance du domaine pour valider
+
+### Options avancées
+
+**Colonnes à exclure** :
+- Permet d'exclure certaines colonnes de l'analyse UMAP
+- Utile pour retirer des colonnes non informatives (ID, dates, etc.)
+- Ces colonnes seront complètement ignorées dans le calcul UMAP
+
+**Colonnes à afficher au survol** :
+- Permet d'afficher des informations supplémentaires au survol des points
+- Utile pour identifier rapidement les échantillons (Batch, Essai, Date, etc.)
+- Ces colonnes ne sont pas utilisées dans le calcul UMAP, uniquement pour l'affichage
+""")
 
     # Display selected feature extraction scenario
     st.info(
@@ -402,16 +455,6 @@ def render_metadata_feature_umap_step(
     existing_umap_scenarios = recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
         feature_extraction_scenario.id
     )
-
-    if existing_umap_scenarios:
-        st.markdown(
-            f"**{translate_service.translate('existing_umap_analyses')}** : {len(existing_umap_scenarios)}"
-        )
-        with st.expander(f"📊 {translate_service.translate('view_existing_umap')}"):
-            for idx, umap_scenario in enumerate(existing_umap_scenarios):
-                st.write(
-                    f"{idx + 1}. {umap_scenario.title} (ID: {umap_scenario.id}) - Statut: {umap_scenario.status.name}"
-                )
 
     # Configuration form for new UMAP
     st.markdown("---")
@@ -547,59 +590,3 @@ def render_metadata_feature_umap_step(
             else:
                 st.error(translate_service.translate("umap_launch_error"))
 
-    # Info box with explanation
-    with st.expander(
-        translate_service.translate("help_title").format(
-            analysis_type="UMAP Métadonnées + Features"
-        )
-    ):
-        st.markdown(f"### {translate_service.translate('what_is_this_analysis')}")
-        st.markdown("""
-Cette analyse combine deux types de données complémentaires :
-
-1. **Métadonnées** : Composition des milieux de culture (nutriments, concentrations, etc.)
-2. **Features** : Paramètres biologiques extraits des courbes de croissance (taux de croissance, phase de latence, etc.)
-
-L'analyse UMAP projette ces données combinées en 2D ou 3D pour révéler les relations entre composition du milieu et performances de croissance.
-
-### Interprétation des résultats
-
-**Graphiques 2D et 3D** :
-- Chaque point représente une série (essai/fermenteur)
-- La couleur distingue les différents milieux
-- Les points proches ont des compositions ET des comportements de croissance similaires
-- Les groupes révèlent des combinaisons milieu-performance cohérentes
-
-**Applications** :
-- Identifier quelles compositions donnent des performances similaires
-- Découvrir des milieux alternatifs avec performances équivalentes
-- Optimiser la formulation en reliant composition et résultats
-- Détecter des patterns inattendus dans les données
-
-### Paramètres recommandés
-
-Pour l'analyse métadonnées + features :
-- **Nombre de voisins** : 10-20 (compromis entre local et global)
-- **Distance minimale** : 0.1-0.3
-- **Normalisation** : Activée (fortement recommandé car les échelles des métadonnées et features diffèrent)
-- **Métrique** : Euclidienne ou corrélation
-
-### Clustering
-
-Le clustering K-Means peut identifier automatiquement des groupes de séries avec profils similaires :
-- Utile pour segmenter vos expériences en catégories
-- Le nombre optimal de clusters dépend de vos données
-- Comparez avec votre connaissance du domaine pour valider
-
-### Options avancées
-
-**Colonnes à exclure** :
-- Permet d'exclure certaines colonnes de l'analyse UMAP
-- Utile pour retirer des colonnes non informatives (ID, dates, etc.)
-- Ces colonnes seront complètement ignorées dans le calcul UMAP
-
-**Colonnes à afficher au survol** :
-- Permet d'afficher des informations supplémentaires au survol des points
-- Utile pour identifier rapidement les échantillons (Batch, Essai, Date, etc.)
-- Ces colonnes ne sont pas utilisées dans le calcul UMAP, uniquement pour l'affichage
-""")

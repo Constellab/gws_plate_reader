@@ -2,8 +2,13 @@
 New Analysis Page for BiolectorXT Dashboard
 Allows users to create new BiolectorXT analyses by uploading and configuring data
 """
+import os
+import tempfile
+import time
+
 import streamlit as st
 from gws_core import (
+    Folder,
     InputTask,
     ProcessProxy,
     ProtocolProxy,
@@ -12,6 +17,7 @@ from gws_core import (
     ScenarioCreationType,
     ScenarioProxy,
     StringHelper,
+    Table,
     Tag,
 )
 from gws_core.resource.resource_set.resource_set_tasks import ResourceStacker
@@ -37,15 +43,19 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
     with StreamlitContainers.container_full_min_height('container-center_new_analysis_page',
                                                        additional_style=style):
 
-        # Add a return button
+        # Add a return button aligned with title
         router = StreamlitRouter.load_from_session()
 
-        if st.button(
-            f"{translate_service.translate('return_to_recipes')}", icon=":material/arrow_back:",
-                use_container_width=False):
-            router.navigate("first-page")
+        col_back, col_title = st.columns([1, 15])
 
-        st.markdown(f"## 🧬 {translate_service.translate('new_recipe_biolector')}")
+        with col_back:
+            if st.button(
+                "", icon=":material/arrow_back:",
+                use_container_width=False):
+                router.navigate("first-page")
+
+        with col_title:
+            st.markdown(f"## 🧬 {translate_service.translate('new_recipe_biolector')}")
 
         # Recipe details (outside form for better UX)
         st.subheader(f"📝 {translate_service.translate('recipe_details')}")
@@ -59,10 +69,6 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
         # Upload the required files
         st.subheader(f"📁 {translate_service.translate('import_required_files')}")
 
-        # Documentation link button
-        url_doc_context = "https://constellab.community/bricks/gws_plate_reader/latest/doc/technical-folder/task/BiolectorXTLoadData"
-        st.link_button("**?**", url_doc_context)
-
         st.info(translate_service.translate('import_files_info'))
 
         # Add option to choose between upload or select existing resources
@@ -75,21 +81,24 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
             help=translate_service.translate('file_input_mode_help')
         )
 
-        # Medium table (optional, shared across all plates) - resource selection only
-        st.write("**Medium composition table (Optional)**")
+        st.markdown("---")
+
+        # First: Medium table (optional, shared across all plates)
+        st.write(f"**{translate_service.translate('medium_table_optional')}**")
+
         if file_input_mode == 'upload':
             medium_table_file = st.file_uploader(
-                "Select medium composition table (CSV)",
+                f"{translate_service.translate('select_medium_table')} (CSV)",
                 type=['csv'],
                 key="biolector_medium_table_uploader",
-                help="Table with medium compositions (Medium, Component1, Component2, ...)"
+                help=translate_service.translate("medium_table_help")
             )
             medium_table_resource = None
         else:
             resource_select_medium = StreamlitResourceSelect()
-            resource_select_medium.filters['resourceTypingNames'] = ['RESOURCE.gws_core.Table']
+            resource_select_medium.set_resource_typing_names_filter(['RESOURCE.gws_core.Table'], disabled=True)
             resource_select_medium.select_resource(
-                placeholder="Select medium composition table",
+                placeholder=translate_service.translate("select_medium_table"),
                 key="biolector_medium_table_selector",
                 defaut_resource=None
             )
@@ -101,59 +110,73 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
 
         # Per-plate inputs
         st.markdown("---")
-        st.subheader("📋 Plate configurations")
+        st.subheader(f"📋 {translate_service.translate('plate_configurations')}")
 
-        # Number of plates selector
-        num_plates = st.number_input(
-            "Number of plates to process",
-            min_value=1,
-            max_value=10,
-            value=1,
-            step=1,
-            key="num_plates_input",
-            help="Select how many plates you want to include in this recipe"
-        )
+        # Initialize plates list in session state
+        if 'plates_list' not in st.session_state:
+            st.session_state.plates_list = [0]  # Start with one plate (index 0)
+        if 'plate_counter' not in st.session_state:
+            st.session_state.plate_counter = 1  # Counter for unique plate IDs
 
         plates_data = []
 
-        for plate_idx in range(int(num_plates)):
-            with st.expander(f"🧫 Plate {plate_idx + 1}", expanded=(plate_idx == 0)):
-                # Plate name
-                plate_name = st.text_input(
-                    "Plate name",
-                    value=f"plate_{plate_idx}",
-                    key=f"plate_name_{plate_idx}",
-                    help="Custom name for this plate (will be used as prefix for well names)"
-                )
+        for plate_idx in st.session_state.plates_list:
+            # Plate title
+            st.write(f"### 🧫 {translate_service.translate('plate')} {st.session_state.plates_list.index(plate_idx) + 1}")
+
+            with st.container():
+                # Plate name with remove button
+                col_name, col_remove = st.columns([6, 1])
+
+                with col_name:
+                    plate_name = st.text_input(
+                        translate_service.translate("plate_name_label"),
+                        value=f"plate_{st.session_state.plates_list.index(plate_idx) + 1}",
+                        key=f"plate_name_{plate_idx}",
+                        help=translate_service.translate("plate_name_help")
+                    )
+
+                with col_remove:
+                    # Remove button - always visible, disabled if only one plate
+                    st.write("")  # Empty label for alignment
+                    is_disabled = len(st.session_state.plates_list) <= 1
+                    if st.button(
+                        translate_service.translate('remove_plate'),
+                        key=f"remove_plate_{plate_idx}",
+                        disabled=is_disabled,
+                        use_container_width=True
+                    ):
+                        st.session_state.plates_list.remove(plate_idx)
+                        st.rerun()
 
                 if file_input_mode == 'upload':
                     col1, col2, col3 = st.columns(3)
 
                     with col1:
-                        st.write("**Raw data table**")
+                        st.write(f"**{translate_service.translate('raw_data_table_required')}**")
                         raw_data_file = st.file_uploader(
-                            "Select raw data table (CSV)",
+                            f"{translate_service.translate('select_raw_data_table')} (CSV)",
                             type=['csv'],
                             key=f"raw_data_uploader_{plate_idx}",
-                            help="Table with raw measurement data from BiolectorXT"
+                            help=translate_service.translate("raw_data_table_help")
                         )
 
                     with col2:
-                        st.write("**Folder metadata**")
+                        st.write(f"**{translate_service.translate('folder_metadata_required')}**")
                         folder_metadata_file = st.file_uploader(
-                            "Select metadata folder (ZIP)",
+                            f"{translate_service.translate('select_folder_metadata')} (ZIP)",
                             type=['zip'],
                             key=f"folder_metadata_uploader_{plate_idx}",
-                            help="Folder containing JSON metadata file(s) ending with 'BXT.json'"
+                            help=translate_service.translate("folder_metadata_help")
                         )
 
                     with col3:
-                        st.write("**Info table**")
+                        st.write(f"**{translate_service.translate('info_table_optional')}**")
                         info_table_file = st.file_uploader(
-                            "Select info table (CSV)",
+                            f"{translate_service.translate('select_info_table')} (CSV)",
                             type=['csv'],
                             key=f"info_table_uploader_{plate_idx}",
-                            help="Table mapping wells to medium names"
+                            help=translate_service.translate("info_table_help")
                         )
 
                     plates_data.append({
@@ -170,31 +193,31 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
                     col1, col2, col3 = st.columns(3)
 
                     with col1:
-                        st.write("**Raw data table**")
+                        st.write(f"**{translate_service.translate('raw_data_table_required')}**")
                         resource_select_raw_data = StreamlitResourceSelect()
-                        resource_select_raw_data.filters['resourceTypingNames'] = ['RESOURCE.gws_core.Table']
+                        resource_select_raw_data.set_resource_typing_names_filter(['RESOURCE.gws_core.Table'], disabled=True)
                         resource_select_raw_data.select_resource(
-                            placeholder="Select raw data table",
+                            placeholder=translate_service.translate("select_raw_data_table"),
                             key=f"raw_data_selector_{plate_idx}",
                             defaut_resource=None
                         )
 
                     with col2:
-                        st.write("**Folder metadata**")
+                        st.write(f"**{translate_service.translate('folder_metadata_required')}**")
                         resource_select_metadata = StreamlitResourceSelect()
-                        resource_select_metadata.filters['resourceTypingNames'] = ['RESOURCE.gws_core.Folder']
+                        resource_select_metadata.set_resource_typing_names_filter(['RESOURCE.gws_core.Folder'], disabled=True)
                         resource_select_metadata.select_resource(
-                            placeholder="Select metadata folder",
+                            placeholder=translate_service.translate("select_folder_metadata"),
                             key=f"folder_metadata_selector_{plate_idx}",
                             defaut_resource=None
                         )
 
                     with col3:
-                        st.write("**Info table**")
+                        st.write(f"**{translate_service.translate('info_table_optional')}**")
                         resource_select_info = StreamlitResourceSelect()
-                        resource_select_info.filters['resourceTypingNames'] = ['RESOURCE.gws_core.Table']
+                        resource_select_info.set_resource_typing_names_filter(['RESOURCE.gws_core.Table'], disabled=True)
                         resource_select_info.select_resource(
-                            placeholder="Select info table",
+                            placeholder=translate_service.translate("select_info_table"),
                             key=f"info_table_selector_{plate_idx}",
                             defaut_resource=None
                         )
@@ -221,19 +244,35 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
                         'info_table_resource': info_table_resource
                     })
 
-        # Create button with validation
+                st.markdown("---")
+
+        # Add plate button
+        if st.button(f"➕ {translate_service.translate('add_plate')}", use_container_width=True, type="secondary"):
+            st.session_state.plates_list.append(st.session_state.plate_counter)
+            st.session_state.plate_counter += 1
+            st.rerun()
+
         st.markdown("---")
 
-        if st.button(translate_service.translate("create_recipe_button"), type="primary",
-                     use_container_width=True, icon="🚀"):
+        # Validate plate names uniqueness
+        plate_names = [plate_data['plate_name'] for plate_data in plates_data]
+        has_duplicate_names = len(plate_names) != len(set(plate_names))
+
+        if has_duplicate_names:
+            st.error(translate_service.translate('duplicate_plate_names_error'))
+
+        if st.button(
+            translate_service.translate("create_recipe_button"),
+            type="primary",
+            use_container_width=True,
+            icon="🚀",
+            disabled=has_duplicate_names
+        ):
 
             # Validate inputs
             if not analysis_name:
                 st.error(translate_service.translate("missing_recipe_name"))
                 return
-
-            # Check if medium_table is provided
-            has_medium_table = medium_table_resource is not None
 
             # Validate plates data
             for plate_idx, plate_data in enumerate(plates_data):
@@ -244,10 +283,6 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
                     if not plate_data['folder_metadata_file']:
                         st.error(f"Plate {plate_idx + 1}: {translate_service.translate('missing_folder_metadata')}")
                         return
-                    # If medium_table is provided, all plates must have info_table
-                    if has_medium_table and not plate_data['info_table_file']:
-                        st.error(f"Plate {plate_idx + 1}: Info table is required when medium composition table is provided")
-                        return
                 else:
                     if not plate_data['raw_data_resource']:
                         st.error(f"Plate {plate_idx + 1}: {translate_service.translate('missing_raw_data_table')}")
@@ -255,18 +290,29 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
                     if not plate_data['folder_metadata_resource']:
                         st.error(f"Plate {plate_idx + 1}: {translate_service.translate('missing_folder_metadata')}")
                         return
-                    # If medium_table is provided, all plates must have info_table
-                    if has_medium_table and not plate_data['info_table_resource']:
-                        st.error(f"Plate {plate_idx + 1}: Info table is required when medium composition table is provided")
-                        return
 
             try:
                 # Process medium_table (shared across all plates)
                 medium_table_model = None
                 if file_input_mode == 'upload' and medium_table_file is not None:
-                    medium_table_model = ResourceModel.save_from_upload(
-                        medium_table_file,
+                    # Create temporary file
+                    temp_dir = tempfile.gettempdir()
+                    temp_file_path = os.path.join(temp_dir, f"medium_table_{medium_table_file.name}")
+
+                    # Write uploaded content to temp file
+                    with open(temp_file_path, "wb") as temp_file:
+                        temp_file.write(medium_table_file.getvalue())
+
+                    # Create Table resource
+                    table_resource = Table.from_csv(temp_file_path)
+                    table_resource.name = medium_table_file.name
+
+                    # Save as ResourceModel
+                    medium_table_model = ResourceModel.save_from_resource(
+                        resource=table_resource,
                         origin=ResourceOrigin.UPLOADED,
+                        scenario=None,
+                        task_model=None,
                         flagged=True
                     )
                 elif file_input_mode == 'select_existing' and medium_table_resource is not None:
@@ -278,23 +324,61 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
                     plate_resources = {}
 
                     if file_input_mode == 'upload':
-                        # Save uploaded files
+                        # Save uploaded files as resources
                         if plate_data['raw_data_file'] is not None:
-                            plate_resources['raw_data'] = ResourceModel.save_from_upload(
-                                plate_data['raw_data_file'],
+                            # Create temporary file for raw_data
+                            temp_file_path = os.path.join(temp_dir, f"raw_data_plate_{plate_idx}_{plate_data['raw_data_file'].name}")
+                            with open(temp_file_path, "wb") as temp_file:
+                                temp_file.write(plate_data['raw_data_file'].getvalue())
+
+                            # Create Table resource
+                            raw_data_resource = Table.from_csv(temp_file_path)
+                            raw_data_resource.name = plate_data['raw_data_file'].name
+
+                            # Save as ResourceModel
+                            plate_resources['raw_data'] = ResourceModel.save_from_resource(
+                                resource=raw_data_resource,
                                 origin=ResourceOrigin.UPLOADED,
+                                scenario=None,
+                                task_model=None,
                                 flagged=True
                             )
+
                         if plate_data['folder_metadata_file'] is not None:
-                            plate_resources['folder_metadata'] = ResourceModel.save_from_upload(
-                                plate_data['folder_metadata_file'],
+                            # Create temporary file for folder_metadata (ZIP)
+                            temp_zip_path = os.path.join(temp_dir, f"metadata_plate_{plate_idx}_{plate_data['folder_metadata_file'].name}")
+                            with open(temp_zip_path, "wb") as temp_file:
+                                temp_file.write(plate_data['folder_metadata_file'].getvalue())
+
+                            # Create Folder resource from ZIP
+                            folder_resource = Folder.from_zip(temp_zip_path)
+                            folder_resource.name = plate_data['folder_metadata_file'].name
+
+                            # Save as ResourceModel
+                            plate_resources['folder_metadata'] = ResourceModel.save_from_resource(
+                                resource=folder_resource,
                                 origin=ResourceOrigin.UPLOADED,
+                                scenario=None,
+                                task_model=None,
                                 flagged=True
                             )
+
                         if plate_data['info_table_file'] is not None:
-                            plate_resources['info_table'] = ResourceModel.save_from_upload(
-                                plate_data['info_table_file'],
+                            # Create temporary file for info_table
+                            temp_info_path = os.path.join(temp_dir, f"info_table_plate_{plate_idx}_{plate_data['info_table_file'].name}")
+                            with open(temp_info_path, "wb") as temp_file:
+                                temp_file.write(plate_data['info_table_file'].getvalue())
+
+                            # Create Table resource
+                            info_table_resource = Table.from_csv(temp_info_path)
+                            info_table_resource.name = plate_data['info_table_file'].name
+
+                            # Save as ResourceModel
+                            plate_resources['info_table'] = ResourceModel.save_from_resource(
+                                resource=info_table_resource,
                                 origin=ResourceOrigin.UPLOADED,
+                                scenario=None,
+                                task_model=None,
                                 flagged=True
                             )
                     else:
@@ -310,9 +394,6 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
                         'name': plate_data['plate_name'],
                         'resources': plate_resources
                     })
-
-                # Track if we have medium info (for recipe metadata)
-                has_medium_info = has_medium_table
 
                 # Create scenario (using default folder)
                 scenario: ScenarioProxy = ScenarioProxy(
@@ -468,9 +549,6 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
                 scenario.add_tag(Tag(biolector_state.TAG_MICROPLATE_ANALYSIS,
                                      "true",
                                      is_propagable=False))
-                scenario.add_tag(Tag("has_medium_info",
-                                     "true" if has_medium_info else "false",
-                                     is_propagable=False))
 
                 # Resource tags for the plates
                 for plate_idx, plate_info in enumerate(plates_resources):
@@ -495,7 +573,6 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
 
                 # Navigate back after a short delay
                 with st.spinner(translate_service.translate('view_recipe')):
-                    import time
                     time.sleep(2)
 
                 router.navigate("first-page")

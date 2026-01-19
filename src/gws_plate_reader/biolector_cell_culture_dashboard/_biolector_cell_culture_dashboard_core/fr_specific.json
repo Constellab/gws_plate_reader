@@ -43,5 +43,10 @@
     "results_cleaned": "Tables nettoyées et structurées par puits",
     "results_viz": "Diagramme de Venn de la disponibilité des données",
     "results_metadata": "Table de métadonnées pour l'extraction de features ML",
-    "results_stats": "Visualisations de contrôle qualité"
+    "results_stats": "Visualisations de contrôle qualité",
+    "visualization": "Visualisation",
+    "individual_curves": "Courbes Individuelles",
+    "mean_selected_batches": "Moyenne des Lots Sélectionnés",
+    "plot_by_batch": "Graphique par Lot",
+    "select_display_mode": "Sélectionner le Mode d'Affichage"
 }

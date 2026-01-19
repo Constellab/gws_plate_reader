@@ -91,9 +91,6 @@ def render_medium_view_step(
         # If scenario is provided, use it
         if scenario:
             target_scenario = scenario
-            st.info(
-                f"📊 {translate_service.translate('displaying_data')} : **{target_scenario.title}**"
-            )
 
             if target_scenario.status != ScenarioStatus.SUCCESS:
                 st.warning(translate_service.translate("selection_not_successful"))
@@ -167,8 +164,6 @@ def render_medium_view_step(
                 col for col in df.columns if col not in ["Batch", "Sample", "Medium"]
             ]
             st.metric(translate_service.translate("composition_components"), len(composition_cols))
-
-        st.markdown("---")
 
         # Display the dataframe
         st.markdown(f"##### {translate_service.translate('experiments_medium_composition')}")

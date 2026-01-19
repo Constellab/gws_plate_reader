@@ -138,7 +138,7 @@ def render_new_recipe_page(cell_culture_state: CellCultureState) -> None:
                 st.write(f"**1. {translate_service.translate('file_info_csv')}**")
                 resource_select_info = StreamlitResourceSelect()
                 # Filter to show only File resources
-                resource_select_info.filters["resourceTypingNames"] = ["RESOURCE.gws_core.File"]
+                resource_select_info.set_resource_typing_names_filter(["RESOURCE.gws_core.File"], disabled=True)
                 resource_select_info.select_resource(
                     placeholder=translate_service.translate("select_info_csv_resource"),
                     key="info_csv_selector",
@@ -148,7 +148,7 @@ def render_new_recipe_page(cell_culture_state: CellCultureState) -> None:
                 st.write(f"**3. {translate_service.translate('file_medium_csv')}**")
                 resource_select_medium = StreamlitResourceSelect()
                 # Filter to show only File resources
-                resource_select_medium.filters["resourceTypingNames"] = ["RESOURCE.gws_core.File"]
+                resource_select_medium.set_resource_typing_names_filter(["RESOURCE.gws_core.File"], disabled=True)
                 resource_select_medium.select_resource(
                     placeholder=translate_service.translate("select_medium_csv_resource"),
                     key="medium_csv_selector",
@@ -159,7 +159,7 @@ def render_new_recipe_page(cell_culture_state: CellCultureState) -> None:
                 st.write(f"**2. {translate_service.translate('file_raw_data_csv')}**")
                 resource_select_raw = StreamlitResourceSelect()
                 # Filter to show only File resources
-                resource_select_raw.filters["resourceTypingNames"] = ["RESOURCE.gws_core.File"]
+                resource_select_raw.set_resource_typing_names_filter(["RESOURCE.gws_core.File"], disabled=True)
                 resource_select_raw.select_resource(
                     placeholder=translate_service.translate("select_raw_data_csv_resource"),
                     key="raw_data_csv_selector",
@@ -169,7 +169,7 @@ def render_new_recipe_page(cell_culture_state: CellCultureState) -> None:
                 st.write(f"**4. {translate_service.translate('file_followup_zip')}**")
                 resource_select_followup = StreamlitResourceSelect()
                 # Filter to show only File resources
-                resource_select_followup.filters["resourceTypingNames"] = ["RESOURCE.gws_core.File"]
+                resource_select_followup.set_resource_typing_names_filter(["RESOURCE.gws_core.File"], disabled=True)
                 resource_select_followup.select_resource(
                     placeholder=translate_service.translate("select_followup_zip_resource"),
                     key="followup_zip_selector",

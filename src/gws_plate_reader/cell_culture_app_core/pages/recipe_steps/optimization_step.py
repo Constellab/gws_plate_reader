@@ -266,9 +266,11 @@ def render_optimization_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown("### ⚙️ " + translate_service.translate("optimization_title"))
-
-    st.info(translate_service.translate("optimization_info"))
+    # Info box with explanation
+    with st.expander(
+        translate_service.translate("help_title").format(analysis_type="Optimization")
+    ):
+        st.markdown(translate_service.translate("optimization_help_content"))
 
     # Display selected feature extraction scenario
     st.info(
@@ -337,26 +339,6 @@ def render_optimization_step(
                 list(set(all_merged_columns) - set(all_numeric_columns))
             )
 
-        st.markdown(
-            "**"
-            + translate_service.translate("numeric_columns_available")
-            + "** : "
-            + str(len(all_numeric_columns))
-        )
-        cols_preview = ", ".join(all_numeric_columns[:10])
-        if len(all_numeric_columns) > 10:
-            st.markdown(
-                "**"
-                + translate_service.translate("preview")
-                + "** : "
-                + cols_preview
-                + translate_service.translate("more_columns").format(
-                    count=len(all_numeric_columns) - 10
-                )
-            )
-        else:
-            st.markdown("**" + translate_service.translate("preview") + "** : " + cols_preview)
-
     except Exception as e:
         st.error(f"{translate_service.translate('error_reading_tables')} : {str(e)}")
         st.code(traceback.format_exc())
@@ -366,14 +348,6 @@ def render_optimization_step(
     existing_optimization_scenarios = recipe.get_optimization_scenarios_for_feature_extraction(
         feature_extraction_scenario.id
     )
-
-    if existing_optimization_scenarios:
-        st.markdown(
-            f"{translate_service.translate('existing_optimization_analyses')} : {len(existing_optimization_scenarios)}"
-        )
-        with st.expander(translate_service.translate("view_existing_optimization_analyses")):
-            for idx, opt_scenario in enumerate(existing_optimization_scenarios):
-                st.write(f"{idx + 1}. {opt_scenario.title} - Statut: {opt_scenario.status.name}")
 
     # Configuration form for new Optimization
     st.markdown("---")
@@ -388,7 +362,7 @@ def render_optimization_step(
     # Use StreamlitResourceSelect to select JSONDict resource
     resource_select_constraints = StreamlitResourceSelect()
     # Filter to show only JSONDict resources
-    resource_select_constraints.filters["resourceTypingNames"] = ["RESOURCE.gws_core.JSONDict"]
+    resource_select_constraints.set_resource_typing_names_filter(["RESOURCE.gws_core.JSONDict"], disabled=True)
     resource_select_constraints.select_resource(
         placeholder=translate_service.translate("select_constraints_resource_placeholder"),
         key=f"optimization_constraints_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
@@ -559,9 +533,3 @@ def render_optimization_step(
                 )
     if cell_culture_state.get_is_standalone():
         st.info(translate_service.translate("standalone_mode_function_blocked"))
-
-    # Info box with explanation
-    with st.expander(
-        translate_service.translate("help_title").format(analysis_type="Optimization")
-    ):
-        st.markdown(translate_service.translate("optimization_help_content"))

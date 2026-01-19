@@ -23,7 +23,25 @@ def render_medium_umap_results(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.title(f"{recipe.name} - {umap_scenario.title}")
+    # Info box with UMAP explanation
+    with st.expander(f"💡 {translate_service.translate('umap_help_title')}"):
+        st.markdown(f"### {translate_service.translate('umap_help_intro_title')}")
+        st.markdown(translate_service.translate("umap_help_intro_text"))
+
+        st.markdown(f"\n### {translate_service.translate('umap_help_2d_title')}")
+        st.markdown(f"- {translate_service.translate('umap_help_2d_1')}")
+        st.markdown(f"- {translate_service.translate('umap_help_2d_2')}")
+        st.markdown(f"- {translate_service.translate('umap_help_2d_3')}")
+
+        st.markdown(f"\n### {translate_service.translate('umap_help_3d_title')}")
+        st.markdown(f"- {translate_service.translate('umap_help_3d_1')}")
+        st.markdown(f"- {translate_service.translate('umap_help_3d_2')}")
+        st.markdown(f"- {translate_service.translate('umap_help_3d_3')}")
+
+        st.markdown(f"\n### {translate_service.translate('umap_help_usage_title')}")
+        st.markdown(f"- {translate_service.translate('umap_help_usage_1')}")
+        st.markdown(f"- {translate_service.translate('umap_help_usage_2')}")
+        st.markdown(f"- {translate_service.translate('umap_help_usage_3')}")
 
     # Check scenario status
     if umap_scenario.status != ScenarioStatus.SUCCESS:
@@ -88,33 +106,3 @@ def render_medium_umap_results(
     else:
         st.warning(translate_service.translate("umap_3d_table_not_found"))
 
-    # Info box with UMAP explanation
-    with st.expander(f"💡 {translate_service.translate('umap_help_title')}"):
-        st.markdown(f"### {translate_service.translate('umap_help_intro_title')}")
-        st.markdown(translate_service.translate("umap_help_intro_text"))
-
-        st.markdown(f"\n### {translate_service.translate('umap_help_2d_title')}")
-        st.markdown(f"- {translate_service.translate('umap_help_2d_1')}")
-        st.markdown(f"- {translate_service.translate('umap_help_2d_2')}")
-        st.markdown(f"- {translate_service.translate('umap_help_2d_3')}")
-
-        st.markdown(f"\n### {translate_service.translate('umap_help_3d_title')}")
-        st.markdown(f"- {translate_service.translate('umap_help_3d_1')}")
-        st.markdown(f"- {translate_service.translate('umap_help_3d_2')}")
-
-        st.markdown(f"\n### {translate_service.translate('umap_help_params_title')}")
-        st.markdown(
-            f"- **{translate_service.translate('umap_n_neighbors')}**: {translate_service.translate('umap_help_params_neighbors')}"
-        )
-        st.markdown(
-            f"- **{translate_service.translate('umap_min_dist')}**: {translate_service.translate('umap_help_params_min_dist')}"
-        )
-        st.markdown(
-            f"- **{translate_service.translate('umap_metric')}**: {translate_service.translate('umap_help_params_metric')}"
-        )
-        st.markdown(
-            f"- **{translate_service.translate('umap_scale_data')}**: {translate_service.translate('umap_help_params_scale')}"
-        )
-
-        st.markdown(f"\n### {translate_service.translate('umap_help_clustering_title')}")
-        st.markdown(translate_service.translate("umap_help_clustering_text"))

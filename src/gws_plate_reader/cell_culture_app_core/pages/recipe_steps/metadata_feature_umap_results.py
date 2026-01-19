@@ -23,7 +23,95 @@ def render_metadata_feature_umap_results(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.title(f"{recipe.name} - {umap_scenario.title}")
+    # Info box with interpretation guide
+    with st.expander(f"💡 {translate_service.translate('detailed_interpretation_guide')}"):
+        st.markdown(f"### {translate_service.translate('understanding_umap_results_title')}")
+
+        st.markdown(f"""
+        #### {translate_service.translate("what_does_analysis_show")}
+
+        {translate_service.translate("umap_combines_two_types")}
+
+        1. {translate_service.translate("metadata_composition")}
+           {translate_service.translate("metadata_nutrients")}
+           {translate_service.translate("metadata_formulation")}
+           {translate_service.translate("metadata_initial")}
+
+        2. {translate_service.translate("features_performance")}
+           {translate_service.translate("features_growth")}
+           {translate_service.translate("features_metrics")}
+           {translate_service.translate("features_intervals")}
+           {translate_service.translate("features_times")}
+
+        {translate_service.translate("umap_reveals_link")}
+
+        #### {translate_service.translate("patterns_to_look_for")}
+
+        {translate_service.translate("clusters_similar_media")}
+        {translate_service.translate("same_color_grouped")}
+        {translate_service.translate("different_colors_grouped")}
+
+        {translate_service.translate("isolated_series")}
+        {translate_service.translate("points_far_away")}
+        {translate_service.translate("may_indicate")}
+
+        {translate_service.translate("gradients")}
+        {translate_service.translate("progressive_transition")}
+        {translate_service.translate("useful_identify")}
+
+        {translate_service.translate("global_shape")}
+        {translate_service.translate("branching_structure")}
+        {translate_service.translate("cloud_structure")}
+        {translate_service.translate("distinct_clusters")}
+
+        #### {translate_service.translate("practical_applications")}
+
+        {translate_service.translate("medium_optimization")}
+        {translate_service.translate("identify_best_media")}
+        {translate_service.translate("find_common_characteristics")}
+        {translate_service.translate("formulate_new_media")}
+
+        {translate_service.translate("cost_reduction")}
+        {translate_service.translate("look_close_points")}
+        {translate_service.translate("test_cheaper_ingredients")}
+
+        {translate_service.translate("quality_control")}
+        {translate_service.translate("new_batches_same_region")}
+        {translate_service.translate("deviations_reveal")}
+
+        {translate_service.translate("experiment_design")}
+        {translate_service.translate("unexplored_areas")}
+        {translate_service.translate("plan_new_tests")}
+
+        #### {translate_service.translate("limitations_precautions")}
+
+        {translate_service.translate("umap_preserves_local")}
+        {translate_service.translate("normalization_crucial")}
+        {translate_service.translate("multiple_projections")}
+        {translate_service.translate("always_validate")}
+
+        #### {translate_service.translate("export_further_analysis")}
+
+        {translate_service.translate("use_coordinate_tables")}
+        {translate_service.translate("statistically_analyze")}
+        {translate_service.translate("correlate_other_variables")}
+        {translate_service.translate("create_predictive_models")}
+        {translate_service.translate("communicate_results")}
+        """)
+
+        st.markdown("---")
+
+        st.markdown(f"### {translate_service.translate('umap_parameters_used')}")
+        st.markdown(f"""
+        {translate_service.translate("umap_parameters_influence")}
+
+        {translate_service.translate("n_neighbors_structure")}
+        {translate_service.translate("min_dist_dispersion")}
+        {translate_service.translate("metric_distance")}
+        {translate_service.translate("scale_data_normalization")}
+
+        {translate_service.translate("unsatisfactory_results")}
+        """)
 
     # Check scenario status
     if umap_scenario.status != ScenarioStatus.SUCCESS:
@@ -169,93 +257,3 @@ def render_metadata_feature_umap_results(
         )
     else:
         st.warning(f"⚠️ {translate_service.translate('coordinates_3d_table_unavailable')}")
-
-    # Info box with interpretation guide
-    with st.expander(f"💡 {translate_service.translate('detailed_interpretation_guide')}"):
-        st.markdown(f"### {translate_service.translate('understanding_umap_results_title')}")
-
-        st.markdown(f"""
-        #### {translate_service.translate("what_does_analysis_show")}
-
-        {translate_service.translate("umap_combines_two_types")}
-
-        1. {translate_service.translate("metadata_composition")}
-           {translate_service.translate("metadata_nutrients")}
-           {translate_service.translate("metadata_formulation")}
-           {translate_service.translate("metadata_initial")}
-
-        2. {translate_service.translate("features_performance")}
-           {translate_service.translate("features_growth")}
-           {translate_service.translate("features_metrics")}
-           {translate_service.translate("features_intervals")}
-           {translate_service.translate("features_times")}
-
-        {translate_service.translate("umap_reveals_link")}
-
-        #### {translate_service.translate("patterns_to_look_for")}
-
-        {translate_service.translate("clusters_similar_media")}
-        {translate_service.translate("same_color_grouped")}
-        {translate_service.translate("different_colors_grouped")}
-
-        {translate_service.translate("isolated_series")}
-        {translate_service.translate("points_far_away")}
-        {translate_service.translate("may_indicate")}
-
-        {translate_service.translate("gradients")}
-        {translate_service.translate("progressive_transition")}
-        {translate_service.translate("useful_identify")}
-
-        {translate_service.translate("global_shape")}
-        {translate_service.translate("branching_structure")}
-        {translate_service.translate("cloud_structure")}
-        {translate_service.translate("distinct_clusters")}
-
-        #### {translate_service.translate("practical_applications")}
-
-        {translate_service.translate("medium_optimization")}
-        {translate_service.translate("identify_best_media")}
-        {translate_service.translate("find_common_characteristics")}
-        {translate_service.translate("formulate_new_media")}
-
-        {translate_service.translate("cost_reduction")}
-        {translate_service.translate("look_close_points")}
-        {translate_service.translate("test_cheaper_ingredients")}
-
-        {translate_service.translate("quality_control")}
-        {translate_service.translate("new_batches_same_region")}
-        {translate_service.translate("deviations_reveal")}
-
-        {translate_service.translate("experiment_design")}
-        {translate_service.translate("unexplored_areas")}
-        {translate_service.translate("plan_new_tests")}
-
-        #### {translate_service.translate("limitations_precautions")}
-
-        {translate_service.translate("umap_preserves_local")}
-        {translate_service.translate("normalization_crucial")}
-        {translate_service.translate("multiple_projections")}
-        {translate_service.translate("always_validate")}
-
-        #### {translate_service.translate("export_further_analysis")}
-
-        {translate_service.translate("use_coordinate_tables")}
-        {translate_service.translate("statistically_analyze")}
-        {translate_service.translate("correlate_other_variables")}
-        {translate_service.translate("create_predictive_models")}
-        {translate_service.translate("communicate_results")}
-        """)
-
-        st.markdown("---")
-
-        st.markdown(f"### {translate_service.translate('umap_parameters_used')}")
-        st.markdown(f"""
-        {translate_service.translate("umap_parameters_influence")}
-
-        {translate_service.translate("n_neighbors_structure")}
-        {translate_service.translate("min_dist_dispersion")}
-        {translate_service.translate("metric_distance")}
-        {translate_service.translate("scale_data_normalization")}
-
-        {translate_service.translate("unsatisfactory_results")}
-        """)

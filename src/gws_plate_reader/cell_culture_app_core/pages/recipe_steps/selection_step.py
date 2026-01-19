@@ -245,16 +245,6 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
 
         # Show existing selections info if any
         existing_selections = recipe.get_selection_scenarios()
-        if existing_selections:
-            st.info(
-                f"📋 {translate_service.translate('existing_selections_info').format(count=len(existing_selections))}"
-            )
-
-            with st.expander(f"👁️ {translate_service.translate('view_existing_selections')}"):
-                for i, selection in enumerate(existing_selections, 1):
-                    st.write(f"**{i}.** {selection.title} - Statut: {selection.status}")
-
-        st.markdown(translate_service.translate("create_new_selection"))
 
         # Prepare valid data only (no missing data)
         valid_data = []
@@ -310,8 +300,15 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
             )
 
             # Button to validate selection
+            num_selected = len(selected_data.selection.rows) if selected_data.selection.rows else 0
+            button_label = (
+                f"{translate_service.translate('validate_selection')} ({num_selected})"
+                if num_selected > 0
+                else translate_service.translate("validate_selection")
+            )
+
             if st.button(
-                translate_service.translate("validate_selection"),
+                button_label,
                 type="primary",
                 width="stretch",
                 disabled=cell_culture_state.get_is_standalone(),
@@ -393,17 +390,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                 else:
                     st.warning(translate_service.translate("select_at_least_one"))
 
-            if not cell_culture_state.get_is_standalone():
-                # Show current selection info
-                if selected_data.selection.rows:
-                    st.info(
-                        translate_service.translate("rows_currently_selected").format(
-                            count=len(selected_data.selection.rows)
-                        )
-                    )
-                else:
-                    st.info(translate_service.translate("click_to_select_hint"))
-            else:
+            if cell_culture_state.get_is_standalone():
                 st.info(translate_service.translate("standalone_mode_function_blocked"))
 
         else:

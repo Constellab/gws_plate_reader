@@ -2,17 +2,21 @@
 Feature Extraction Step for Cell Culture Dashboard
 Allows users to run growth curve feature extraction analysis on quality check data
 """
-import streamlit as st
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
-from gws_core import Scenario, ScenarioProxy, ScenarioCreationType, InputTask, Tag
-from gws_core.tag.tag_entity_type import TagEntityType
-from gws_core.tag.entity_tag_list import EntityTagList
+import streamlit as st
+from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, Tag
 from gws_core.streamlit import StreamlitAuthenticateUser
-from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
+from gws_core.tag.entity_tag_list import EntityTagList
+from gws_core.tag.tag_entity_type import TagEntityType
+
+from gws_plate_reader.cell_culture_analysis import (
+    CellCultureFeatureExtraction,
+    ResourceSetToDataTable,
+)
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
-from gws_plate_reader.cell_culture_analysis import ResourceSetToDataTable, CellCultureFeatureExtraction
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 
 
 def get_available_columns_from_quality_check(quality_check_scenario: Scenario,
@@ -200,9 +204,9 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 📈 {translate_service.translate('feature_extraction_title')}")
-
-    st.info(translate_service.translate('feature_extraction_info_intro'))
+    # Info box with Feature Extraction explanation
+    with st.expander(f"💡 {translate_service.translate('about_feature_extraction')}"):
+        st.markdown(translate_service.translate('feature_extraction_help_content'))
 
     # Get the quality check output
     qc_output = cell_culture_state.get_quality_check_scenario_output_resource_model(quality_check_scenario)
@@ -228,22 +232,8 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
         st.warning(translate_service.translate('no_data_columns_found'))
         return
 
-    st.markdown(f"**{translate_service.translate('column_selection')}** : {', '.join(index_columns)}")
-    st.markdown(f"**{translate_service.translate('data_column_selection')}** : {', '.join(data_columns)}")
-
     # Check existing feature extraction scenarios
     existing_fe_scenarios = recipe.get_feature_extraction_scenarios_for_quality_check(quality_check_scenario.id)
-
-    if existing_fe_scenarios:
-        st.markdown(f"**{translate_service.translate('feature_extraction_existing_analyses')}** : {len(existing_fe_scenarios)}")
-        with st.expander(f"📊 {translate_service.translate('view_button')} {translate_service.translate('feature_extraction_existing_analyses').lower()}"):
-            for idx, fe_scenario in enumerate(existing_fe_scenarios):
-                # Extract data column from tags
-                entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, fe_scenario.id)
-                data_col_tags = entity_tag_list.get_tags_by_key("data_column")
-                data_col = data_col_tags[0].tag_value if data_col_tags else "N/A"
-
-                st.write(f"{idx + 1}. {fe_scenario.title} - {translate_service.translate('column_label')}: **{data_col}** ({translate_service.translate('status')}: {fe_scenario.status.name})")
 
     # Configuration form for new Feature Extraction
     st.markdown("---")
@@ -336,7 +326,3 @@ def render_feature_extraction_step(recipe: CellCultureRecipe, cell_culture_state
                     st.rerun()
                 else:
                     st.error(translate_service.translate('feature_extraction_error_launching'))
-
-    # Info box with Feature Extraction explanation
-    with st.expander(f"💡 {translate_service.translate('about_feature_extraction')}"):
-        st.markdown(translate_service.translate('feature_extraction_help_content'))

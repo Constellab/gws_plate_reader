@@ -64,12 +64,6 @@ def render_quality_check_config_form(
         st.warning(translate_service.translate("qc_no_columns_available"))
         return None
 
-    st.markdown(
-        f"**{translate_service.translate('qc_available_columns')}** : {', '.join(available_columns[:5])}..."
-        if len(available_columns) > 5
-        else f"**{translate_service.translate('qc_available_columns')}** : {', '.join(available_columns)}"
-    )
-
     config = {}
 
     # Section 1: Validation de plages
@@ -445,12 +439,12 @@ def render_quality_check_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
+    # Info box with quality check tips
+    with st.expander(f"💡 {translate_service.translate('qc_tips_title')}"):
+        st.markdown(translate_service.translate("qc_tips_content"))
+
     # If a specific selection scenario is provided, only show that one
     if selection_scenario:
-        st.info(
-            f"📋 {translate_service.translate('qc_for_selection')}: **{selection_scenario.title}**"
-        )
-
         st.markdown(translate_service.translate("qc_step_description"))
 
         # Display only this selection's quality checks
@@ -474,10 +468,6 @@ def render_quality_check_step(
             _render_selection_quality_checks(
                 selection, recipe, cell_culture_state, show_in_expander=True, idx=idx
             )
-
-    # Info box with quality check tips
-    with st.expander(f"💡 {translate_service.translate('qc_tips_title')}"):
-        st.markdown(translate_service.translate("qc_tips_content"))
 
 
 def _render_selection_quality_checks(
@@ -503,8 +493,6 @@ def _render_selection_quality_checks(
 
     # Container function to avoid code duplication
     def render_content():
-        st.write(f"✅ **{translate_service.translate('qc_existing_count')}:** {qc_count}")
-
         # Always show quality check creation form
         st.markdown("---")
         st.markdown(f"### ➕ {translate_service.translate('qc_create_new')}")

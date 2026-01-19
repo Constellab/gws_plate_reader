@@ -254,7 +254,12 @@ def render_random_forest_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"## 🌲 {translate_service.translate('rf_step_title')}")
+    # Info box with explanation
+    with st.expander(
+        translate_service.translate("help_title").format(analysis_type="Random Forest Regression")
+    ):
+        st.markdown(translate_service.translate("rf_help_content"))
+
     st.markdown(translate_service.translate("rf_step_description"))
 
     # Get load scenario from recipe
@@ -265,9 +270,7 @@ def render_random_forest_step(
         return
 
     # Display selected feature extraction scenario
-    st.info(
-        f"📊 {translate_service.translate('feature_extraction_scenario_info').format(title=feature_extraction_scenario.title)}"
-    )
+
 
     # Get available columns from merged table (metadata + features)
     try:
@@ -327,17 +330,6 @@ def render_random_forest_step(
                 list(set(all_merged_columns) - set(all_numeric_columns))
             )
 
-        st.markdown(
-            f"**{translate_service.translate('numeric_columns_available_label')}** : {len(all_numeric_columns)}"
-        )
-        cols_preview = ", ".join(all_numeric_columns[:10])
-        if len(all_numeric_columns) > 10:
-            st.markdown(
-                f"**{translate_service.translate('preview_label')}** : {cols_preview}{translate_service.translate('more_columns_suffix').format(count=len(all_numeric_columns) - 10)}"
-            )
-        else:
-            st.markdown(f"**Preview** : {cols_preview}")
-
     except Exception as e:
         st.error(translate_service.translate("error_reading_tables").format(error=str(e)))
         import traceback
@@ -349,16 +341,6 @@ def render_random_forest_step(
     existing_rf_scenarios = recipe.get_random_forest_scenarios_for_feature_extraction(
         feature_extraction_scenario.id
     )
-
-    if existing_rf_scenarios:
-        st.markdown(
-            f"**{translate_service.translate('existing_analyses').format(analysis_type='Random Forest')}** : {len(existing_rf_scenarios)}"
-        )
-        with st.expander(
-            f"📊 {translate_service.translate('view_existing_analyses').format(analysis_type='Random Forest')}"
-        ):
-            for idx, rf_scenario in enumerate(existing_rf_scenarios):
-                st.write(f"{idx + 1}. {rf_scenario.title} - Statut: {rf_scenario.status.name}")
 
     # Configuration form for new Random Forest
     st.markdown("---")

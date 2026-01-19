@@ -274,9 +274,49 @@ def render_medium_umap_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown("### 🗺️ " + translate_service.translate("medium_umap_title"))
+    # Info box with UMAP explanation
+    with st.expander(translate_service.translate("help_title").format(analysis_type="UMAP")):
+        st.markdown("### " + translate_service.translate("umap_help_what_is"))
+        st.markdown(translate_service.translate("umap_help_intro"))
 
-    st.info(translate_service.translate("medium_umap_info"))
+        st.markdown("### " + translate_service.translate("umap_help_interpretation"))
+
+        st.markdown("**" + translate_service.translate("umap_help_2d_3d_plots") + "** :")
+        st.markdown("- " + translate_service.translate("umap_help_plot_point"))
+        st.markdown("- " + translate_service.translate("umap_help_plot_proximity"))
+        st.markdown("- " + translate_service.translate("umap_help_plot_groups"))
+        st.markdown("- " + translate_service.translate("umap_help_plot_color"))
+
+        st.markdown("**" + translate_service.translate("umap_help_key_params") + "** :")
+        st.markdown(
+            "- **"
+            + translate_service.translate("n_neighbors_label")
+            + "** : "
+            + translate_service.translate("umap_help_n_neighbors_desc")
+        )
+        st.markdown(
+            "- **"
+            + translate_service.translate("min_dist_label")
+            + "** : "
+            + translate_service.translate("umap_help_min_dist_desc")
+        )
+        st.markdown(
+            "- **"
+            + translate_service.translate("distance_metric_label")
+            + "** : "
+            + translate_service.translate("umap_help_metric_desc")
+        )
+
+        st.markdown("**" + translate_service.translate("optional_clustering") + "** :")
+        st.markdown("- " + translate_service.translate("umap_help_clustering_desc"))
+        st.markdown("- " + translate_service.translate("umap_help_clustering_useful"))
+        st.markdown("- " + translate_service.translate("umap_help_clustering_choice"))
+
+        st.markdown("### " + translate_service.translate("umap_help_usage_tips"))
+        st.markdown("- " + translate_service.translate("umap_help_tip_defaults"))
+        st.markdown("- " + translate_service.translate("umap_help_tip_neighbors"))
+        st.markdown("- " + translate_service.translate("umap_help_tip_clustering"))
+        st.markdown("- " + translate_service.translate("umap_help_tip_compare"))
 
     # Get the load scenario to check for medium_table output
     load_scenario = recipe.get_load_scenario()
@@ -318,24 +358,10 @@ def render_medium_umap_step(
         st.warning(translate_service.translate("no_medium_found_qc"))
         return
 
-    st.markdown(
-        f"**{translate_service.translate('available_media')}** : {', '.join(available_media)}"
-    )
-
     # Check existing UMAP scenarios
     existing_umap_scenarios = recipe.get_medium_umap_scenarios_for_quality_check(
         quality_check_scenario.id
     )
-
-    if existing_umap_scenarios:
-        st.markdown(
-            f"**{translate_service.translate('existing_umap_analyses')}** : {len(existing_umap_scenarios)}"
-        )
-        with st.expander("📊 " + translate_service.translate("view_existing_umap")):
-            for idx, umap_scenario in enumerate(existing_umap_scenarios):
-                st.write(
-                    f"{idx + 1}. {umap_scenario.title} (ID: {umap_scenario.id}) - Statut: {umap_scenario.status.name}"
-                )
 
     # Configuration form for new UMAP
     st.markdown("---")
@@ -471,47 +497,3 @@ def render_medium_umap_step(
                     st.rerun()
                 else:
                     st.error(translate_service.translate("umap_launch_error"))
-
-    # Info box with UMAP explanation
-    with st.expander(translate_service.translate("help_title").format(analysis_type="UMAP")):
-        st.markdown("### " + translate_service.translate("umap_help_what_is"))
-        st.markdown(translate_service.translate("umap_help_intro"))
-
-        st.markdown("### " + translate_service.translate("umap_help_interpretation"))
-
-        st.markdown("**" + translate_service.translate("umap_help_2d_3d_plots") + "** :")
-        st.markdown("- " + translate_service.translate("umap_help_plot_point"))
-        st.markdown("- " + translate_service.translate("umap_help_plot_proximity"))
-        st.markdown("- " + translate_service.translate("umap_help_plot_groups"))
-        st.markdown("- " + translate_service.translate("umap_help_plot_color"))
-
-        st.markdown("**" + translate_service.translate("umap_help_key_params") + "** :")
-        st.markdown(
-            "- **"
-            + translate_service.translate("n_neighbors_label")
-            + "** : "
-            + translate_service.translate("umap_help_n_neighbors_desc")
-        )
-        st.markdown(
-            "- **"
-            + translate_service.translate("min_dist_label")
-            + "** : "
-            + translate_service.translate("umap_help_min_dist_desc")
-        )
-        st.markdown(
-            "- **"
-            + translate_service.translate("distance_metric_label")
-            + "** : "
-            + translate_service.translate("umap_help_metric_desc")
-        )
-
-        st.markdown("**" + translate_service.translate("optional_clustering") + "** :")
-        st.markdown("- " + translate_service.translate("umap_help_clustering_desc"))
-        st.markdown("- " + translate_service.translate("umap_help_clustering_useful"))
-        st.markdown("- " + translate_service.translate("umap_help_clustering_choice"))
-
-        st.markdown("### " + translate_service.translate("umap_help_usage_tips"))
-        st.markdown("- " + translate_service.translate("umap_help_tip_defaults"))
-        st.markdown("- " + translate_service.translate("umap_help_tip_neighbors"))
-        st.markdown("- " + translate_service.translate("umap_help_tip_clustering"))
-        st.markdown("- " + translate_service.translate("umap_help_tip_compare"))

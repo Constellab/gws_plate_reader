@@ -254,9 +254,11 @@ def render_pls_regression_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 📊 PLS Regression Analysis")
-
-    st.info(translate_service.translate("pls_regression_info"))
+    # Info box with explanation
+    with st.expander(
+        translate_service.translate("help_title").format(analysis_type="PLS Regression")
+    ):
+        st.markdown(translate_service.translate("pls_help_content"))
 
     # Display selected feature extraction scenario
     st.info(
@@ -337,17 +339,6 @@ def render_pls_regression_step(
                 list(set(all_merged_columns) - set(all_numeric_columns))
             )
 
-        st.markdown(
-            f"**{translate_service.translate('numeric_columns_available')}** : {len(all_numeric_columns)}"
-        )
-        cols_preview = ", ".join(all_numeric_columns[:10])
-        if len(all_numeric_columns) > 10:
-            st.markdown(
-                f"**{translate_service.translate('preview')}** : {cols_preview}, ... (+{len(all_numeric_columns) - 10} autres)"
-            )
-        else:
-            st.markdown(f"**Preview**: {cols_preview}")
-
     except Exception as e:
         st.error(f"Error reading tables: {str(e)}")
         import traceback
@@ -360,15 +351,6 @@ def render_pls_regression_step(
         feature_extraction_scenario.id
     )
 
-    if existing_pls_scenarios:
-        st.markdown(
-            f"**{translate_service.translate('existing_analyses').format(analysis_type='PLS')}** : {len(existing_pls_scenarios)}"
-        )
-        with st.expander(
-            f"📊 {translate_service.translate('view_existing_analyses').format(analysis_type='PLS')}"
-        ):
-            for idx, pls_scenario in enumerate(existing_pls_scenarios):
-                st.write(f"{idx + 1}. {pls_scenario.title} - Statut: {pls_scenario.status.name}")
 
     # Configuration form for new PLS
     st.markdown("---")
@@ -475,8 +457,3 @@ def render_pls_regression_step(
 
     if cell_culture_state.get_is_standalone():
         st.info(translate_service.translate("standalone_mode_function_blocked"))
-    # Info box with explanation
-    with st.expander(
-        translate_service.translate("help_title").format(analysis_type="PLS Regression")
-    ):
-        st.markdown(translate_service.translate("pls_help_content"))

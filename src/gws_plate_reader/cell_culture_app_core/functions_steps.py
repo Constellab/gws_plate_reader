@@ -1,17 +1,26 @@
 import os
 import tempfile
-from typing import List, Dict, Optional, Any, Union
+from typing import Any, Dict, List, Optional, Union
+
 import streamlit as st
-from streamlit_slickgrid import slickgrid
-from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
-from gws_core.streamlit import StreamlitTranslateService
 from gws_core import (
-    ResourceModel, ResourceOrigin, Scenario, ScenarioSearchBuilder, ResourceSearchBuilder, ScenarioProxy,
-    File, Tag, ScenarioStatus
+    File,
+    ResourceModel,
+    ResourceOrigin,
+    ResourceSearchBuilder,
+    Scenario,
+    ScenarioProxy,
+    ScenarioSearchBuilder,
+    ScenarioStatus,
+    Tag,
 )
-from gws_core.tag.tag_entity_type import TagEntityType
+from gws_core.streamlit import StreamlitTranslateService
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag import TagOrigin
+from gws_core.tag.tag_entity_type import TagEntityType
+from streamlit_slickgrid import slickgrid
+
+from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
 
 
 def get_status_emoji(status: ScenarioStatus) -> str:
@@ -250,6 +259,7 @@ def render_recipe_table(scenarios: List[Scenario],
             "minHeight": 400,
         },
         "multiColumnSort": False,
+        "rowHeight": 28,
     }
 
     # Render the grid with on_click for row selection

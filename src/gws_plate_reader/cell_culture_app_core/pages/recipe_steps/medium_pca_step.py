@@ -258,9 +258,31 @@ def render_medium_pca_step(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 🧬 {translate_service.translate('pca_title')}")
+    # Info box with PCA explanation
+    with st.expander(f"💡 {translate_service.translate('pca_help_title')}"):
+        st.markdown(f"### {translate_service.translate('pca_help_intro_title')}")
+        st.markdown(translate_service.translate("pca_help_intro_text"))
 
-    st.info(translate_service.translate("pca_info_intro"))
+        st.markdown(f"\n### {translate_service.translate('pca_help_scores_title')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scores_1')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scores_2')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scores_3')}")
+        st.markdown(f"\n{translate_service.translate('pca_help_scores_tip')}")
+
+        st.markdown(f"\n### {translate_service.translate('pca_help_scatter_title')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_1')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_2')}")
+        st.markdown(f"- {translate_service.translate('pca_help_scatter_3')}")
+
+        st.markdown(f"\n### {translate_service.translate('pca_help_biplot_title')}")
+        st.markdown(f"- {translate_service.translate('pca_help_biplot_1')}")
+        st.markdown(f"- {translate_service.translate('pca_help_biplot_2')}")
+        st.markdown(f"- {translate_service.translate('pca_help_biplot_3')}")
+
+        st.markdown(f"\n### {translate_service.translate('pca_help_usage_title')}")
+        st.markdown(f"- {translate_service.translate('pca_help_usage_1')}")
+        st.markdown(f"- {translate_service.translate('pca_help_usage_2')}")
+        st.markdown(f"- {translate_service.translate('pca_help_usage_3')}")
 
     # Get the load scenario to check for medium_table output
     load_scenario = recipe.get_load_scenario()
@@ -302,26 +324,10 @@ def render_medium_pca_step(
         st.warning(translate_service.translate("pca_error_media_info"))
         return
 
-    st.markdown(
-        f"**{translate_service.translate('pca_available_media')}** : {', '.join(available_media)}"
-    )
-
     # Check existing PCA scenarios
     existing_pca_scenarios = recipe.get_medium_pca_scenarios_for_quality_check(
         quality_check_scenario.id
     )
-
-    if existing_pca_scenarios:
-        st.markdown(
-            f"**{translate_service.translate('pca_existing_analyses')}** : {len(existing_pca_scenarios)}"
-        )
-        with st.expander(
-            f"📊 {translate_service.translate('view_button')} {translate_service.translate('pca_existing_analyses').lower()}"
-        ):
-            for idx, pca_scenario in enumerate(existing_pca_scenarios):
-                st.write(
-                    f"{idx + 1}. {pca_scenario.title} (ID: {pca_scenario.id}) - {translate_service.translate('status')}: {pca_scenario.status.name}"
-                )
 
     # Configuration form for new PCA
     st.markdown("---")
@@ -397,35 +403,3 @@ def render_medium_pca_step(
                     st.rerun()
                 else:
                     st.error(translate_service.translate("pca_error_launching"))
-
-    # Info box with PCA explanation
-    with st.expander(f"💡 {translate_service.translate('pca_help_title')}"):
-        st.markdown(f"### {translate_service.translate('pca_help_intro_title')}")
-        st.markdown(translate_service.translate("pca_help_intro_text"))
-
-        st.markdown(f"\n### {translate_service.translate('pca_help_scores_title')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scores_1')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scores_2')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scores_3')}")
-        st.markdown(f"\n{translate_service.translate('pca_help_scores_tip')}")
-
-        st.markdown(f"\n### {translate_service.translate('pca_help_scatter_title')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_1')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_2')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_3')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_4')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_5')}")
-        st.markdown(f"- {translate_service.translate('pca_help_scatter_6')}")
-
-        st.markdown(f"\n### {translate_service.translate('pca_help_biplot_title')}")
-        st.markdown(f"- {translate_service.translate('pca_help_biplot_1')}")
-        st.markdown(f"- {translate_service.translate('pca_help_biplot_2')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2a')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2b')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2c')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_2d')}")
-        st.markdown(f"- {translate_service.translate('pca_help_biplot_3')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3a')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3b')}")
-        st.markdown(f"    - {translate_service.translate('pca_help_biplot_3c')}")
-        st.markdown(f"\n{translate_service.translate('pca_help_biplot_tip')}")

@@ -22,9 +22,9 @@ def render_pls_regression_results(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"### 📊 {translate_service.translate('pls_regression_results_title')}")
-    st.markdown(f"**{translate_service.translate('analysis_title_label')}** : {pls_scenario.title}")
-    st.markdown(f"**{translate_service.translate('status_label')}** : {pls_scenario.status.name}")
+    # Additional information section
+    with st.expander(f"ℹ️ {translate_service.translate('pls_interpretation_guide')}"):
+        st.markdown(translate_service.translate("pls_guide_content"))
 
     if pls_scenario.status != ScenarioStatus.SUCCESS:
         if pls_scenario.status == ScenarioStatus.ERROR:
@@ -156,7 +156,3 @@ def render_pls_regression_results(
         import traceback
 
         st.code(traceback.format_exc())
-
-    # Additional information section
-    with st.expander(f"ℹ️ {translate_service.translate('pls_interpretation_guide')}"):
-        st.markdown(translate_service.translate("pls_guide_content"))

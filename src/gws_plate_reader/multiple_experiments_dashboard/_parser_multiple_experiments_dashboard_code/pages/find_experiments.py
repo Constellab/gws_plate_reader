@@ -5,8 +5,7 @@ import streamlit as st
 from gws_core.impl.table.table import Table
 from gws_core.resource.resource_model import ResourceModel
 from gws_core.streamlit import StreamlitContainers, StreamlitResourceSelect
-from gws_plate_reader.biolector_xt_analysis.biolector_state import \
-    BiolectorExperiment
+from gws_plate_reader.biolector_xt_analysis.biolector_state import BiolectorExperiment
 
 
 def add_experiment_to_experiments_list(r: ResourceModel, table: Table) -> Dict[str, "BiolectorExperimentWithDetails"]:
@@ -54,10 +53,10 @@ def render_find_experiments_page():
     resource_select = StreamlitResourceSelect()
     resource_select.add_tag_filter('origin', 'biolector_dashboard')
     resource_select.add_tag_filter('raw_data')
-    resource_select.add_column_tag_filter_key('well')
-    resource_select.add_column_tag_filter_key('compound')
-    resource_select.add_column_tag_filter_key('dilution')
-    resource_select.add_column_tag_filter_key('label')
+    resource_select.add_column_tag_filter('well')
+    resource_select.add_column_tag_filter('compound')
+    resource_select.add_column_tag_filter('dilution')
+    resource_select.add_column_tag_filter('label')
     selected_resource = resource_select.select_resource(
         placeholder='Search and add experiment data', key="resource-selector", defaut_resource=None)
 

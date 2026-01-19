@@ -37,9 +37,6 @@ def render_graph_view_step(
         # If scenario is provided, use it
         if scenario:
             target_scenario = scenario
-            st.info(
-                f"📊 {translate_service.translate('displaying_graphs')} : **{target_scenario.title}**"
-            )
 
             if target_scenario.status != ScenarioStatus.SUCCESS:
                 st.warning(translate_service.translate("scenario_not_successful_yet"))
@@ -145,7 +142,6 @@ def render_graph_view_step(
         data_columns = cell_culture_state.get_data_columns_from_resource_set(filtered_resource_set)
 
         # === Section 1: Filters ===
-        st.markdown("---")
         st.markdown(f"### {translate_service.translate('filters_and_selection')}")
 
         # Check if this is a microplate recipe
@@ -206,18 +202,7 @@ def render_graph_view_step(
             col1, col2 = st.columns(2)
 
             with col1:
-                col1_header, col1_button = st.columns([3, 1])
-                with col1_header:
-                    st.write(translate_service.translate("batch_selection"))
-                with col1_button:
-                    if st.button(
-                        translate_service.translate("select_all_batches"),
-                        key="select_all_batches_graph",
-                        width="stretch",
-                    ):
-                        st.session_state.graph_view_batches = unique_batches
-                        st.rerun()
-
+                col1_select, col1_button = st.columns([3, 1])
                 # Reset selection if batches changed
                 if (
                     "graph_view_batches" not in st.session_state
@@ -231,26 +216,23 @@ def render_graph_view_step(
                     > 0
                 ):
                     st.session_state.graph_view_batches = []
-
-                selected_batches = st.multiselect(
-                    translate_service.translate("choose_batches"),
-                    options=unique_batches,
-                    key="graph_view_batches",
-                )
-
-            with col2:
-                col2_header, col2_button = st.columns([3, 1])
-                with col2_header:
-                    st.write(translate_service.translate("sample_selection"))
-                with col2_button:
+                with col1_button:
                     if st.button(
-                        translate_service.translate("select_all_samples"),
-                        key="select_all_samples_graph",
+                        translate_service.translate("select_all_batches"),
+                        key="select_all_batches_graph",
                         width="stretch",
                     ):
-                        st.session_state.graph_view_samples = unique_samples
+                        st.session_state.graph_view_batches = unique_batches
                         st.rerun()
+                with col1_select:
+                    selected_batches = st.multiselect(
+                        translate_service.translate("choose_batches"),
+                        options=unique_batches,
+                        key="graph_view_batches",
+                    )
 
+            with col2:
+                col2_select, col2_button = st.columns([3, 1])
                 # Reset selection if samples changed
                 if (
                     "graph_view_samples" not in st.session_state
@@ -264,18 +246,25 @@ def render_graph_view_step(
                     > 0
                 ):
                     st.session_state.graph_view_samples = []
-
-                selected_samples = st.multiselect(
-                    translate_service.translate("choose_samples"),
-                    options=unique_samples,
-                    key="graph_view_samples",
-                )
+                with col2_button:
+                    if st.button(
+                        translate_service.translate("select_all_samples"),
+                        key="select_all_samples_graph",
+                        width="stretch",
+                    ):
+                        st.session_state.graph_view_samples = unique_samples
+                        st.rerun()
+                with col2_select:
+                    selected_samples = st.multiselect(
+                        translate_service.translate("choose_samples"),
+                        options=unique_samples,
+                        key="graph_view_samples",
+                    )
 
         # Second row of the 2x2 grid (same for both modes)
         col3, col4 = st.columns(2)
 
         with col3:
-            st.write(translate_service.translate("index_column"))
             # Check if index columns are available
             if index_columns:
                 selected_index = st.selectbox(
@@ -297,7 +286,6 @@ def render_graph_view_step(
             filtered_data_columns = data_columns
 
         with col4:
-            st.write(f"**{translate_service.translate('column_selection')}:**")
             help_text = translate_service.translate("available_data_columns")
             if selected_index:
                 help_text += " " + translate_service.translate("excluding_index").format(
@@ -367,6 +355,8 @@ def render_graph_view_step(
 
         # Display graphs organized by selected columns
         if selected_columns:
+            st.markdown("---")
+
             st.markdown(
                 f"### 📊 {translate_service.translate('plots_organized_by')} {selected_index}"
             )

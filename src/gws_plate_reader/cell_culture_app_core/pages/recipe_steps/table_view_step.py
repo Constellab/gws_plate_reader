@@ -3,7 +3,7 @@ Table View Step for Cell Culture Dashboard
 Handles table visualization with filtering and column selection
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pandas as pd
 import streamlit as st
@@ -17,7 +17,7 @@ from gws_plate_reader.cell_culture_app_core.pages.recipe_steps.microplate_select
 )
 
 
-def get_available_columns_from_resource_set(resource_set: ResourceSet) -> Dict[str, Dict[str, str]]:
+def get_available_columns_from_resource_set(resource_set: ResourceSet) -> dict[str, dict[str, str]]:
     """Get available columns from ResourceSet that have 'is_data_column' or 'is_index_column' tags"""
     try:
         resources = resource_set.get_resources()
@@ -44,7 +44,7 @@ def get_available_columns_from_resource_set(resource_set: ResourceSet) -> Dict[s
 
 
 def prepare_extended_data_for_visualization(resource_set: ResourceSet, cell_culture_state: CellCultureState,
-                                            selected_columns: List[str] = None, include_medium: bool = True) -> List[Dict[str, Any]]:
+                                            selected_columns: list[str] = None, include_medium: bool = True) -> list[dict[str, Any]]:
     """Prepare extended data from ResourceSet including selected columns
 
     :param resource_set: The resource set to extract data from
@@ -111,8 +111,8 @@ def prepare_extended_data_for_visualization(resource_set: ResourceSet, cell_cult
 
 
 def get_col_tag_list_from_available_columns(
-    available_columns: Dict[str, Dict[str, str]], cell_culture_state: CellCultureState
-) -> List[str]:
+    available_columns: dict[str, dict[str, str]], cell_culture_state: CellCultureState
+) -> list[str]:
     """Get a list of column tags from the available columns."""
     col_tags = []
     for col_info in available_columns.values():
@@ -140,9 +140,6 @@ def render_table_view_step(
         # If scenario is provided, use it
         if scenario:
             target_scenario = scenario
-            st.info(
-                f"📋 {translate_service.translate('displaying_data')} : **{target_scenario.title}**"
-            )
 
             if target_scenario.status != ScenarioStatus.SUCCESS:
                 st.warning(translate_service.translate("scenario_not_successful_yet"))
@@ -209,7 +206,6 @@ def render_table_view_step(
         )
         data_columns = cell_culture_state.get_data_columns_from_resource_set(filtered_resource_set)
 
-        st.markdown("---")
         st.markdown(f"### {translate_service.translate('filters_selection_title')}")
 
         # Check if this is a microplate recipe
@@ -270,9 +266,19 @@ def render_table_view_step(
             col1, col2 = st.columns(2)
 
             with col1:
-                col1_header, col1_button = st.columns([3, 1])
-                with col1_header:
-                    st.write(translate_service.translate("batch_selection_label"))
+                col1_select, col1_button = st.columns([3, 1])
+                if (
+                        "table_view_batches" not in st.session_state
+                        or len(
+                            [
+                                batch
+                                for batch in st.session_state.table_view_batches
+                                if batch not in unique_batches
+                            ]
+                        )
+                        > 0
+                    ):
+                    st.session_state.table_view_batches = []
                 with col1_button:
                     if st.button(
                         translate_service.translate("select_all_batches"),
@@ -281,31 +287,27 @@ def render_table_view_step(
                     ):
                         st.session_state.table_view_batches = unique_batches
                         st.rerun()
-
-                # Reset selection if batches changed
-                if (
-                    "table_view_batches" not in st.session_state
-                    or len(
-                        [
-                            batch
-                            for batch in st.session_state.table_view_batches
-                            if batch not in unique_batches
-                        ]
+                with col1_select:
+                    selected_batches = st.multiselect(
+                        translate_service.translate("choose_batches"),
+                        options=unique_batches,
+                        key="table_view_batches",
                     )
-                    > 0
-                ):
-                    st.session_state.table_view_batches = []
-
-                selected_batches = st.multiselect(
-                    translate_service.translate("choose_batches"),
-                    options=unique_batches,
-                    key="table_view_batches",
-                )
 
             with col2:
-                col2_header, col2_button = st.columns([3, 1])
-                with col2_header:
-                    st.write(translate_service.translate("sample_selection"))
+                col2_select, col2_button = st.columns([3, 1])
+                if (
+                        "table_view_samples" not in st.session_state
+                        or len(
+                            [
+                                sample
+                                for sample in st.session_state.table_view_samples
+                                if sample not in unique_samples
+                            ]
+                        )
+                        > 0
+                    ):
+                        st.session_state.table_view_samples = []
                 with col2_button:
                     if st.button(
                         translate_service.translate("select_all_samples"),
@@ -314,32 +316,17 @@ def render_table_view_step(
                     ):
                         st.session_state.table_view_samples = unique_samples
                         st.rerun()
-
-                # Reset selection if samples changed
-                if (
-                    "table_view_samples" not in st.session_state
-                    or len(
-                        [
-                            sample
-                            for sample in st.session_state.table_view_samples
-                            if sample not in unique_samples
-                        ]
+                with col2_select:
+                    selected_samples = st.multiselect(
+                        translate_service.translate("choose_samples"),
+                        options=unique_samples,
+                        key="table_view_samples",
                     )
-                    > 0
-                ):
-                    st.session_state.table_view_samples = []
-
-                selected_samples = st.multiselect(
-                    translate_service.translate("choose_samples"),
-                    options=unique_samples,
-                    key="table_view_samples",
-                )
 
         # Second row of the 2x2 grid
         col3, col4 = st.columns(2)
 
         with col3:
-            st.write(translate_service.translate("index_column"))
             # Check if index columns are available
             if index_columns:
                 selected_index = st.selectbox(
@@ -361,7 +348,6 @@ def render_table_view_step(
             filtered_data_columns = data_columns
 
         with col4:
-            st.write(f"**{translate_service.translate('column_selection')}:**")
             selected_columns = st.multiselect(
                 translate_service.translate("choose_columns"),
                 options=filtered_data_columns,
@@ -411,6 +397,8 @@ def render_table_view_step(
 
         # Display data organized by selected columns
         if selected_columns:
+            st.markdown("---")
+
             st.markdown(
                 "### 📊 "
                 + translate_service.translate("data_organized_by").format(index=selected_index)

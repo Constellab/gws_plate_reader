@@ -335,9 +335,6 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
         with col4:
             st.metric(translate_service.translate("data_tables"), len(resources))
 
-        # Section 3: Missing data information
-        st.markdown(f"### {translate_service.translate('missing_data_couples')}")
-
         # Try to get the Venn diagram from the load scenario output
         venn_diagram = cell_culture_state.get_venn_diagram_output()
 
@@ -416,6 +413,9 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
             st.plotly_chart(fig_venn, use_container_width=True)
 
         if missing_data:
+            # Section 3: Missing data information
+            st.markdown(f"### {translate_service.translate('missing_data_couples')}")
+
             df_missing = pd.DataFrame(missing_data)
 
             # Make the detailed table collapsible

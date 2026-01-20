@@ -2,9 +2,11 @@
 Base State class for Cell Culture Dashboards
 Manages common state and session management - Abstract base class
 """
-
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+import json
+import os
+import tempfile
+from abc import ABC
+from typing import Any, Optional
 
 import pandas as pd
 import streamlit as st
@@ -88,7 +90,7 @@ class CellCultureState(ABC):
     # Process names (subclasses must override)
     PROCESS_NAME_DATA_PROCESSING = "data_processing"  # Must be set by subclasses
 
-    ANALYSIS_TREE: Dict[str, Any] = {
+    ANALYSIS_TREE: dict[str, Any] = {
         "medium_pca": {"title": "medium_pca_analysis", "icon": "scatter_plot", "children": []},
         "medium_umap": {"title": "medium_umap_analysis", "icon": "bubble_chart", "children": []},
         "feature_extraction": {
@@ -98,7 +100,7 @@ class CellCultureState(ABC):
         },
     }
 
-    POST_FEATURE_EXTRACTION_ANALYSIS_TREE: Dict[str, Any] = {
+    POST_FEATURE_EXTRACTION_ANALYSIS_TREE: dict[str, Any] = {
         "metadata_feature_umap": {
             "title": "metadata_feature_umap_analysis",
             "icon": "bubble_chart",
@@ -114,18 +116,55 @@ class CellCultureState(ABC):
         "optimization": {"title": "optimization_analysis", "icon": "auto_mode", "children": []},
     }
 
-    def __init__(self, lang_translation_folder_path: str):
-        """
-        Initialize the state manager with translation service.
+    def __init__(self, lang_translation_folder_path: str, lang_specific_folder_path: str | None = None):
+        """Initialize the state manager with translation service."""
+        # Get the path of the current file's directory if not provided
+        if lang_translation_folder_path is None:
+            raise ValueError('No lang_translation_folder_path')
 
-        :param lang_translation_folder_path: Path to translation files folder
-        """
+        if lang_specific_folder_path :
+            # Create temporary directory for merged translations
+            temp_dir = tempfile.mkdtemp(prefix='translations_')
+
+            # Merge translations for each language
+            for lang in ['en', 'fr']:
+                self.merge_translation_files(
+                    lang_translation_folder_path,
+                    lang_specific_folder_path,
+                    temp_dir,
+                    lang
+                )
+            lang_translation_folder_path = temp_dir
+
         # Initialize translation service
         translate_service = StreamlitTranslateService(lang_translation_folder_path)
         st.session_state[self.TRANSLATE_SERVICE] = translate_service
 
         # Initialize session state variables
         self._initialize_session_state()
+
+    # Function to merge JSON files
+    def merge_translation_files(self, base_path, specific_path, output_path, lang):
+        """Merge base and specific translation files for a given language."""
+        base_file = os.path.join(base_path, f'{lang}.json')
+        specific_file = os.path.join(specific_path, f'{lang}_specific.json')
+        output_file = os.path.join(output_path, f'{lang}.json')
+
+        merged_data = {}
+
+        # Load base translations (gws_plate_reader)
+        if os.path.exists(base_file):
+            with open(base_file, encoding='utf-8') as f:
+                merged_data.update(json.load(f))
+
+        # Load and merge specific translations
+        if os.path.exists(specific_file):
+            with open(specific_file, encoding='utf-8') as f:
+                merged_data.update(json.load(f))
+
+        # Write merged translations
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(merged_data, f, ensure_ascii=False, indent=4)
 
     def _initialize_session_state(self) -> None:
         """Initialize common session state variables if they don't exist."""
@@ -180,11 +219,11 @@ class CellCultureState(ABC):
         st.session_state[self.SELECTED_RECIPE_INSTANCE_KEY] = recipe_instance
 
     # Processing results methods
-    def get_processing_results(self) -> Dict[str, Any]:
+    def get_processing_results(self) -> dict[str, Any]:
         """Get the processing results from session state."""
         return st.session_state.get(self.PROCESSING_RESULTS_KEY, {})
 
-    def set_processing_results(self, results: Dict[str, Any]) -> None:
+    def set_processing_results(self, results: dict[str, Any]) -> None:
         """Set the processing results in session state."""
         st.session_state[self.PROCESSING_RESULTS_KEY] = results
 
@@ -197,19 +236,19 @@ class CellCultureState(ABC):
         st.session_state[self.PROCESSING_COMPLETED_KEY] = completed
 
     # Selection data methods
-    def get_selection_data(self) -> List[bool]:
+    def get_selection_data(self) -> list[bool]:
         """Get the selection data from session state."""
         return st.session_state.get(self.SELECTION_DATA_KEY, [])
 
-    def set_selection_data(self, selection: List[bool]) -> None:
+    def set_selection_data(self, selection: list[bool]) -> None:
         """Set the selection data (list of boolean values) in session state."""
         st.session_state[self.SELECTION_DATA_KEY] = selection
 
-    def get_selected_resources(self) -> List[Dict[str, str]]:
+    def get_selected_resources(self) -> list[dict[str, str]]:
         """Get the selected resources from session state."""
         return st.session_state.get(self.SELECTED_RESOURCES_KEY, [])
 
-    def set_selected_resources(self, resources: List[Dict[str, str]]) -> None:
+    def set_selected_resources(self, resources: list[dict[str, str]]) -> None:
         """Set the selected resources in session state."""
         st.session_state[self.SELECTED_RESOURCES_KEY] = resources
 
@@ -232,12 +271,12 @@ class CellCultureState(ABC):
         recipe = self.get_selected_recipe_instance()
         return recipe.pipeline_id if recipe else None
 
-    def get_selection_scenarios(self) -> List[Scenario]:
+    def get_selection_scenarios(self) -> list[Scenario]:
         """Get the list of selection scenarios from the Recipe instance."""
         recipe = self.get_selected_recipe_instance()
         return recipe.get_selection_scenarios() if recipe else []
 
-    def get_visualization_scenarios(self) -> List[Scenario]:
+    def get_visualization_scenarios(self) -> list[Scenario]:
         """Get the list of visualization scenarios from the Recipe instance."""
         recipe = self.get_selected_recipe_instance()
         return recipe.get_visualization_scenarios() if recipe else []
@@ -325,13 +364,13 @@ class CellCultureState(ABC):
         """
         return self.get_load_scenario_input_resource_model(self.MEDIUM_CSV_INPUT_KEY)
 
-    def add_scenarios_to_recipe(self, step: str, scenarios: List[Scenario]) -> None:
+    def add_scenarios_to_recipe(self, step: str, scenarios: list[Scenario]) -> None:
         """Add scenarios to the current Recipe instance for a specific step."""
         recipe = self.get_selected_recipe_instance()
         if recipe:
             recipe.add_scenarios_by_step(step, scenarios)
 
-    def update_recipe_with_selection_scenarios(self, selection_scenarios: List[Scenario]) -> None:
+    def update_recipe_with_selection_scenarios(self, selection_scenarios: list[Scenario]) -> None:
         """Update the current Recipe instance with selection scenarios."""
         recipe = self.get_selected_recipe_instance()
         if recipe:
@@ -417,7 +456,7 @@ class CellCultureState(ABC):
 
         tags_dict = entity_tag_list.get_tags_as_dict()
 
-        tags: List[Tag] = []
+        tags: list[Tag] = []
 
         if self.TAG_FERMENTOR in tags_dict:
             tags.append(Tag(key=self.TAG_FERMENTOR, value=tags_dict[self.TAG_FERMENTOR]))
@@ -524,7 +563,7 @@ class CellCultureState(ABC):
         st.session_state[self.PIPELINE_ID_KEY] = None
 
     # Utility functions for data processing with ResourceSet
-    def get_index_columns_from_resource_set(self, resource_set: ResourceSet) -> List[str]:
+    def get_index_columns_from_resource_set(self, resource_set: ResourceSet) -> list[str]:
         """
         Get all columns that can be used as index from the ResourceSet.
         Returns all columns that have either 'is_index_column' or 'is_data_column' tags.
@@ -561,7 +600,7 @@ class CellCultureState(ABC):
         except Exception:
             return []
 
-    def get_strict_index_columns_from_resource_set(self, resource_set: ResourceSet) -> List[str]:
+    def get_strict_index_columns_from_resource_set(self, resource_set: ResourceSet) -> list[str]:
         """
         Get only columns with is_index_column=true tag (strict filtering).
         Use this for Feature Extraction where only time/temperature columns should be selectable.
@@ -590,7 +629,7 @@ class CellCultureState(ABC):
         except Exception:
             return []
 
-    def get_data_columns_from_resource_set(self, resource_set: ResourceSet) -> List[str]:
+    def get_data_columns_from_resource_set(self, resource_set: ResourceSet) -> list[str]:
         """Get columns that contain data (is_data_column tagged columns)"""
         try:
             resources = resource_set.get_resources()
@@ -688,7 +727,7 @@ class CellCultureState(ABC):
             # Return empty DataFrame in case of error
             return pd.DataFrame()
 
-    def prepare_data_for_visualization(self, resource_set: ResourceSet) -> List[Dict[str, str]]:
+    def prepare_data_for_visualization(self, resource_set: ResourceSet) -> list[dict[str, str]]:
         """Prepare data from ResourceSet for visualization"""
         try:
             resources = resource_set.get_resources()

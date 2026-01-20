@@ -1,8 +1,8 @@
 import os
 
-import streamlit as st
 from gws_core.streamlit import StreamlitRouter
 
+import gws_plate_reader
 from gws_plate_reader.biolector_cell_culture_dashboard._biolector_cell_culture_dashboard_core.biolector_state import (
     BiolectorState,
 )
@@ -16,13 +16,17 @@ params: dict
 
 # Get the directory of this file
 current_dir = os.path.dirname(__file__)
-# Get the parent directory (_biolector_cell_culture_dashboard_core)
+# Path to gws_plate_reader translation files
+gws_plate_reader_file = gws_plate_reader.__file__
+if gws_plate_reader_file is None:
+    raise ValueError("gws_plate_reader.__file__ is None")
+lang_translation_folder_path_gws_plate_reader = os.path.join(os.path.dirname(gws_plate_reader_file), 'cell_culture_app_core')
+
 core_dir = os.path.join(current_dir, '..', '_biolector_cell_culture_dashboard_core')
-# Build absolute path to translation folder
 lang_translation_folder_path = os.path.abspath(core_dir)
 
 # Initialize BiolectorXT state
-biolector_state = BiolectorState(lang_translation_folder_path)
+biolector_state = BiolectorState(lang_translation_folder_path_gws_plate_reader, lang_translation_folder_path)
 
 
 def display_first_page(biolector_state: BiolectorState):

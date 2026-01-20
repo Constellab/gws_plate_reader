@@ -38,14 +38,6 @@ class BiolectorState(CellCultureState):
     MEDIUM_TABLE_INPUT_KEY = "medium_table"
     INFO_TABLE_INPUT_KEY = "info_table"
 
-    def __init__(self, lang_translation_folder_path: str):
-        """
-        Initialize the BiolectorXT state manager.
-
-        :param lang_translation_folder_path: Path to translation files folder
-        """
-        super().__init__(lang_translation_folder_path)
-
     def create_recipe_from_scenario(self, scenario: Scenario) -> CellCultureRecipe:
         """
         Create a BiolectorRecipe instance from a scenario.

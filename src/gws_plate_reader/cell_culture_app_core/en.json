@@ -736,7 +736,7 @@
     "open_interactive_dashboard": "🚀 Open Interactive Dashboard",
     "causal_effect_usage_guide": "**How to use the dashboard:**\n1. Click the button above to open the dashboard in a new tab\n2. Use the filters in the sidebar to select variables of interest\n3. Explore different tabs for different visualizations\n4. Causal effects are displayed with logarithmic transformation for better readability\n\n**Results interpretation:**\n- **Positive values**: Treatment increases the target variable\n- **Negative values**: Treatment decreases the target variable\n- **Values close to zero**: No significant causal effect",
     "resource_id_label": "Resource ID",
-    "plot_comparaison" : "Plot Comparison",
+    "plot_comparaison": "Plot Comparison",
     "feature_extraction_results_interpretation": "**Feature Extraction Results Interpretation**\n\n**Results Table:**\n- Contains all estimated parameters for each model and series\n- **Model parameters**: y0 (initial value), A (asymptote), μ (rate), lag (lag phase)\n- **Statistical metrics**: R² (goodness of fit), AIC/BIC (model comparison), RMSE/MAE (errors)\n- **Growth intervals**: t5, t10, t20, t50, t80, t90, t95 (time at % amplitude)\n- **Dynamic characteristics**: slope_max (max rate), doubling_time (doubling time)\n\n**Comparison plots:**\n- Compare all fitted models for the same data series\n- Allow visual identification of the best model\n- Points are actual data, lines are the fits\n\n**Model-specific plots:**\n- Show the fit of a specific model to all series\n- Useful to see performance of a particular model\n- 95% confidence intervals often displayed\n\n**How to choose the best model:**\n1. Look at R²: closer to 1 = better fit\n2. Compare AIC/BIC: lower = better model\n3. Visually verify the fit on the plots\n4. Favor parsimony: simple models if similar performance",
     "medium_table_output_unavailable": "The 'medium_table' output is not available in the loading scenario",
     "results_table_not_available": "The 'results_table' output is not available",
@@ -753,7 +753,7 @@
     "status_with_name": "Status: {status}",
     "pls_metadata_output_unavailable": "Output 'metadata_table' is not available in the quality check scenario",
     "pls_results_table_unavailable": "Output 'results_table' is not available in the feature extraction scenario",
-    "individual_curves" : "Individual curves",
+    "individual_curves": "Individual curves",
     "mean": "Mean",
     "mean_of_selected_samples": "Mean of selected samples",
     "select_display_mode": "Select the display mode",
@@ -880,7 +880,7 @@
     "by_batch": "By batch",
     "mean_selected_batches": "Mean of selected batches",
     "standalone_mode_function_blocked": "You are in standalone mode. This function is not available. Contact us if you would like the application with all its features in your lab.",
-    "unknown_error" : "Unknown error",
+    "unknown_error": "Unknown error",
     "optimization_dashboard_description": "The interactive Streamlit dashboard allows you to explore the results of the Optimization analysis:\n- **Summary**: Best solution found and key metrics\n- **3D Surface Explorer**: Interactive exploration of the search space\n- **Feature Importance**: Importance of variables in the model\n- **Observed vs Predicted**: Predictive model validation\n- **Data Explorer**: All generated solutions",
     "optimization_dashboard_usage_guide_en": "**How to use the dashboard:**\n1. Click the button above to open the dashboard in a new tab\n2. Explore the proposed optimal solutions\n3. Visualize trade-offs between different objectives using the 3D Surface Explorer\n4. Identify the optimal parameters for your application\n\n**Results interpretation:**\n\n** Best Solution**:\n- Optimal values found for each input variable\n- Predictions for each target variable\n- Global fitness score\n\n**3D Surface Explorer**:\n- Response surface visualization\n- Axis interaction to explore different perspectives\n- Red points = generated solutions\n\n** Feature Importance**:\n- Relative importance of each input variable\n- Based on Random Forest / XGBoost / CatBoost model\n- Higher values indicate greater importance\n\n** Observed vs Predicted**:\n- Cross-validation of the predictive model\n- Points aligned along the diagonal = good predictions\n- R² score indicates model quality\n\n** Data Explorer**:\n- Complete table of all found solutions\n- Interactive sorting and filtering\n- CSV export available\n\n# Possible actions\n\n1. ** Analyze solutions**: Identify optimal conditions\n2. ** Validate predictions**: Check R² and plots\n3. ** Explore the space**: Use the 3D Surface Explorer\n4. ** Export data**: Download CSV files from the dashboard\n5. ** Iterate**: Run a new optimization with adjusted constraints",
     "microplate_selection": "Microplate Selection",
@@ -893,5 +893,6 @@
     "selection_details_per_plate": "Selection details per plate",
     "selected_wells_label": "Selected wells:",
     "none": "None",
-    "visualization": "Visualization"
+    "visualization": "Visualization",
+    "qc_cannot_retrieve_subsampled_data": "Cannot retrieve subsampled data from selection scenario"
 }

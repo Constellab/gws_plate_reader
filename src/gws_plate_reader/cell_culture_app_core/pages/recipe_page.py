@@ -157,10 +157,6 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                         if analysis_type == "feature_extraction" and not recipe.has_data_raw:
                             continue
 
-                        # Skip medium PCA and UMAP for microplate recipes
-                        if recipe.analysis_type == "microplate" and analysis_type in ['medium_pca', 'medium_umap']:
-                            continue
-
                         analysis_item = StreamlitTreeMenuItem(
                             label=translate_service.translate(analysis_info["title"]),
                             key=f"analysis_{analysis_type}_qc_{qc_scenario.id}"
@@ -243,10 +239,6 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                     for post_feature_extraction_analysis_type, post_feature_extraction_analysis_info in cell_culture_state.POST_FEATURE_EXTRACTION_ANALYSIS_TREE.items():
                                         # Skip all post feature extraction analyses if recipe has no medium info
                                         if not recipe.has_medium_info:
-                                            continue
-
-                                        # Skip PLS, Causal Effect, and Optimization for microplate recipes
-                                        if recipe.analysis_type == "microplate" and post_feature_extraction_analysis_type in ['pls_regression', 'causal_effect', 'optimization']:
                                             continue
 
                                         if post_feature_extraction_analysis_type == 'metadata_feature_umap':

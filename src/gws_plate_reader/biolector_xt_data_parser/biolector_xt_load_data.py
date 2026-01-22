@@ -17,6 +17,7 @@ from gws_core import (
     OutputSpecs,
     PlotlyResource,
     ResourceSet,
+    StrParam,
     Table,
     Task,
     TaskInputs,
@@ -435,18 +436,29 @@ class BiolectorXTLoadData(Task):
         :param metadata: Metadata dictionary
         :return: Dictionary mapping filter names to parsed DataFrames
         """
+        self.log_info_message("🔍 [PARSE_DATA] Starting parse_data...")
+        self.log_info_message(f"📊 [PARSE_DATA] Input data shape: {data.shape}")
+        self.log_info_message(f"📋 [PARSE_DATA] Input data columns: {list(data.columns)}")
+        self.log_info_message(f"🔢 [PARSE_DATA] First few rows of data:\n{data.head(3)}")
 
         is_micro_fluidics: bool = self.is_micro_fluidics(data)
         filters: list[str] = self.get_filters(metadata)
+
+        self.log_info_message(f"🧪 [PARSE_DATA] Microfluidics mode: {is_micro_fluidics}")
+        self.log_info_message(f"🎨 [PARSE_DATA] Filters detected: {filters}")
 
         # Sort and filter data
         row_data = data.sort_values(by=['Filterset', 'Well'])
         reduced_data = row_data[["Well", "Filterset", "Time", "Cal"]]
         unique_values = reduced_data['Filterset'].dropna().unique()
 
+        self.log_info_message(f"📦 [PARSE_DATA] Unique filterset values: {list(unique_values)}")
+        self.log_info_message(f"📊 [PARSE_DATA] Reduced data shape: {reduced_data.shape}")
+
         df_filter_dict: dict[str, DataFrame] = {}
 
         for i, value in enumerate(unique_values):
+            self.log_info_message(f"\n🔄 [PARSE_DATA] Processing filter {i+1}/{len(unique_values)}: {value}")
             df_filter = reduced_data[reduced_data['Filterset'] == value]
             df_filter = df_filter.sort_values(by=['Well', 'Time'])
             df_filter = df_filter.drop(columns="Filterset")
@@ -461,12 +473,15 @@ class BiolectorXTLoadData(Task):
                                   for letter in range(ord('A'), ord('F') + 1)
                                   for num in range(1, 9)]
 
-            # Add columns for time and wells
-            df_filter = df_filter.assign(time=NA, Temps_en_h=NA, **{col: NA for col in columns_to_add})
+            # Save original time column before we overwrite it
+            original_time_col = df_filter['Time'].copy()
 
-            # Fill time columns
-            df_filter["time"] = df_filter.loc[df_filter['Well'] == columns_to_add[0], 'Time']
-            df_filter["Temps_en_h"] = df_filter["time"] / 3600
+            # Add columns for time and wells
+            # Create only 'Time' column in hours (standardized)
+            df_filter = df_filter.assign(Time=NA, **{col: NA for col in columns_to_add})
+
+            # Fill Time column in hours
+            df_filter["Time"] = original_time_col / 3600
 
             # Populate well columns
             for name_col in columns_to_add:
@@ -479,15 +494,23 @@ class BiolectorXTLoadData(Task):
             for col in columns_to_process:
                 df_filter[col] = Series(df_filter[col].dropna().values)
 
-            # Clean up
-            df_filter = df_filter.dropna(subset=['time'])
-            df_filter = df_filter.drop(columns=["Well", "Time", "Cal"])
+            # Clean up - keep standardized 'Time' column (in hours)
+            df_filter = df_filter.dropna(subset=['Time'])
+            self.log_info_message(f"📊 [PARSE_DATA] After dropna, shape: {df_filter.shape}")
+
+            df_filter = df_filter.drop(columns=["Well", "Cal"])
+            self.log_info_message(f"📊 [PARSE_DATA] After drop columns, shape: {df_filter.shape}")
+            self.log_info_message(f"📋 [PARSE_DATA] Final columns: {list(df_filter.columns)}")
 
             # Add to dictionary
             if i < len(filters):
                 filter_name = filters[i]
                 df_filter_dict[filter_name] = df_filter
+                self.log_info_message(f"✅ [PARSE_DATA] Added filter '{filter_name}' with shape {df_filter.shape}")
+            else:
+                self.log_warning_message(f"⚠️ [PARSE_DATA] Filter index {i} >= len(filters) {len(filters)}, skipping")
 
+        self.log_info_message(f"\n✅ [PARSE_DATA] parse_data completed. Generated {len(df_filter_dict)} filter tables")
         return df_filter_dict
 
     def get_wells_cultivation(self, metadata: dict) -> list[str]:
@@ -570,6 +593,9 @@ class BiolectorXTLoadData(Task):
         :param plate_name: Name of the plate (e.g., "plate_0", "plate_1")
         :return: ResourceSet containing one table per well
         """
+        self.log_info_message(f"\n🏗️ [CREATE_RESOURCE_SET] Starting for plate: {plate_name}")
+        self.log_info_message(f"📊 [CREATE_RESOURCE_SET] Input data shape: {data.shape}")
+
         resource_set = ResourceSet()
 
         # Prepare medium composition mapping if tables are provided
@@ -602,20 +628,30 @@ class BiolectorXTLoadData(Task):
 
         # Get parsed data (one DataFrame per filter/channel)
         parsed_data: dict[str, DataFrame] = self.parse_data(data=data, metadata=metadata)
+        self.log_info_message(f"📦 [CREATE_RESOURCE_SET] Parsed data contains {len(parsed_data)} filters: {list(parsed_data.keys())}")
+
         wells_data = self.get_wells_label_description(metadata=metadata,
                                                        existing_plate_layout=existing_plate_layout)
 
         # Get expected wells from metadata
         expected_wells = self.get_wells(metadata)  # Cultivation + Reservoir wells
         cultivation_wells = self.get_wells_cultivation(metadata)
+        self.log_info_message(f"🔍 [CREATE_RESOURCE_SET] Expected wells from metadata: {len(expected_wells)} wells")
+        self.log_info_message(f"🧪 [CREATE_RESOURCE_SET] Cultivation wells: {len(cultivation_wells)} wells")
 
         # Get all well columns (excluding time columns)
         first_filter = list(parsed_data.keys())[0] if parsed_data else None
         if not first_filter:
+            self.log_warning_message("⚠️ [CREATE_RESOURCE_SET] No filters in parsed_data, returning empty resource_set")
             return resource_set
 
         first_df = parsed_data[first_filter]
-        well_columns = [col for col in first_df.columns if col not in ['time', 'Temps_en_h']]
+        self.log_info_message(f"📊 [CREATE_RESOURCE_SET] First filter '{first_filter}' has shape: {first_df.shape}")
+        self.log_info_message(f"📋 [CREATE_RESOURCE_SET] First filter columns: {list(first_df.columns)}")
+
+        # Filter out standardized time column 'Time'
+        well_columns = [col for col in first_df.columns if col != 'Time']
+        self.log_info_message(f"🔢 [CREATE_RESOURCE_SET] Well columns detected: {len(well_columns)} wells: {well_columns[:10]}...")
 
         # Find missing wells (expected but no data)
         wells_with_data = set(well_columns)
@@ -626,13 +662,16 @@ class BiolectorXTLoadData(Task):
             self.log_info_message(f"⚠️ {len(missing_wells)} missing wells (in metadata but no data)")
 
         # Create one table per well
+        self.log_info_message(f"\n🔄 [CREATE_RESOURCE_SET] Creating tables for {len(well_columns)} wells...")
+        tables_created = 0
+
         for well in well_columns:
             # Convert well name from C01 format to C1 format (remove leading zero)
             # This ensures consistency with resource names used throughout the system
             well_clean = f"{well[0]}{int(well[1:])}" if len(well) >= 2 else well
 
-            # Start with time column(s)
-            well_df = first_df[['Temps_en_h']].copy()
+            # Start with time column 'Time' (in hours)
+            well_df = first_df[['Time']].copy()
 
             # Add measurement columns for this well from each filter
             for filter_name, filter_df in parsed_data.items():
@@ -641,7 +680,7 @@ class BiolectorXTLoadData(Task):
                     well_df[filter_name] = filter_df[well]
 
             # Only create table if we have data (not all NaN)
-            if not well_df.drop(columns=['Temps_en_h']).isna().all().all():
+            if not well_df.drop(columns=['Time']).isna().all().all():
                 table = Table(well_df)
                 table.name = well_clean  # Use clean name without leading zero
 
@@ -650,14 +689,14 @@ class BiolectorXTLoadData(Task):
                 origins = TagOrigins(TagOriginType.USER, user_id)
 
                 # Add column tags for proper column identification
-                # Tag time column as index column
-                table.add_column_tag_by_name('Temps_en_h', 'column_name', 'Temps')
-                table.add_column_tag_by_name('Temps_en_h', 'unit', 'h')
-                table.add_column_tag_by_name('Temps_en_h', 'is_index_column', 'true')
+                # Tag Time column as index column (in hours)
+                table.add_column_tag_by_name('Time', 'column_name', 'Time')
+                table.add_column_tag_by_name('Time', 'unit', 'h')
+                table.add_column_tag_by_name('Time', 'is_index_column', 'true')
 
                 # Tag measurement columns as data columns
                 for col in table.column_names:
-                    if col != 'Temps_en_h':
+                    if col != 'Time':
                         # This is a measurement column (Biomass, pH, pO2, etc.)
                         table.add_column_tag_by_name(col, 'column_name', col)
                         table.add_column_tag_by_name(col, 'is_data_column', 'true')
@@ -697,6 +736,13 @@ class BiolectorXTLoadData(Task):
                         table.tags.add_tag(missing_tag)
 
                 resource_set.add_resource(table, well_clean)  # Use clean name
+                tables_created += 1
+                if tables_created <= 3 or tables_created % 10 == 0:
+                    self.log_info_message(f"✅ [CREATE_RESOURCE_SET] Created table {tables_created}: {well_clean}")
+            else:
+                self.log_info_message(f"⏭️ [CREATE_RESOURCE_SET] Skipped well {well_clean} (all NaN)")
+
+        self.log_info_message(f"\n✅ [CREATE_RESOURCE_SET] Completed. Created {tables_created} tables in resource_set")
 
         # Create tables for missing wells (expected in metadata but no data in raw_data)
         wells_with_data = set(well_columns)
@@ -888,6 +934,7 @@ class BiolectorXTLoadData(Task):
             medium_columns = set()
             if medium_table is not None:
                 medium_df = medium_table.get_data()
+                # Always use 'Medium' as standardized column name
                 medium_columns = set(medium_df.columns) - {'Medium'}
 
             # Remove columns that only contain NaN (but keep medium composition columns even if all 0)
@@ -935,35 +982,55 @@ class BiolectorXTLoadData(Task):
 
         # Get medium table (unique across all plates)
         medium_table: Table = inputs.get('medium_table')
+        self.log_info_message(f"🔍 [DEBUG] medium_table from named port: {medium_table is not None} (type: {type(medium_table).__name__ if medium_table else 'None'})")
 
         # Get all dynamic inputs (plates as ResourceList)
         plates_resource_list: ResourceList = inputs.get('source')
+        self.log_info_message(f"🔍 [DEBUG] plates_resource_list type: {type(plates_resource_list).__name__}")
 
         if not isinstance(plates_resource_list, ResourceList):
             raise Exception(f"Expected ResourceList for 'source' input, got {type(plates_resource_list)}")
 
         # Get the actual list of resources from ResourceList
         plates_list = plates_resource_list.get_resources()
+
+        # Filter out None values (can happen with optional dynamic inputs)
+        plates_list = [plate for plate in plates_list if plate is not None]
+
         num_plates = len(plates_list)
+        self.log_info_message(f"🔍 [DEBUG] Total items in plates_list (after filtering None): {num_plates}")
+
+        # Log each item in plates_list
+        for i, item in enumerate(plates_list):
+            self.log_info_message(f"🔍 [DEBUG] plates_list[{i}]: {type(item).__name__}")
 
         # Check if first element is medium_table (Table) instead of ResourceSet
-        medium_table = None
+        # Only use it if medium_table was not already provided via named port
         start_idx = 0
-        if num_plates > 0 and isinstance(plates_list[0], Table):
+        if medium_table is None and num_plates > 0 and isinstance(plates_list[0], Table):
+            # Legacy mode: medium_table passed as first dynamic input
             medium_table = plates_list[0]
             start_idx = 1
-            self.log_info_message(f"Found medium_table as first input")
+            self.log_info_message(f"✅ [DEBUG] Found medium_table as first dynamic input, start_idx = {start_idx}")
+        elif medium_table is not None:
+            self.log_info_message(f"✅ [DEBUG] Using medium_table from named input port, start_idx = {start_idx}")
 
         actual_plates = plates_list[start_idx:]
         num_actual_plates = len(actual_plates)
+        self.log_info_message(f"📊 [DEBUG] actual_plates count: {num_actual_plates}")
+        for i, plate in enumerate(actual_plates):
+            self.log_info_message(f"📊 [DEBUG] actual_plates[{i}]: {type(plate).__name__}")
+
         self.log_info_message(f"Processing {num_actual_plates} plate(s)")
 
         # Get plate names from config
         plate_names: list[str] = params.get_value('plate_names')
+        self.log_info_message(f"🏷️ [DEBUG] plate_names from config: {plate_names}")
 
         # Validate plate names
         if plate_names and len(plate_names) > 0:
             # User provided plate names - validate count
+            self.log_info_message(f"🔍 [DEBUG] Validating: {len(plate_names)} names vs {num_actual_plates} plates")
             if len(plate_names) != num_actual_plates:
                 raise Exception(
                     f"Number of plate names ({len(plate_names)}) does not match number of input plates ({num_actual_plates}). "

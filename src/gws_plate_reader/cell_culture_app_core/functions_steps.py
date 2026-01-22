@@ -65,9 +65,9 @@ def get_status_material_icon(status: ScenarioStatus) -> str:
     return icon_map.get(status, "help")
 
 
-def get_microplate_emoji(is_microplate: bool) -> str:
-    """Return appropriate emoji for microplate analysis"""
-    return "🧪" if is_microplate else "🔬"
+def get_biolector_emoji(is_biolector: bool) -> str:
+    """Return appropriate emoji for biolector analysis"""
+    return "🧫" if is_biolector else "🧪"
 
 
 def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: CellCultureState,
@@ -169,7 +169,7 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
             row_data = {
                 "id": recipe_id,  # Use load scenario ID
                 "Recipe Name": recipe_data['recipe_name'],
-                "Type": f"{get_microplate_emoji(recipe_data['is_microplate'])} {translate_service.translate('type_microplate') if recipe_data['is_microplate'] else translate_service.translate('type_standard')}",
+                "Type": f"{get_biolector_emoji(recipe_data['is_microplate'])} {translate_service.translate('type_biolector') if recipe_data['is_microplate'] else translate_service.translate('type_fermentor')}",
                 "Folder": recipe_data['folder_name'],
                 "Created": recipe_data['created_at'].strftime("%d/%m/%Y %H:%M") if recipe_data['created_at'] else "",
                 "Created By": recipe_data['created_by'],

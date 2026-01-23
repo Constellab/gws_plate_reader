@@ -125,241 +125,89 @@ def render_table_view_step(
     cell_culture_state: CellCultureState,
     scenario: Optional[Scenario] = None,
     output_name: str = None,
+    filtered_resource_set = None,
+    target_scenario: Optional[Scenario] = None,
+    visualization_data: list = None,
+    selected_batches: list = None,
+    selected_samples: list = None,
+    selected_index: str = None,
+    selected_columns: list = None,
 ) -> None:
     """Render the table view step with filtered data visualization
 
     :param recipe: The Recipe instance
     :param cell_culture_state: The cell culture state
     :param scenario: The scenario to display (selection or quality check)
-    :param output_name: The output name to retrieve from the scenario (e.g., INTERPOLATION_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_OUTPUT_NAME or QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME)
+    :param output_name: The output name to retrieve from the scenario
+    :param filtered_resource_set: Pre-loaded resource set (optional, for performance)
+    :param target_scenario: Pre-loaded target scenario (optional, for performance)
+    :param visualization_data: Pre-loaded visualization data (optional, for performance)
+    :param selected_batches: Pre-selected batches (optional, from parent)
+    :param selected_samples: Pre-selected samples (optional, from parent)
+    :param selected_index: Pre-selected index column (optional, from parent)
+    :param selected_columns: Pre-selected data columns (optional, from parent)
     """
 
     translate_service = cell_culture_state.get_translate_service()
 
     try:
-        # If scenario is provided, use it
-        if scenario:
-            target_scenario = scenario
+        # If data not provided, load it (backward compatibility)
+        # If data not provided, load it (backward compatibility)
+        if filtered_resource_set is None or target_scenario is None or visualization_data is None:
+            # If scenario is provided, use it
+            if scenario:
+                target_scenario = scenario
 
-            if target_scenario.status != ScenarioStatus.SUCCESS:
-                st.warning(translate_service.translate("scenario_not_successful_yet"))
-                return
-
-            # Get data from scenario using the provided output name
-            if not output_name:
-                # Default to interpolation output for backward compatibility
-                output_name = cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
-
-            scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
-            protocol_proxy = scenario_proxy.get_protocol()
-
-            try:
-                filtered_resource_set = protocol_proxy.get_output(output_name)
-                if not filtered_resource_set:
-                    st.error(translate_service.translate("cannot_retrieve_data"))
+                if target_scenario.status != ScenarioStatus.SUCCESS:
+                    st.warning(translate_service.translate("scenario_not_successful_yet"))
                     return
 
-            except Exception as e:
-                st.error(translate_service.translate("error_retrieving_data").format(error=str(e)))
-                return
+                # Get data from scenario using the provided output name
+                if not output_name:
+                    # Default to interpolation output for backward compatibility
+                    output_name = cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME
 
-        # Backward compatibility: if no scenario provided, try to get latest selection
-        else:
-            if not recipe.has_selection_scenarios():
-                st.warning(translate_service.translate("no_selection_made"))
-                return
+                scenario_proxy = ScenarioProxy.from_existing_scenario(target_scenario.id)
+                protocol_proxy = scenario_proxy.get_protocol()
 
-            selection_scenarios = recipe.get_selection_scenarios()
-            target_scenario = selection_scenarios[0] if selection_scenarios else None
+                try:
+                    filtered_resource_set = protocol_proxy.get_output(output_name)
+                    if not filtered_resource_set:
+                        st.error(translate_service.translate("cannot_retrieve_data"))
+                        return
 
-            if not target_scenario or target_scenario.status != ScenarioStatus.SUCCESS:
-                st.warning(translate_service.translate("selection_not_successful"))
-                return
+                except Exception as e:
+                    st.error(translate_service.translate("error_retrieving_data").format(error=str(e)))
+                    return
 
-            filtered_resource_set = cell_culture_state.get_interpolation_scenario_output(
-                target_scenario
-            )
-            if not filtered_resource_set:
-                st.error(translate_service.translate("cannot_retrieve_filtered_data"))
-                return
-
-        # Extract data for visualization
-        visualization_data = cell_culture_state.prepare_data_for_visualization(
-            filtered_resource_set
-        )
-
-        if not visualization_data:
-            st.warning(translate_service.translate("no_data_for_visualization"))
-            return
-
-        # Get unique batches and samples for filters (excluding empty strings)
-        unique_batches = sorted(
-            list(set(item["Batch"] for item in visualization_data if item["Batch"]))
-        )
-        unique_samples = sorted(
-            list(set(item["Sample"] for item in visualization_data if item["Sample"]))
-        )
-
-        # Get available columns for selection using the new tagging system
-        index_columns = cell_culture_state.get_index_columns_from_resource_set(
-            filtered_resource_set
-        )
-        data_columns = cell_culture_state.get_data_columns_from_resource_set(filtered_resource_set)
-
-        st.markdown(f"### {translate_service.translate('filters_selection_title')}")
-
-        # Check if this is a microplate recipe
-        is_microplate = recipe.analysis_type == "microplate"
-
-        if is_microplate:
-            # Microplate mode: Display interactive plate selector
-            st.info("🧫 **Microplate Mode**: Select wells from the interactive plate below")
-
-            # Build well data with structure: {well: {plate: data, ...}, ...}
-            well_data = {}
-            for item in visualization_data:
-                sample = item.get('Sample', '')
-                batch = item.get('Batch', '')
-
-                # Use Sample as well name and Batch as plate name
-                if sample and batch:
-                    # Initialize well entry if needed
-                    if sample not in well_data:
-                        well_data[sample] = {}
-
-                    # Add plate data (excluding Resource_Name, Sample, and Batch)
-                    well_data[sample][batch] = {k: v for k, v in item.items() if k not in ['Resource_Name', 'Sample', 'Batch']}
-                elif sample:
-                    # Single plate mode - well is the sample name, no batch
-                    if sample not in well_data:
-                        well_data[sample] = {k: v for k, v in item.items() if k not in ['Resource_Name', 'Sample', 'Batch']}
-
-            # Render microplate selector
-            selected_wells = render_microplate_selector(
-                well_data=well_data,
-                unique_samples=unique_samples,
-                translate_service=translate_service,
-                session_key_prefix="table_view",
-                include_medium=recipe.has_medium_info
-            )
-
-            # For compatibility with existing code, map selected wells to batch/sample
-            # In microplate mode, selected_wells contains plate_name_well format (e.g., "plate_A_C1")
-            # Extract unique plate names (batches) and base wells (samples) from selected wells
-            selected_batches = []
-            selected_samples = []
-            for well in selected_wells:
-                # Extract plate name and base well from "plate_name_well" format
-                if '_' in well:
-                    parts = well.rsplit('_', 1)
-                    if len(parts) == 2:
-                        plate_name = parts[0]
-                        base_well = parts[1]
-                        if plate_name not in selected_batches:
-                            selected_batches.append(plate_name)
-                        if base_well not in selected_samples:
-                            selected_samples.append(base_well)
-
-        else:
-            # Standard mode: Display batch and sample multiselect
-            # Create 2x2 grid with batches and samples first
-            col1, col2 = st.columns(2)
-
-            with col1:
-                col1_select, col1_button = st.columns([3, 1])
-                if (
-                        "table_view_batches" not in st.session_state
-                        or len(
-                            [
-                                batch
-                                for batch in st.session_state.table_view_batches
-                                if batch not in unique_batches
-                            ]
-                        )
-                        > 0
-                    ):
-                    st.session_state.table_view_batches = []
-                with col1_button:
-                    if st.button(
-                        translate_service.translate("select_all_batches"),
-                        key="select_all_batches_table",
-                        width="stretch",
-                    ):
-                        st.session_state.table_view_batches = unique_batches
-                        st.rerun()
-                with col1_select:
-                    selected_batches = st.multiselect(
-                        translate_service.translate("choose_batches"),
-                        options=unique_batches,
-                        key="table_view_batches",
-                    )
-
-            with col2:
-                col2_select, col2_button = st.columns([3, 1])
-                if (
-                        "table_view_samples" not in st.session_state
-                        or len(
-                            [
-                                sample
-                                for sample in st.session_state.table_view_samples
-                                if sample not in unique_samples
-                            ]
-                        )
-                        > 0
-                    ):
-                        st.session_state.table_view_samples = []
-                with col2_button:
-                    if st.button(
-                        translate_service.translate("select_all_samples"),
-                        key="select_all_samples_table",
-                        width="stretch",
-                    ):
-                        st.session_state.table_view_samples = unique_samples
-                        st.rerun()
-                with col2_select:
-                    selected_samples = st.multiselect(
-                        translate_service.translate("choose_samples"),
-                        options=unique_samples,
-                        key="table_view_samples",
-                    )
-
-        # Second row of the 2x2 grid
-        col3, col4 = st.columns(2)
-
-        with col3:
-            # Check if index columns are available
-            if index_columns:
-                selected_index = st.selectbox(
-                    translate_service.translate("choose_index_column"),
-                    options=index_columns,
-                    index=0,
-                    key="table_view_index",
-                    help=translate_service.translate("choose_index_column_help"),
-                )
+            # Backward compatibility: if no scenario provided, try to get latest selection
             else:
-                st.warning(translate_service.translate("no_index_column"))
-                selected_index = None
+                if not recipe.has_selection_scenarios():
+                    st.warning(translate_service.translate("no_selection_made"))
+                    return
 
-        # Filter data columns to exclude the selected index
-        # Always exclude the selected index from selectable columns
-        if selected_index:
-            filtered_data_columns = [col for col in data_columns if col != selected_index]
-        else:
-            filtered_data_columns = data_columns
+                selection_scenarios = recipe.get_selection_scenarios()
+                target_scenario = selection_scenarios[0] if selection_scenarios else None
 
-        with col4:
-            selected_columns = st.multiselect(
-                translate_service.translate("choose_columns"),
-                options=filtered_data_columns,
-                default=[],  # Aucune colonne sélectionnée par défaut
-                key="table_view_columns",
-                help=translate_service.translate("data_columns_available_help")
-                + (
-                    translate_service.translate("excluding_index_help").format(index=selected_index)
-                    if selected_index
-                    else ""
-                ),
+                if not target_scenario or target_scenario.status != ScenarioStatus.SUCCESS:
+                    st.warning(translate_service.translate("selection_not_successful"))
+                    return
+
+                filtered_resource_set = cell_culture_state.get_interpolation_scenario_output(
+                    target_scenario
+                )
+                if not filtered_resource_set:
+                    st.error(translate_service.translate("cannot_retrieve_filtered_data"))
+                    return
+
+            # Extract data for visualization
+            visualization_data = cell_culture_state.prepare_data_for_visualization(
+                filtered_resource_set
             )
+
+            if not visualization_data:
+                st.warning(translate_service.translate("no_data_for_visualization"))
+                return
 
         # Prepare extended data with selected columns
         extended_data = prepare_extended_data_for_visualization(

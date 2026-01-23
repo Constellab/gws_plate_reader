@@ -100,6 +100,16 @@ class CellCultureState(ABC):
         },
     }
 
+    # Additional analyses only available for Biolector/Microplate recipes
+    # These are positioned before feature_extraction in the navigation
+    BIOLECTOR_ANALYSIS_TREE: dict[str, Any] = {
+        "logistic_growth": {
+            "title": "logistic_growth_analysis",
+            "icon": "show_chart",
+            "children": [],
+        },
+    }
+
     POST_FEATURE_EXTRACTION_ANALYSIS_TREE: dict[str, Any] = {
         "metadata_feature_umap": {
             "title": "metadata_feature_umap_analysis",

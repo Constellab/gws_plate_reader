@@ -390,6 +390,12 @@ def render_medium_umap_step(
             default_medium_col = 'MILIEU'
             st.warning(f"⚠️ Impossible de charger les colonnes de la table medium : {str(e)}")
 
+        # Check minimum number of data columns (excluding medium column)
+        data_columns_count = len([col for col in available_columns if col.upper() not in ['MILIEU', 'MEDIUM', 'MEDIA']])
+        st.info(translate_service.translate("data_columns_count").format(count=data_columns_count))
+        if data_columns_count < 2:
+            st.warning(translate_service.translate("min_columns_required_for_analysis"))
+
         # Column selection for medium identifier
         medium_column = st.selectbox(
             "📋 Colonne contenant les identifiants de milieux",

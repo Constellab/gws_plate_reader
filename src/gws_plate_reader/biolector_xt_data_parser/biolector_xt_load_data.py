@@ -126,15 +126,15 @@ def create_venn_diagram_wells(well_sets: dict[str, set[str]]) -> go.Figure:
     # Add region counts
     fig.add_annotation(x=Ax, y=Ay + 0.18, text=str(only_A),
                        showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Bx - 0.13, y=By, text=str(only_B),
+    fig.add_annotation(x=Bx - 0.13, y=By - 0.05, text=str(only_B),
                        showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Cx + 0.13, y=Cy, text=str(only_C),
+    fig.add_annotation(x=Cx + 0.13, y=Cy - 0.05, text=str(only_C),
                        showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Ax - 0.07, y=Ay + 0.1, text=str(A_and_B),
+    fig.add_annotation(x=0.30, y=0.65, text=str(A_and_B),
                        showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Ax + 0.07, y=Ay + 0.1, text=str(A_and_C),
+    fig.add_annotation(x=0.65, y=0.65, text=str(A_and_C),
                        showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=(Bx + Cx) / 2, y=By - 0.08, text=str(B_and_C),
+    fig.add_annotation(x=(Bx + Cx) / 2, y=By - 0.12, text=str(B_and_C),
                        showarrow=False, font=dict(size=14))
     fig.add_annotation(
         x=Ax, y=By + 0.1,
@@ -707,8 +707,7 @@ class BiolectorXTLoadData(Task):
                                 origins=origins, is_propagable=True)
                 sample_tag = Tag(key='sample', value=well_clean, auto_parse=True,  # Use clean name
                                  origins=origins, is_propagable=True)
-                table.tags.add_tag(batch_tag)
-                table.tags.add_tag(sample_tag)
+                table.tags._tags.extend([batch_tag, sample_tag])
 
                 # Add medium tag if medium data is available for this well
                 if well in well_to_medium:
@@ -718,7 +717,7 @@ class BiolectorXTLoadData(Task):
                     medium_tag = Tag(key='medium', value=medium_name, auto_parse=True,
                                     additional_info={'composed': medium_composition},
                                     origins=origins, is_propagable=True)
-                    table.tags.add_tag(medium_tag)
+                    table.tags._tags.append(medium_tag)
 
                 # Check if well is missing from plate_layout (only if plate_layout is provided)
                 if existing_plate_layout:
@@ -733,7 +732,7 @@ class BiolectorXTLoadData(Task):
                         # Well is missing from plate_layout - add missing_value tag
                         missing_tag = Tag(key='missing_value', value='plate_layout', auto_parse=True,
                                          origins=origins, is_propagable=True)
-                        table.tags.add_tag(missing_tag)
+                        table.tags._tags.append(missing_tag)
 
                 resource_set.add_resource(table, well_clean)  # Use clean name
                 tables_created += 1
@@ -773,8 +772,7 @@ class BiolectorXTLoadData(Task):
                                 origins=origins, is_propagable=True)
                 sample_tag = Tag(key='sample', value=well_clean, auto_parse=True,
                                  origins=origins, is_propagable=True)
-                table.tags.add_tag(batch_tag)
-                table.tags.add_tag(sample_tag)
+                table.tags._tags.extend([batch_tag, sample_tag])
 
                 # Add medium tag if medium data is available for this well
                 if well in well_to_medium:
@@ -784,12 +782,12 @@ class BiolectorXTLoadData(Task):
                     medium_tag = Tag(key='medium', value=medium_name, auto_parse=True,
                                     additional_info={'composed': medium_composition},
                                     origins=origins, is_propagable=True)
-                    table.tags.add_tag(medium_tag)
+                    table.tags._tags.append(medium_tag)
 
                 # Add missing_value tag for raw_data
                 missing_tag = Tag(key='missing_value', value='raw_data', auto_parse=True,
                                  origins=origins, is_propagable=True)
-                table.tags.add_tag(missing_tag)
+                table.tags._tags.append(missing_tag)
 
                 # Also check plate_layout for this missing well
                 if existing_plate_layout:
@@ -801,10 +799,10 @@ class BiolectorXTLoadData(Task):
 
                     if not has_plate_layout:
                         # Well is also missing from plate_layout - update tag
-                        table.tags.remove_by_key('missing_value')
+                        table.tags._tags = [tag for tag in table.tags._tags if tag.key != 'missing_value']
                         combined_missing_tag = Tag(key='missing_value', value='raw_data, plate_layout',
                                                    auto_parse=True, origins=origins, is_propagable=True)
-                        table.tags.add_tag(combined_missing_tag)
+                        table.tags._tags.append(combined_missing_tag)
 
                 resource_set.add_resource(table, well_clean)
 
@@ -857,6 +855,10 @@ class BiolectorXTLoadData(Task):
             # Create a mapping from well to medium name
             well_to_medium = dict(zip(info_df_normalized['Well'], info_df_normalized['Medium']))
 
+            # Identify info columns (all columns except Well and Medium)
+            # Keep all info columns including string columns (compound, label, etc.)
+            info_columns = [col for col in info_df_normalized.columns if col not in ['Well', 'Medium']]
+
             for well_name, table in resource_set.get_resources().items():
                 if not isinstance(table, Table):
                     continue
@@ -883,6 +885,39 @@ class BiolectorXTLoadData(Task):
                             if col != 'Medium':
                                 value = medium_row.iloc[0][col]
                                 metadata_row[col] = value
+
+                # Add info columns from info_table
+                info_row = info_df_normalized[info_df_normalized['Well'] == well_name]
+                for col in info_columns:
+                    if not info_row.empty:
+                        value = info_row.iloc[0][col]
+                        # Fill missing values: 0 for numeric, NaN for non-numeric
+                        if pd.isna(value) or value == '':
+                            # Try to infer if column is numeric
+                            try:
+                                float_val = float(value)
+                                metadata_row[col] = 0
+                            except (ValueError, TypeError):
+                                metadata_row[col] = np.nan
+                        else:
+                            # Try to convert to numeric, else keep as is
+                            try:
+                                metadata_row[col] = float(value)
+                            except (ValueError, TypeError):
+                                metadata_row[col] = value
+                    else:
+                        # No info for this well: fill missing
+                        # Try to infer if column is numeric from all values in info_df
+                        col_vals = info_df_normalized[col].dropna().astype(str)
+                        is_numeric = False
+                        for v in col_vals:
+                            try:
+                                float(v)
+                                is_numeric = True
+                                break
+                            except ValueError:
+                                continue
+                        metadata_row[col] = 0 if is_numeric else np.nan
 
                 metadata_rows.append(metadata_row)
 
@@ -937,7 +972,14 @@ class BiolectorXTLoadData(Task):
                 # Always use 'Medium' as standardized column name
                 medium_columns = set(medium_df.columns) - {'Medium'}
 
-            # Remove columns that only contain NaN (but keep medium composition columns even if all 0)
+            # Get list of info columns (from info_table if provided)
+            # These should be preserved even if they contain string values
+            info_columns_set = set()
+            if info_table is not None:
+                info_df = info_table.get_data()
+                info_columns_set = set(info_df.columns) - {'Well', 'Medium'}
+
+            # Remove columns that only contain NaN (but keep medium and info columns)
             cols_to_remove = []
             for col in metadata_df.columns:
                 if col == 'Series':
@@ -945,6 +987,10 @@ class BiolectorXTLoadData(Task):
 
                 # Keep medium composition columns even if all NaN or all 0
                 if col in medium_columns:
+                    continue
+
+                # Keep info columns (including string columns like compound, label, etc.)
+                if col in info_columns_set:
                     continue
 
                 # Check if all values are NaN
@@ -1068,13 +1114,17 @@ class BiolectorXTLoadData(Task):
             # Get inputs for this plate from the ResourceSet
             raw_data: Table = plate_resource_set.get_resource('raw_data')
             folder_metadata: Folder = plate_resource_set.get_resource('folder_metadata')
-            info_table: Table = plate_resource_set.get_resource('info_table')
 
-            if raw_data is None or folder_metadata is None or info_table is None:
+            # info_table is optional
+            info_table: Table = None
+            if plate_resource_set.resource_exists('info_table'):
+                info_table = plate_resource_set.get_resource('info_table')
+
+            if raw_data is None or folder_metadata is None:
                 raise Exception(
-                    f"Plate {plate_idx} ResourceSet must contain 'raw_data' (Table), "
-                    f"'folder_metadata' (Folder), and 'info_table' (Table). "
-                    f"Found: {list(plate_resource_set.get_resource_names())}"
+                    f"Plate {plate_idx} ResourceSet must contain 'raw_data' (Table) and "
+                    f"'folder_metadata' (Folder). 'info_table' is optional. "
+                    f"Found: {list(plate_resource_set.get_resources().keys())}"
                 )
 
             # Load metadata file
@@ -1203,15 +1253,22 @@ class BiolectorXTLoadData(Task):
         metadata_df = metadata_table.get_data().copy()
 
         # Try to convert columns to numeric only if they are actually numeric
+        # Skip identifier columns and columns that are primarily string values
         for col in metadata_df.columns:
-            if col not in ['Series', 'Well', 'Medium', 'compound']:  # Exclude identifier and text columns
-                original_dtype = metadata_df[col].dtype
-                # Try converting to numeric
-                converted_col = pd.to_numeric(metadata_df[col], errors='coerce')
-                # Only keep the conversion if at least 50% of values are valid numbers
-                valid_ratio = converted_col.notna().sum() / len(converted_col)
-                if valid_ratio >= 0.5:
-                    metadata_df[col] = converted_col
+            if col == 'Series':
+                continue
+
+            # Skip columns that are already numeric
+            if pd.api.types.is_numeric_dtype(metadata_df[col]):
+                continue
+
+            # Try converting to numeric
+            converted_col = pd.to_numeric(metadata_df[col], errors='coerce')
+            # Only keep the conversion if at least 50% of values are valid numbers
+            # This preserves string columns (compound, label, etc.) which would have 0% valid numbers
+            valid_ratio = converted_col.notna().sum() / len(converted_col) if len(converted_col) > 0 else 0
+            if valid_ratio >= 0.5:
+                metadata_df[col] = converted_col
 
         numeric_cols_meta = metadata_df.select_dtypes(include=[np.number]).columns.tolist()
 
@@ -1239,15 +1296,22 @@ class BiolectorXTLoadData(Task):
             medium_df = medium_table.get_data().copy()
 
             # Try to convert columns to numeric only if they are actually numeric
+            # Skip identifier columns and columns that are primarily string values
             for col in medium_df.columns:
-                if col not in ['Medium', 'Well', 'compound']:  # Exclude identifier and text columns
-                    original_dtype = medium_df[col].dtype
-                    # Try converting to numeric
-                    converted_col = pd.to_numeric(medium_df[col], errors='coerce')
-                    # Only keep the conversion if at least 50% of values are valid numbers
-                    valid_ratio = converted_col.notna().sum() / len(converted_col)
-                    if valid_ratio >= 0.5:
-                        medium_df[col] = converted_col
+                if col == 'Medium':
+                    continue
+
+                # Skip columns that are already numeric
+                if pd.api.types.is_numeric_dtype(medium_df[col]):
+                    continue
+
+                # Try converting to numeric
+                converted_col = pd.to_numeric(medium_df[col], errors='coerce')
+                # Only keep the conversion if at least 50% of values are valid numbers
+                # This preserves string columns which would have 0% valid numbers
+                valid_ratio = converted_col.notna().sum() / len(converted_col) if len(converted_col) > 0 else 0
+                if valid_ratio >= 0.5:
+                    medium_df[col] = converted_col
 
             numeric_cols = medium_df.select_dtypes(include=[np.number]).columns.tolist()
 

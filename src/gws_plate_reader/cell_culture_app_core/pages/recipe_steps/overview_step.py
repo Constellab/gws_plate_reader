@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from gws_core import Table
+from gws_core import ScenarioStatus, Table
 from gws_core.resource.resource_set.resource_set import ResourceSet
 
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
@@ -264,11 +264,22 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
         st.error(translate_service.translate("no_resourceset_found"))
         return
 
+    # Check scenario status and display appropriate message
+    scenario_status = load_scenario.status
+
+    if scenario_status in [ScenarioStatus.RUNNING, ScenarioStatus.IN_QUEUE, ScenarioStatus.WAITING_FOR_CLI_PROCESS]:
+        st.info(translate_service.translate("overview_scenario_running"))
+        return
+
+    if scenario_status == ScenarioStatus.ERROR:
+        st.error(translate_service.translate("overview_scenario_error"))
+        return
+
     try:
         # Get the ResourceSet from the load scenario
         resource_set = cell_culture_state.get_load_scenario_output()
         if not resource_set:
-            st.warning(translate_service.translate("no_data_found"))
+            st.warning(translate_service.translate("overview_no_data"))
             return
 
         resources = resource_set.get_resources()

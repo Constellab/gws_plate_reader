@@ -62,7 +62,28 @@ def render_microplate_selector(
 
     base_wells = sorted(list(base_wells))
 
-    # Color by medium if available, otherwise use default color
+    # Extract all available keys from well_data for the "color by" selector
+    available_color_keys = set()
+    for well, data in well_data.items():
+        if is_multiplate_structure:
+            # Check in nested structure
+            for plate_data in data.values():
+                if isinstance(plate_data, dict):
+                    available_color_keys.update(plate_data.keys())
+        else:
+            # Check in flat structure
+            if isinstance(data, dict):
+                available_color_keys.update(data.keys())
+
+    # Sort keys with 'Medium' first if present, then alphabetically
+    available_color_keys = sorted(list(available_color_keys))
+    if 'Medium' in available_color_keys:
+        available_color_keys.remove('Medium')
+        available_color_keys = ['Medium'] + available_color_keys
+
+    # Add "None" option at the beginning
+    color_options = [translate_service.translate('no_coloring')] + available_color_keys
+
     st.write(f"**{translate_service.translate('microplate_selection')}**")
     if is_multiplate:
         unified_text = translate_service.translate('unified_view_plates').format(
@@ -72,24 +93,23 @@ def render_microplate_selector(
         st.markdown(f"<p style='font-size: 0.9em;'>📊 {unified_text}</p>", unsafe_allow_html=True)
         st.markdown(f"<p style='font-size: 0.9em;'>ℹ️ {translate_service.translate('selecting_well_info')}</p>", unsafe_allow_html=True)
 
-    # Check if Medium data is available
-    has_medium = False
-    for well, data in well_data.items():
-        if is_multiplate_structure:
-            # Check in nested structure
-            for plate_data in data.values():
-                if isinstance(plate_data, dict) and 'Medium' in plate_data and plate_data['Medium']:
-                    has_medium = True
-                    break
-        else:
-            # Check in flat structure
-            if isinstance(data, dict) and 'Medium' in data and data['Medium']:
-                has_medium = True
-                break
-        if has_medium:
-            break
+    # Color by selector
+    color_by_key = f"{session_key_prefix}_color_by"
+    default_index = 1 if len(color_options) > 1 and 'Medium' in available_color_keys else 0
 
-    selected_color_well = 'Medium' if has_medium else None
+    selected_color_option = st.selectbox(
+        translate_service.translate('color_by'),
+        options=color_options,
+        index=default_index,
+        key=color_by_key,
+        help=translate_service.translate('color_by_help')
+    )
+
+    # Determine the actual key to use for coloring
+    if selected_color_option == translate_service.translate('no_coloring'):
+        selected_color_well = None
+    else:
+        selected_color_well = selected_color_option
 
     # Color palette
     color_palette = [

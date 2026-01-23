@@ -3,7 +3,7 @@ Medium View Step for Cell Culture Dashboard
 Displays culture medium composition for each batch-sample pair
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pandas as pd
 import streamlit as st
@@ -16,15 +16,22 @@ from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultur
 
 def get_medium_data_from_resource_set(
     resource_set: ResourceSet, cell_culture_state: CellCultureState
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Extract medium composition data from ResourceSet.
     Returns a list of dictionaries with batch, sample, medium name, and composition.
     """
     try:
         resources = resource_set.get_resources()
-        medium_data = []
+        medium_table_model = cell_culture_state.get_load_scenario_output_resource_model('medium_table')
+        medium_table: Table = medium_table_model.get_resource()
+        medium_df: pd.DataFrame = medium_table.get_data()
+        medium_df_data: dict = medium_df.to_dict(orient='records')
+        medium_dict = {}
+        for entry in medium_df_data:
+            medium_dict[entry['Medium']] = {k: v for k, v in entry.items() if k != 'Medium'}
 
+        series_medium = []
         for resource_name, resource in resources.items():
             if isinstance(resource, Table):
                 # Get resource tags
@@ -33,7 +40,6 @@ def get_medium_data_from_resource_set(
                 batch = None
                 sample = None
                 medium_name = None
-                medium_composition = {}
 
                 # Extract batch, sample, and medium from tags
                 for tag in resource_tags:
@@ -43,25 +49,19 @@ def get_medium_data_from_resource_set(
                         sample = tag.value
                     elif tag.key == cell_culture_state.TAG_MEDIUM:
                         medium_name = tag.value
-                        # Extract composition from additional_info
-                        # Debug: print what we have
-
-                        if (
-                            hasattr(tag, "additional_info")
-                            and tag.additional_info
-                            and "composed" in tag.additional_info
-                        ):
-                            medium_composition = tag.additional_info["composed"]
 
                 # Add to results if we have the required information
                 if batch and sample and medium_name:
                     entry = {"Batch": batch, "Sample": sample, "Medium": medium_name}
-                    # Add all composition components as separate columns
-                    if medium_composition:
-                        entry.update(medium_composition)
-                    medium_data.append(entry)
+                    series_medium.append(entry)
 
-        return medium_data
+        series_medium_data = []
+
+        for data in series_medium:
+            complete_data = {**data, **medium_dict.get(data["Medium"], {})}
+            series_medium_data.append(complete_data)
+
+        return series_medium_data
     except Exception as e:
         st.error(f"Error extracting medium data: {str(e)}")
         import traceback
@@ -75,6 +75,8 @@ def render_medium_view_step(
     cell_culture_state: CellCultureState,
     scenario: Optional[Scenario] = None,
     output_name: str = None,
+    selected_batches: list = None,
+    selected_samples: list = None,
 ) -> None:
     """
     Render the medium view step showing medium composition for each batch-sample pair.
@@ -84,6 +86,8 @@ def render_medium_view_step(
         cell_culture_state: State manager
         scenario: The scenario to get data from (selection or quality check scenario)
         output_name: Name of the output to retrieve from the scenario
+        selected_batches: Pre-selected batches (optional, from parent)
+        selected_samples: Pre-selected samples (optional, from parent)
     """
     translate_service = cell_culture_state.get_translate_service()
 
@@ -148,6 +152,16 @@ def render_medium_view_step(
 
         # Create DataFrame
         df = pd.DataFrame(medium_data)
+
+        # Filter by selected batches and samples if provided
+        if selected_batches is not None and selected_samples is not None:
+            if len(selected_batches) > 0 and len(selected_samples) > 0:
+                df = df[
+                    (df["Batch"].isin(selected_batches)) & (df["Sample"].isin(selected_samples))
+                ]
+                if df.empty:
+                    st.info(translate_service.translate("no_data_matches_filters"))
+                    return
 
         # Sort by Batch and Sample
         df = df.sort_values(["Batch", "Sample"])

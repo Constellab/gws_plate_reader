@@ -91,11 +91,12 @@ def render_new_recipe_fermentor(cell_culture_state: CellCultureState) -> None:
     )
 
     # Upload the 4 required files
-    st.subheader(f"📁 {translate_service.translate('import_required_files')}")
-
-    # Documentation link button
-    url_doc_context = "https://constellab.community/bricks/gws_plate_reader/latest/doc/technical-folder/task/ConstellabBioprocessLoadData"
-    st.link_button("**?**", url_doc_context)
+    col_title, col_doc_button = st.columns([5, 1])
+    with col_title:
+        st.subheader(f"📁 {translate_service.translate('import_required_files')}")
+    with col_doc_button:
+        url_doc_context = "https://constellab.community/bricks/gws_plate_reader/latest/doc/technical-folder/task/ConstellabBioprocessLoadData"
+        st.link_button(translate_service.translate("documentation"), url_doc_context)
 
     st.info(translate_service.translate("import_files_info"))
 
@@ -546,7 +547,22 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
     )
 
     # Upload the required files
-    st.subheader(f"📁 {translate_service.translate('import_required_files')}")
+    col_title, col_doc_button = st.columns([5, 1])
+    with col_title:
+        st.subheader(f"📁 {translate_service.translate('import_required_files')}")
+    with col_doc_button:
+        # Documentation link button aligned to the right
+        st.markdown("""
+            <style>
+                div[data-testid="column"]:has(a[data-testid="baseButton-secondary"]) {
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: center;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        url_doc_context = "https://constellab.community/bricks/gws_plate_reader/latest/doc/technical-folder/task/BiolectorLoadData"
+        st.link_button(translate_service.translate("documentation"), url_doc_context)
 
     st.info(translate_service.translate('microplate_import_files_info'))
 

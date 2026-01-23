@@ -8,6 +8,8 @@ from .causal_effect_step import render_causal_effect_step
 from .feature_extraction_results import render_feature_extraction_results
 from .feature_extraction_step import render_feature_extraction_step
 from .graph_view_step import render_graph_view_step
+from .logistic_growth_results import render_logistic_growth_results
+from .logistic_growth_step import render_logistic_growth_step
 from .medium_pca_results import render_medium_pca_results
 from .medium_pca_step import render_medium_pca_step
 from .medium_umap_results import render_medium_umap_results
@@ -39,6 +41,8 @@ __all__ = [
     "render_medium_pca_results",
     "render_medium_umap_step",
     "render_medium_umap_results",
+    "render_logistic_growth_step",
+    "render_logistic_growth_results",
     "render_feature_extraction_step",
     "render_feature_extraction_results",
     "render_metadata_feature_umap_step",

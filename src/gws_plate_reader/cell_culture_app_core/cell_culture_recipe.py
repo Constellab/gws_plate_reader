@@ -759,3 +759,54 @@ class CellCultureRecipe(ABC):
 
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
+
+    def get_logistic_growth_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+        """
+        Get Logistic Growth scenarios for a specific quality check
+
+        :param qc_id: Quality check scenario ID
+        :return: List of Logistic Growth scenarios for this quality check
+        """
+        # Get all analyses scenarios (logistic_growth scenarios are stored in 'analyses' step)
+        all_analyses_scenarios = self.get_scenarios_for_step("analyses")
+
+        # Filter by parent quality check tag AND analysis type
+        filtered = []
+        for scenario in all_analyses_scenarios:
+            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+            parent_qc_tags = entity_tag_list.get_tags_by_key(
+                _TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK
+            )
+            analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
+
+            # Check if this is a logistic_growth analysis for the specified quality check
+            is_logistic_growth = (
+                analysis_type_tags and analysis_type_tags[0].tag_value == "logistic_growth"
+            )
+            is_for_qc = parent_qc_tags and parent_qc_tags[0].tag_value == qc_id
+
+            if is_logistic_growth and is_for_qc:
+                filtered.append(scenario)
+
+        return filtered
+
+    def add_logistic_growth_scenario(self, qc_id: str, lg_scenario: Scenario) -> None:
+        """
+        Add a Logistic Growth scenario to this recipe
+
+        :param qc_id: ID of the parent quality check scenario (not used, for API compatibility)
+        :param lg_scenario: Logistic Growth scenario to add
+        """
+        # Get existing analyses scenarios (logistic_growth scenarios are stored in 'analyses' step)
+        existing_analyses_scenarios = self.get_scenarios_for_step("analyses")
+
+        # Add new scenario at the beginning
+        updated_analyses_scenarios = [lg_scenario] + existing_analyses_scenarios
+
+        # Sort by creation date (oldest first, most recent last)
+        updated_analyses_scenarios.sort(
+            key=lambda s: s.created_at or s.last_modified_at, reverse=False
+        )
+
+        # Update the scenarios dict
+        self.add_scenarios_by_step("analyses", updated_analyses_scenarios)

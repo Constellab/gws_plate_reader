@@ -107,10 +107,10 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         )
         analyses_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
 
-        # Create dictionary with recipe name as key and scenarios structure as value
+        # Create dictionary with unique key (recipe_name + scenario_id) and scenarios structure as value
         recipes_dict = {}
 
-        # First, organize load scenarios by recipe name
+        # First, organize load scenarios by recipe name + scenario ID
         for scenario in load_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
             recipe_name_tags = entity_tag_list.get_tags_by_key(
@@ -118,14 +118,16 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             )
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
-            if recipe_name not in recipes_dict:
-                recipes_dict[recipe_name] = {
-                    "load_scenario": None,
-                    "selection_scenarios": [],
-                    "quality_check_scenarios": [],
-                    "analyses_scenarios": [],
-                }
-            recipes_dict[recipe_name]["load_scenario"] = scenario
+            # Use a unique key combining recipe name and scenario ID to avoid collisions
+            unique_key = f"{recipe_name}_{scenario.id}"
+
+            recipes_dict[unique_key] = {
+                "recipe_name": recipe_name,
+                "load_scenario": scenario,
+                "selection_scenarios": [],
+                "quality_check_scenarios": [],
+                "analyses_scenarios": [],
+            }
 
         # Then, add selection scenarios to their corresponding recipes
         for scenario in selection_scenarios:
@@ -135,8 +137,24 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             )
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
-            if recipe_name in recipes_dict:
-                recipes_dict[recipe_name]["selection_scenarios"].append(scenario)
+            # Get pipeline_id to match with the correct load scenario
+            pipeline_id_tags = entity_tag_list.get_tags_by_key(
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+            )
+            pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else None
+
+            # Find the matching recipe by pipeline_id
+            for unique_key, recipe_data in recipes_dict.items():
+                load_scenario = recipe_data["load_scenario"]
+                load_entity_tags = EntityTagList.find_by_entity(TagEntityType.SCENARIO, load_scenario.id)
+                load_pipeline_id_tags = load_entity_tags.get_tags_by_key(
+                    cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                )
+                load_pipeline_id = load_pipeline_id_tags[0].tag_value if load_pipeline_id_tags else None
+
+                if pipeline_id and load_pipeline_id and pipeline_id == load_pipeline_id:
+                    recipes_dict[unique_key]["selection_scenarios"].append(scenario)
+                    break
 
         # Then, add quality check scenarios to their corresponding recipes
         for scenario in quality_check_scenarios:
@@ -146,8 +164,24 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             )
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
-            if recipe_name in recipes_dict:
-                recipes_dict[recipe_name]["quality_check_scenarios"].append(scenario)
+            # Get pipeline_id to match with the correct load scenario
+            pipeline_id_tags = entity_tag_list.get_tags_by_key(
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+            )
+            pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else None
+
+            # Find the matching recipe by pipeline_id
+            for unique_key, recipe_data in recipes_dict.items():
+                load_scenario = recipe_data["load_scenario"]
+                load_entity_tags = EntityTagList.find_by_entity(TagEntityType.SCENARIO, load_scenario.id)
+                load_pipeline_id_tags = load_entity_tags.get_tags_by_key(
+                    cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                )
+                load_pipeline_id = load_pipeline_id_tags[0].tag_value if load_pipeline_id_tags else None
+
+                if pipeline_id and load_pipeline_id and pipeline_id == load_pipeline_id:
+                    recipes_dict[unique_key]["quality_check_scenarios"].append(scenario)
+                    break
 
         # Finally, add analyses scenarios to their corresponding recipes
         for scenario in analyses_scenarios:
@@ -157,8 +191,24 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             )
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
-            if recipe_name in recipes_dict:
-                recipes_dict[recipe_name]["analyses_scenarios"].append(scenario)
+            # Get pipeline_id to match with the correct load scenario
+            pipeline_id_tags = entity_tag_list.get_tags_by_key(
+                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+            )
+            pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else None
+
+            # Find the matching recipe by pipeline_id
+            for unique_key, recipe_data in recipes_dict.items():
+                load_scenario = recipe_data["load_scenario"]
+                load_entity_tags = EntityTagList.find_by_entity(TagEntityType.SCENARIO, load_scenario.id)
+                load_pipeline_id_tags = load_entity_tags.get_tags_by_key(
+                    cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                )
+                load_pipeline_id = load_pipeline_id_tags[0].tag_value if load_pipeline_id_tags else None
+
+                if pipeline_id and load_pipeline_id and pipeline_id == load_pipeline_id:
+                    recipes_dict[unique_key]["analyses_scenarios"].append(scenario)
+                    break
 
         # Pass load, selection, and quality check scenarios - the table function will filter and group them correctly
         list_scenario_user: List[Scenario] = (
@@ -198,46 +248,53 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                 )
                 if selected_row:
                     selected_recipe_name = selected_row["Recipe Name"]
-                    if selected_recipe_name in recipes_dict:
-                        selected_load_scenario = recipes_dict[selected_recipe_name]["load_scenario"]
+                    # Find the matching unique_key in recipes_dict
+                    for unique_key, recipe_data in recipes_dict.items():
+                        if recipe_data["load_scenario"].id == selected_scenario_id:
+                            selected_load_scenario = recipe_data["load_scenario"]
+                            break
 
-            if (
-                selected_recipe_name
-                and selected_load_scenario
-                and selected_recipe_name in recipes_dict
-            ):
-                # Create Recipe instance from load scenario only using the state's recipe class
-                recipe_instance = cell_culture_state.create_recipe_from_scenario(
-                    selected_load_scenario
-                )
+            if selected_recipe_name and selected_load_scenario:
+                # Find the unique_key for this load scenario
+                matching_unique_key = None
+                for unique_key, recipe_data in recipes_dict.items():
+                    if recipe_data["load_scenario"].id == selected_load_scenario.id:
+                        matching_unique_key = unique_key
+                        break
 
-                # Add selection scenarios if they exist
-                recipe_data = recipes_dict[selected_recipe_name]
-                if recipe_data["selection_scenarios"]:
-                    recipe_instance.add_selection_scenarios(recipe_data["selection_scenarios"])
-
-                # Add quality check scenarios if they exist
-                if (
-                    "quality_check_scenarios" in recipe_data
-                    and recipe_data["quality_check_scenarios"]
-                ):
-                    recipe_instance.add_scenarios_by_step(
-                        "quality_check", recipe_data["quality_check_scenarios"]
+                if matching_unique_key:
+                    # Create Recipe instance from load scenario only using the state's recipe class
+                    recipe_instance = cell_culture_state.create_recipe_from_scenario(
+                        selected_load_scenario
                     )
 
-                # Add analyses scenarios if they exist
-                if "analyses_scenarios" in recipe_data and recipe_data["analyses_scenarios"]:
-                    recipe_instance.add_scenarios_by_step(
-                        "analyses", recipe_data["analyses_scenarios"]
-                    )
+                    # Add selection scenarios if they exist
+                    recipe_data = recipes_dict[matching_unique_key]
+                    if recipe_data["selection_scenarios"]:
+                        recipe_instance.add_selection_scenarios(recipe_data["selection_scenarios"])
 
-                # Store the complete instance in state
-                cell_culture_state.set_selected_recipe_instance(recipe_instance)
+                    # Add quality check scenarios if they exist
+                    if (
+                        "quality_check_scenarios" in recipe_data
+                        and recipe_data["quality_check_scenarios"]
+                    ):
+                        recipe_instance.add_scenarios_by_step(
+                            "quality_check", recipe_data["quality_check_scenarios"]
+                        )
 
-                # Navigate to analysis page
-                router = StreamlitRouter.load_from_session()
-                router.navigate("analysis")
-                st.rerun()
+                    # Add analyses scenarios if they exist
+                    if "analyses_scenarios" in recipe_data and recipe_data["analyses_scenarios"]:
+                        recipe_instance.add_scenarios_by_step(
+                            "analyses", recipe_data["analyses_scenarios"]
+                        )
+
+                    # Store the complete instance in state
+                    cell_culture_state.set_selected_recipe_instance(recipe_instance)
+
+                    # Navigate to analysis page
+                    router = StreamlitRouter.load_from_session()
+                    router.navigate("analysis")
+                    st.rerun()
 
         # Show info message and getting started if no recipes
         if not recipes_dict:

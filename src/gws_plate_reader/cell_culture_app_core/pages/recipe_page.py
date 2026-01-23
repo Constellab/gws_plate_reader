@@ -28,6 +28,8 @@ from .recipe_steps import (
     render_feature_extraction_results,
     render_feature_extraction_step,
     render_graph_view_step,
+    render_logistic_growth_results,
+    render_logistic_growth_step,
     render_medium_pca_results,
     render_medium_pca_step,
     render_medium_umap_results,
@@ -152,7 +154,20 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                     )
                     qc_folder.add_child(analysis_folder)
 
-                    for analysis_type, analysis_info in cell_culture_state.ANALYSIS_TREE.items():
+                    # Build analysis tree based on recipe type
+                    # For microplate/biolector recipes, add biolector-specific analyses before feature_extraction
+                    analysis_items_config = list(cell_culture_state.ANALYSIS_TREE.items())
+
+                    # Insert biolector analyses before feature_extraction for microplate recipes
+                    if recipe.analysis_type == "microplate":
+                        biolector_analyses = list(cell_culture_state.BIOLECTOR_ANALYSIS_TREE.items())
+                        # Find the index of feature_extraction
+                        fe_index = next((i for i, (k, _) in enumerate(analysis_items_config) if k == "feature_extraction"), len(analysis_items_config))
+                        # Insert biolector analyses before feature_extraction
+                        for idx, item in enumerate(biolector_analyses):
+                            analysis_items_config.insert(fe_index + idx, item)
+
+                    for analysis_type, analysis_info in analysis_items_config:
                         # Skip feature extraction if recipe doesn't have raw data
                         if analysis_type == "feature_extraction" and not recipe.has_data_raw:
                             continue
@@ -210,6 +225,30 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                         key=f"umap_result_{umap_scenario.id}"
                                     )
                                     analysis_item.add_child(umap_result_item)
+
+                        # For Logistic Growth, add existing scenarios as sub-folders
+                        if analysis_type == "logistic_growth":
+                            lg_scenarios = recipe.get_logistic_growth_scenarios_for_quality_check(
+                                qc_scenario.id
+                            )
+                            if lg_scenarios:
+                                for lg_scenario in lg_scenarios:
+                                    lg_timestamp = lg_scenario.title
+                                    if "Logistic Growth - " in lg_scenario.title:
+                                        lg_timestamp = lg_scenario.title.replace(
+                                            "Logistic Growth - ", ""
+                                        )
+
+                                    # Add status icon to LG scenario label
+                                    status_emoji = get_status_emoji(lg_scenario.status)
+                                    lg_label = f"{status_emoji} {lg_timestamp}"
+
+                                    # Create sub-item for this LG scenario
+                                    lg_result_item = StreamlitTreeMenuItem(
+                                        label=lg_label,
+                                        key=f"logistic_growth_result_{lg_scenario.id}"
+                                    )
+                                    analysis_item.add_child(lg_result_item)
 
                         # For Feature Extraction, add existing scenarios as sub-folders
                         if analysis_type == "feature_extraction":
@@ -607,6 +646,34 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     )
                 else:
                     st.error("Quality Check scenario not found")
+            elif selected_key.startswith("analysis_logistic_growth_qc_"):
+                # Extract quality check scenario ID from key (analysis_logistic_growth_qc_{qc_id})
+                qc_scenario_id = selected_key.replace("analysis_logistic_growth_qc_", "")
+                # Find the corresponding quality check scenario
+                all_qc_scenarios = recipe.get_quality_check_scenarios()
+                target_qc_scenario = next(
+                    (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
+                )
+                if target_qc_scenario:
+                    st.title(f"{recipe.name} - {translate_service.translate('logistic_growth_analysis')}")
+                    render_logistic_growth_step(
+                        recipe, cell_culture_state, quality_check_scenario=target_qc_scenario
+                    )
+                else:
+                    st.error("Quality Check scenario not found")
+            elif selected_key.startswith("logistic_growth_result_"):
+                # Extract Logistic Growth scenario ID from key (logistic_growth_result_{lg_scenario_id})
+                lg_scenario_id = selected_key.replace("logistic_growth_result_", "")
+                # Find the corresponding LG scenario in 'analyses' step
+                all_analyses_scenarios = recipe.get_scenarios_for_step("analyses")
+                target_lg_scenario = next(
+                    (s for s in all_analyses_scenarios if s.id == lg_scenario_id), None
+                )
+                if target_lg_scenario:
+                    st.title(f"{recipe.name} - {translate_service.translate('logistic_growth_analysis')} - {target_lg_scenario.title}")
+                    render_logistic_growth_results(recipe, cell_culture_state, target_lg_scenario)
+                else:
+                    st.error("Logistic Growth scenario not found")
             elif selected_key.startswith("analysis_feature_extraction_qc_"):
                 # Extract quality check scenario ID from key (analysis_feature_extraction_qc_{qc_id})
                 qc_scenario_id = selected_key.replace("analysis_feature_extraction_qc_", "")

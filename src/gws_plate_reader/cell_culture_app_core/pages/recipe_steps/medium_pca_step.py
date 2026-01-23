@@ -348,7 +348,14 @@ def render_medium_pca_step(
             medium_df = medium_resource.get_resource().get_data()
             available_columns = medium_df.columns.tolist()
             excludable_columns = [col for col in available_columns if col != cell_culture_state.MEDIUM_COLUMN_NAME]
-             # Columns to exclude from PCA
+
+            # Check minimum number of data columns (excluding medium column)
+            data_columns_count = len(excludable_columns)
+            st.info(translate_service.translate("data_columns_count").format(count=data_columns_count))
+            if data_columns_count < 2:
+                st.warning(translate_service.translate("min_columns_required_for_analysis"))
+
+            # Columns to exclude from PCA
             columns_to_exclude = st.multiselect(
                 "🚫 Colonnes à exclure de l'analyse PCA",
                 options=excludable_columns,

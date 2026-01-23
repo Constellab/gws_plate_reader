@@ -75,7 +75,7 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
     """Create table data from cell culture recipe scenarios, grouped by recipe."""
     table_data = []
 
-    # Group scenarios by recipe name
+    # Group scenarios by unique key (recipe name + scenario ID to handle duplicate names)
     recipes_dict = {}
 
     for scenario in scenarios:
@@ -93,20 +93,6 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
                 recipe_name = scenario.title if scenario.title else translate_service.translate(
                     'summary_scenario').format(id=scenario.id[:8])
 
-            # Initialize recipe entry if not exists
-            if recipe_name not in recipes_dict:
-                recipes_dict[recipe_name] = {
-                    'recipe_name': recipe_name,
-                    'load_scenario': None,
-                    'selection_scenarios': [],
-                    'quality_check_scenarios': [],
-                    'pipeline_id': '',
-                    'is_microplate': False,
-                    'folder_name': translate_service.translate('summary_root_folder'),
-                    'created_at': None,
-                    'created_by': ''
-                }
-
             # Check if this is a load scenario (data processing)
             fermentor_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR)
             is_load_scenario = any(tag.tag_value == cell_culture_state.TAG_DATA_PROCESSING for tag in fermentor_tags)
@@ -121,33 +107,53 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
             is_quality_check_scenario = any(tag.tag_value == cell_culture_state.TAG_QUALITY_CHECK_PROCESSING
                                             for tag in quality_check_tags)
 
+            # Get pipeline_id to create unique key
+            pipeline_id_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID)
+            pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else scenario.id
+
+            # Use pipeline_id as unique key to group related scenarios
+            unique_key = pipeline_id
+
+            # Initialize recipe entry if not exists
+            if unique_key not in recipes_dict:
+                recipes_dict[unique_key] = {
+                    'recipe_name': recipe_name,
+                    'load_scenario': None,
+                    'selection_scenarios': [],
+                    'quality_check_scenarios': [],
+                    'pipeline_id': '',
+                    'is_microplate': False,
+                    'folder_name': translate_service.translate('summary_root_folder'),
+                    'created_at': None,
+                    'created_by': ''
+                }
+
             if is_load_scenario:
-                recipes_dict[recipe_name]['load_scenario'] = scenario
+                recipes_dict[unique_key]['load_scenario'] = scenario
+                recipes_dict[unique_key]['recipe_name'] = recipe_name
 
                 # Extract additional info from load scenario
-                pipeline_id_tags = entity_tag_list.get_tags_by_key(
-                    cell_culture_state.TAG_FERMENTOR_PIPELINE_ID)
                 if pipeline_id_tags:
-                    recipes_dict[recipe_name]['pipeline_id'] = pipeline_id_tags[0].tag_value[:8] + "..."
+                    recipes_dict[unique_key]['pipeline_id'] = pipeline_id_tags[0].tag_value[:8] + "..."
 
                 # Extract microplate status
                 microplate_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_MICROPLATE_ANALYSIS)
                 if microplate_tags:
-                    recipes_dict[recipe_name]['is_microplate'] = microplate_tags[0].tag_value.lower() == "true"
+                    recipes_dict[unique_key]['is_microplate'] = microplate_tags[0].tag_value.lower() == "true"
 
                 # Get folder name
                 if scenario.folder:
-                    recipes_dict[recipe_name]['folder_name'] = scenario.folder.name
+                    recipes_dict[unique_key]['folder_name'] = scenario.folder.name
 
                 # Set creation info
-                recipes_dict[recipe_name]['created_at'] = scenario.created_at
-                recipes_dict[recipe_name]['created_by'] = scenario.created_by.full_name if scenario.created_by else ""
+                recipes_dict[unique_key]['created_at'] = scenario.created_at
+                recipes_dict[unique_key]['created_by'] = scenario.created_by.full_name if scenario.created_by else ""
 
             elif is_selection_scenario:
-                recipes_dict[recipe_name]['selection_scenarios'].append(scenario)
+                recipes_dict[unique_key]['selection_scenarios'].append(scenario)
 
             elif is_quality_check_scenario:
-                recipes_dict[recipe_name]['quality_check_scenarios'].append(scenario)
+                recipes_dict[unique_key]['quality_check_scenarios'].append(scenario)
 
         except Exception as e:
             # Si erreur lors du traitement d'un scénario, on l'ignore et continue
@@ -155,7 +161,7 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
             continue
 
     # Create table rows from grouped recipes
-    for recipe_name, recipe_data in recipes_dict.items():
+    for unique_key, recipe_data in recipes_dict.items():
         try:
             load_scenario = recipe_data['load_scenario']
 
@@ -180,7 +186,7 @@ def create_recipe_table_data(scenarios: List[Scenario], cell_culture_state: Cell
         except Exception as e:
             # Si erreur lors du traitement d'une recette, on l'ignore et continue
             st.warning(translate_service.translate('error_processing_recipe').format(
-                recipe_name=recipe_name, error=str(e)))
+                recipe_name=unique_key, error=str(e)))
             continue
 
     return table_data

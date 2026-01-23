@@ -428,6 +428,13 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
             )
         )
 
+        # Check minimum number of data columns (excluding Series and Medium columns)
+        data_columns_for_analysis = [col for col in all_merged_columns if col not in ["Series", "Medium", default_medium_column]]
+        data_columns_count = len(data_columns_for_analysis)
+        st.info(translate_service.translate("data_columns_count").format(count=data_columns_count))
+        if data_columns_count < 2:
+            st.warning(translate_service.translate("min_columns_required_for_analysis"))
+
         st.markdown(
             "**" + translate_service.translate("available_series") + "** : " + str(n_series)
         )

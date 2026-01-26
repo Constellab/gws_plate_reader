@@ -4,10 +4,17 @@ Allows users to run UMAP analysis on medium composition data
 """
 
 from datetime import datetime
-from typing import List, Optional
 
 import streamlit as st
-from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, Tag
+from gws_core import (
+    InputTask,
+    ResourceModel,
+    Scenario,
+    ScenarioCreationType,
+    ScenarioProxy,
+    Table,
+    Tag,
+)
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
@@ -20,7 +27,7 @@ from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultur
 
 def get_available_media_from_quality_check(
     quality_check_scenario: Scenario, cell_culture_state: CellCultureState
-) -> List[str]:
+) -> list[str]:
     """
     Get list of unique medium names from the quality check scenario's filtered interpolated output
 
@@ -45,15 +52,11 @@ def get_available_media_from_quality_check(
         media = set()
         resources = resource_set.get_resources()
 
-        from gws_core.impl.table.table import Table
-
         for resource in resources.values():
-            if isinstance(resource, Table):
-                if hasattr(resource, "tags") and resource.tags:
-                    for tag in resource.tags.get_tags():
-                        if tag.key == cell_culture_state.TAG_MEDIUM:
-                            if tag.value:
-                                media.add(tag.value)
+            if isinstance(resource, Table) and hasattr(resource, "tags") and resource.tags:
+                for tag in resource.tags.get_tags():
+                    if tag.key == cell_culture_state.TAG_MEDIUM and tag.value:
+                        media.add(tag.value)
 
         return sorted(list(media))
     except Exception as e:
@@ -66,13 +69,13 @@ def launch_medium_umap_scenario(
     quality_check_scenario: Scenario,
     cell_culture_state: CellCultureState,
     load_scenario: Scenario,
-    selected_media: List[str],
+    selected_media: list[str],
     n_neighbors: int,
     min_dist: float,
     metric: str,
     scale_data: bool,
-    n_clusters: Optional[int],
-) -> Optional[Scenario]:
+    n_clusters: int | None,
+) -> Scenario | None:
     """
     Launch a Medium UMAP analysis scenario
 
@@ -374,34 +377,43 @@ def render_medium_umap_step(
             load_protocol_proxy = load_scenario_proxy.get_protocol()
             medium_table_resource_model = load_protocol_proxy.get_process(
                 cell_culture_state.PROCESS_NAME_DATA_PROCESSING
-            ).get_output_resource_model('medium_table')
+            ).get_output_resource_model("medium_table")
 
             # Get the actual table resource to check columns
-            from gws_core import ResourceModel
             medium_resource = ResourceModel.get_by_id_and_check(medium_table_resource_model.id)
             medium_df = medium_resource.get_resource().get_data()
             available_columns = medium_df.columns.tolist()
 
             # Try to auto-detect the medium column
-            medium_col_candidates = [col for col in available_columns if col.upper() in ['MILIEU', 'MEDIUM', 'MEDIA']]
-            default_medium_col = medium_col_candidates[0] if medium_col_candidates else (available_columns[0] if available_columns else 'MILIEU')
+            medium_col_candidates = [
+                col for col in available_columns if col.upper() in ["MILIEU", "MEDIUM", "MEDIA"]
+            ]
+            default_medium_col = (
+                medium_col_candidates[0]
+                if medium_col_candidates
+                else (available_columns[0] if available_columns else "MILIEU")
+            )
         except Exception as e:
-            available_columns = ['MILIEU', 'Medium', 'Media']
-            default_medium_col = 'MILIEU'
-            st.warning(f"⚠️ Impossible de charger les colonnes de la table medium : {str(e)}")
+            available_columns = ["MILIEU", "Medium", "Media"]
+            default_medium_col = "MILIEU"
+            st.warning(f"⚠️ Impossible to load columns from the medium table: {str(e)}")
 
         # Check minimum number of data columns (excluding medium column)
-        data_columns_count = len([col for col in available_columns if col.upper() not in ['MILIEU', 'MEDIUM', 'MEDIA']])
+        data_columns_count = len(
+            [col for col in available_columns if col.upper() not in ["MILIEU", "MEDIUM", "MEDIA"]]
+        )
         st.info(translate_service.translate("data_columns_count").format(count=data_columns_count))
         if data_columns_count < 2:
             st.warning(translate_service.translate("min_columns_required_for_analysis"))
 
         # Column selection for medium identifier
         medium_column = st.selectbox(
-            "📋 Colonne contenant les identifiants de milieux",
+            translate_service.translate("medium_column_label_umap"),
             options=available_columns,
-            index=available_columns.index(default_medium_col) if default_medium_col in available_columns else 0,
-            help="Sélectionnez la colonne qui contient les noms/identifiants des milieux de culture"
+            index=available_columns.index(default_medium_col)
+            if default_medium_col in available_columns
+            else 0,
+            help=translate_service.translate("medium_column_help"),
         )
 
         st.markdown(f"**{translate_service.translate('media_selection')}**")

@@ -921,7 +921,6 @@
     "no_coloring": "No coloring",
     "min_columns_required_for_analysis": "This analysis requires at least 2 data columns. Please add more columns to your dataset or adjust the columns to exclude.",
     "data_columns_count": "Data columns available for analysis: {count}",
-    "logistic_growth_analysis": "Logistic Growth",
     "about_logistic_growth": "About Logistic Growth Analysis",
     "logistic_growth_help_content": "### What is Logistic Growth Fitting?\n\nLogistic growth fitting is a parametric method that fits a classical **logistic growth model** to your time-series data:\n\n**Model equation:**\n```\nA(t) = A₀ + (Amax - A₀) / (1 + exp(-μ * (t - tlag)))\n```\n\n**Extracted parameters:**\n- **A₀ (Initial Absorbance)**: Starting value\n- **Amax (Max Absorbance)**: Maximum plateau value\n- **μ (Growth Rate)**: Rate of growth\n- **tlag (Lag Time)**: Duration of the lag phase\n- **R²**: Quality of fit\n\n### Process\n\n1. Data is pre-smoothed using spline interpolation\n2. K-Fold cross-validation optimizes parameter estimation\n3. Fitted curves are generated for visualization\n4. Growth rate distribution is analyzed\n\n### When to use\n\n- Growth curves follow a sigmoidal/S-shaped pattern\n- You need interpretable biological parameters\n- You want to compare growth characteristics across wells\n\n### Tips\n\n- Increase CV splits for more robust estimates\n- Adjust spline smoothing if data is very noisy\n- Compare with spline-based growth rate inference for non-standard curves",
     "logistic_growth_launch_button": "Launch Logistic Growth Analysis",
@@ -940,5 +939,9 @@
     "logistic_growth_wells_fitted": "Wells fitted",
     "logistic_growth_mean_growth_rate": "Mean Growth Rate",
     "logistic_growth_std_growth_rate": "Std Growth Rate",
-    "logistic_growth_mean_r2": "Mean R²"
+    "logistic_growth_mean_r2": "Mean R²",
+    "pca_columns_to_exclude": "🚫 Columns to exclude from PCA analysis",
+    "pca_columns_to_exclude_help": "Columns not to use in PCA (default: non-numeric columns and features except targets)",
+    "medium_column_label_umap": "📋 Column containing the medium identifiers",
+    "medium_column_help": "Select the column that contains the names/identifiers of the culture media"
 }

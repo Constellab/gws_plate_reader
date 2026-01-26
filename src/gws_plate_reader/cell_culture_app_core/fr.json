@@ -921,7 +921,6 @@
     "no_coloring": "Pas de coloration",
     "min_columns_required_for_analysis": "Cette analyse nécessite au moins 2 colonnes de données. Veuillez ajouter plus de colonnes à votre jeu de données ou ajuster les colonnes à exclure.",
     "data_columns_count": "Colonnes de données disponibles pour l'analyse : {count}",
-    "logistic_growth_analysis": "Croissance Logistique",
     "about_logistic_growth": "À propos de l'analyse de Croissance Logistique",
     "logistic_growth_help_content": "### Qu'est-ce que l'ajustement de Croissance Logistique ?\n\nL'ajustement de croissance logistique est une méthode paramétrique qui ajuste un **modèle de croissance logistique classique** à vos données temporelles :\n\n**Équation du modèle :**\n```\nA(t) = A₀ + (Amax - A₀) / (1 + exp(-μ * (t - tlag)))\n```\n\n**Paramètres extraits :**\n- **A₀ (Absorbance initiale)** : Valeur de départ\n- **Amax (Absorbance max)** : Valeur plateau maximale\n- **μ (Taux de croissance)** : Taux de croissance\n- **tlag (Temps de latence)** : Durée de la phase de latence\n- **R²** : Qualité de l'ajustement\n\n### Processus\n\n1. Les données sont pré-lissées par interpolation spline\n2. La validation croisée K-Fold optimise l'estimation des paramètres\n3. Les courbes ajustées sont générées pour la visualisation\n4. La distribution des taux de croissance est analysée\n\n### Quand utiliser\n\n- Les courbes de croissance suivent un motif sigmoïde/en S\n- Vous avez besoin de paramètres biologiques interprétables\n- Vous voulez comparer les caractéristiques de croissance entre les puits\n\n### Conseils\n\n- Augmentez les splits CV pour des estimations plus robustes\n- Ajustez le lissage spline si les données sont très bruitées\n- Comparez avec l'inférence de taux de croissance par spline pour les courbes non standard",
     "logistic_growth_launch_button": "Lancer l'analyse de Croissance Logistique",
@@ -940,5 +939,9 @@
     "logistic_growth_wells_fitted": "Puits ajustés",
     "logistic_growth_mean_growth_rate": "Taux moyen",
     "logistic_growth_std_growth_rate": "Écart-type taux",
-    "logistic_growth_mean_r2": "R² moyen"
+    "logistic_growth_mean_r2": "R² moyen",
+    "pca_columns_to_exclude": "🚫 Colonnes à exclure de l'analyse PCA",
+    "pca_columns_to_exclude_help": "Colonnes à exclure de l'analyse PCA (par défaut : colonnes non-numériques et features sauf cibles)",
+    "medium_column_label_umap": "📋 Colonne contenant les identifiants de milieux",
+    "medium_column_help": "Sélectionnez la colonne qui contient les noms/identifiants des milieux de culture"
 }

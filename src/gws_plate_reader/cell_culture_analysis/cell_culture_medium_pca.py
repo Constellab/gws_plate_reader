@@ -19,6 +19,7 @@ from gws_core import (
     TaskOutputs,
     task_decorator,
 )
+from scipy import stats
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
@@ -26,7 +27,7 @@ from sklearn.preprocessing import StandardScaler
 @task_decorator(
     "CellCultureMediumPCA",
     human_name="Cell Culture Medium PCA",
-    short_description="Performs PCA analysis on cell culture medium composition data"
+    short_description="Performs PCA analysis on cell culture medium composition data",
 )
 class CellCultureMediumPCA(Task):
     """
@@ -57,46 +58,64 @@ class CellCultureMediumPCA(Task):
     - The number of components is determined automatically based on data dimensions
     """
 
-    input_specs = InputSpecs({
-        'medium_table': InputSpec(
-            Table,
-            human_name="Medium Table",
-            short_description="Table containing medium composition data with Medium column"
-        )
-    })
+    input_specs = InputSpecs(
+        {
+            "medium_table": InputSpec(
+                Table,
+                human_name="Medium Table",
+                short_description="Table containing medium composition data with Medium column",
+            )
+        }
+    )
 
-    output_specs = OutputSpecs({
-        'scores_table': OutputSpec(
-            Table,
-            human_name="PCA Scores Table",
-            short_description="Table containing principal component scores for each sample"
-        ),
-        'scatter_plot': OutputSpec(
-            PlotlyResource,
-            human_name="PCA Scatter Plot",
-            short_description="Scatter plot showing PC1 vs PC2 projection colored by medium"
-        ),
-        'biplot': OutputSpec(
-            PlotlyResource,
-            human_name="PCA Biplot",
-            short_description="Biplot combining sample scores and variable loadings"
-        )
-    })
+    output_specs = OutputSpecs(
+        {
+            "scores_table": OutputSpec(
+                Table,
+                human_name="PCA Scores Table",
+                short_description="Table containing principal component scores for each sample",
+            ),
+            "scatter_plot": OutputSpec(
+                PlotlyResource,
+                human_name="PCA Scatter Plot",
+                short_description="Scatter plot showing PC1 vs PC2 projection colored by medium",
+            ),
+            "biplot": OutputSpec(
+                PlotlyResource,
+                human_name="PCA Biplot",
+                short_description="Biplot combining sample scores and variable loadings",
+            ),
+        }
+    )
 
-    config_specs = ConfigSpecs({
-        'medium_column': StrParam(
-            default_value='Medium',
-            human_name="Medium Column Name",
-            short_description="Name of the column containing medium identifiers",
-            visibility='public'
-        ),
-        'columns_to_exclude': ListParam(
-            default_value=[],
-            human_name="Columns to Exclude",
-            short_description="List of column names to exclude from PCA analysis (in addition to medium column)",
-            visibility='public'
-        )
-    })
+    config_specs = ConfigSpecs(
+        {
+            "medium_column": StrParam(
+                default_value="Medium",
+                human_name="Medium Column Name",
+                short_description="Name of the column containing medium identifiers",
+                visibility="public",
+            ),
+            "columns_to_exclude": ListParam(
+                default_value=[],
+                human_name="Columns to Exclude",
+                short_description="List of column names to exclude from PCA analysis (in addition to medium column)",
+                visibility="public",
+            ),
+            "color_by": ListParam(
+                human_name="Color By Columns",
+                short_description="Column names to use for coloring the points (optional). By default, all columns are used.",
+                optional=True,
+                visibility="public",
+            ),
+            "hover_data_columns": ListParam(
+                human_name="Hover Data Columns",
+                short_description="List of column names to display as metadata on hover",
+                optional=True,
+                visibility="public",
+            ),
+        }
+    )
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
         """Run PCA analysis on medium composition data"""
@@ -104,18 +123,45 @@ class CellCultureMediumPCA(Task):
         self.log_info_message("Starting PCA analysis on medium composition data")
 
         # Get parameters
-        medium_col = params.get_value('medium_column')
-        columns_to_exclude = params.get_value('columns_to_exclude', [])
+        medium_col = params.get_value("medium_column")
+        columns_to_exclude = params.get_value("columns_to_exclude", [])
+        color_by_columns = params.get_value("color_by")
+        hover_data_columns = params.get_value("hover_data_columns", [])
 
         # Get input table
-        medium_table: Table = inputs['medium_table']
+        medium_table: Table = inputs["medium_table"]
         df = medium_table.get_data()
 
-        self.log_info_message(f"Successfully loaded table with {len(df)} rows and {len(df.columns)} columns")
+        self.log_info_message(
+            f"Successfully loaded table with {len(df)} rows and {len(df.columns)} columns"
+        )
 
         # Verify medium column exists
         if medium_col not in df.columns:
-            raise ValueError(f"Column '{medium_col}' not found in table. Available columns: {list(df.columns)}")
+            raise ValueError(
+                f"Column '{medium_col}' not found in table. Available columns: {list(df.columns)}"
+            )
+
+        # Extract hover data columns if specified
+        hover_data = {}
+        if hover_data_columns:
+            invalid_cols = [col for col in hover_data_columns if col not in df.columns]
+            if invalid_cols:
+                raise ValueError(f"Hover data columns not found in data: {', '.join(invalid_cols)}")
+            for col in hover_data_columns:
+                hover_data[col] = df[col].copy()
+
+        # Determine columns to color by
+        if color_by_columns:
+            list_columns_to_color_by = color_by_columns.copy()
+            invalid_cols = [col for col in list_columns_to_color_by if col not in df.columns]
+            if invalid_cols:
+                raise ValueError(f"Color by columns not found in data: {', '.join(invalid_cols)}")
+        else:
+            # Default: use all columns
+            list_columns_to_color_by = df.columns.tolist()
+
+        df_color = df.copy()
 
         self.update_progress_value(20, "Preparing data...")
 
@@ -133,10 +179,14 @@ class CellCultureMediumPCA(Task):
             invalid_excludes = [col for col in columns_to_exclude if col not in df.columns]
 
             if invalid_excludes:
-                self.log_warning_message(f"Ignoring non-existent columns: {', '.join(invalid_excludes)}")
+                self.log_warning_message(
+                    f"Ignoring non-existent columns: {', '.join(invalid_excludes)}"
+                )
 
             if valid_excludes:
-                self.log_info_message(f"Excluding {len(valid_excludes)} columns: {', '.join(valid_excludes)}")
+                self.log_info_message(
+                    f"Excluding {len(valid_excludes)} columns: {', '.join(valid_excludes)}"
+                )
                 columns_to_drop.extend(valid_excludes)
 
         X_num = df.drop(columns=columns_to_drop)
@@ -163,119 +213,415 @@ class CellCultureMediumPCA(Task):
         expl_var = pca.explained_variance_ratio_
         pc1_var, pc2_var = expl_var[0] * 100, expl_var[1] * 100
 
-        self.log_success_message(f"PCA completed: PC1 explains {pc1_var:.2f}%, PC2 explains {pc2_var:.2f}%")
+        self.log_success_message(
+            f"PCA completed: PC1 explains {pc1_var:.2f}%, PC2 explains {pc2_var:.2f}%"
+        )
 
         # Create scores dataframe
-        scores_df = pd.DataFrame(scores, columns=[f"PC{i+1}" for i in range(scores.shape[1])])
+        scores_df = pd.DataFrame(scores, columns=[f"PC{i + 1}" for i in range(scores.shape[1])])
         scores_df.insert(0, medium_col, milieu.values)
 
-        self.update_progress_value(60, "Creating scatter plot...")
+        # Add all color-by columns to scores dataframe
+        for col in list_columns_to_color_by:
+            if col not in scores_df.columns:  # Don't duplicate if medium_col is in color_by
+                color_column = df_color[col].copy()
+                color_column_is_numeric = pd.api.types.is_numeric_dtype(color_column)
 
-        # Create scatter plot
-        scatter_title = f"PCA — PC1 vs PC2 Projection (PC1 {pc1_var:.1f}%, PC2 {pc2_var:.1f}%)"
-        fig_scatter = px.scatter(
-            scores_df,
-            x="PC1", y="PC2",
-            color=medium_col,
-            title=scatter_title,
-            labels={
-                "PC1": f"PC1 ({pc1_var:.1f}%)",
-                "PC2": f"PC2 ({pc2_var:.1f}%)",
-                medium_col: "Medium"
-            },
-            hover_data={medium_col: True}
-        )
+                if color_column_is_numeric:
+                    # Check if log transformation is beneficial
+
+                    skewness = stats.skew(color_column.dropna())
+                    if skewness > 2:
+                        min_positive = (
+                            color_column[color_column > 0].min() if (color_column > 0).any() else 1
+                        )
+                        color_column_transformed = np.log10(color_column + min_positive * 0.01)
+                        scores_df[col] = df_color[col].values
+                        scores_df[f"{col} (log10)"] = color_column_transformed
+                    else:
+                        scores_df[col] = color_column.values
+                else:
+                    scores_df[col] = color_column.values.astype(str)
+
+        # Add hover data columns
+        for col_name, col_data in hover_data.items():
+            if col_name not in scores_df.columns:
+                scores_df[col_name] = col_data.values
+
+        hover_data_list = list(hover_data.keys()) if hover_data else []
+
+        self.update_progress_value(60, "Creating interactive scatter plot...")
+
+        # Create interactive scatter plot with dropdown
+        traces_scatter = []
+        trace_groups_scatter = {}
+
+        for col in list_columns_to_color_by:
+            color_data = df_color[col].copy()
+            is_numeric = pd.api.types.is_numeric_dtype(color_data)
+
+            if is_numeric:
+                # Check if log transformation was applied
+                skewness = stats.skew(color_data.dropna())
+                apply_log = skewness > 2
+
+                if apply_log:
+                    min_positive = color_data[color_data > 0].min() if (color_data > 0).any() else 1
+                    color_data_transformed = np.log10(color_data + min_positive * 0.01)
+                    col_label = f"{col} (log10)"
+                else:
+                    color_data_transformed = color_data
+                    col_label = col
+
+                # Filter hover data
+                filtered_hover_list = [
+                    hcol for hcol in hover_data_list if hcol not in (col, col_label)
+                ]
+                hover_data_dict = {hcol: scores_df[hcol] for hcol in filtered_hover_list}
+
+                # Build hover template
+                hover_text = scores_df.index.tolist()
+                hover_template = f"<b>%{{hovertext}}</b><br>{col_label}: %{{marker.color:.2f}}<br>"
+                if filtered_hover_list:
+                    for i, hcol in enumerate(filtered_hover_list):
+                        if pd.api.types.is_numeric_dtype(scores_df[hcol]):
+                            hover_template += f"{hcol}: %{{customdata[{i}]:.2f}}<br>"
+                        else:
+                            hover_template += f"{hcol}: %{{customdata[{i}]}}<br>"
+                    hover_template = hover_template.rstrip("<br>") + "<extra></extra>"
+                else:
+                    hover_template = f"<b>%{{hovertext}}</b><br>{col_label}: %{{marker.color:.2f}}<extra></extra>"
+
+                trace = go.Scatter(
+                    x=scores_df["PC1"],
+                    y=scores_df["PC2"],
+                    mode="markers",
+                    marker={
+                        "size": 8,
+                        "color": color_data_transformed,
+                        "colorscale": "Viridis",
+                        "showscale": True,
+                        "colorbar": {"title": col_label},
+                    },
+                    name=col_label,
+                    hovertext=hover_text,
+                    customdata=np.column_stack(
+                        [hover_data_dict[hcol] for hcol in filtered_hover_list]
+                    )
+                    if filtered_hover_list
+                    else None,
+                    hovertemplate=hover_template,
+                    visible=False,
+                )
+                trace_groups_scatter[col_label] = [trace]
+                traces_scatter.append(trace)
+            else:
+                # Categorical coloring
+                cat_traces = []
+                unique_categories = color_data.unique()
+                colors = px.colors.qualitative.Plotly
+
+                for idx, category in enumerate(unique_categories):
+                    cat_mask = color_data == category
+                    # Get boolean array positions instead of index labels
+                    mask_positions = np.where(cat_mask)[0]
+
+                    # Filter hover data
+                    filtered_hover_list = [hcol for hcol in hover_data_list if hcol != col]
+                    hover_data_dict = {
+                        hcol: scores_df.iloc[mask_positions][hcol] for hcol in filtered_hover_list
+                    }
+
+                    color = colors[idx % len(colors)]
+                    hover_text = scores_df.iloc[mask_positions].index.tolist()
+
+                    # Build hover template
+                    hover_template = f"<b>%{{hovertext}}</b><br>{col}: {category}<br>"
+                    if filtered_hover_list:
+                        for i, hcol in enumerate(filtered_hover_list):
+                            if pd.api.types.is_numeric_dtype(scores_df[hcol]):
+                                hover_template += f"{hcol}: %{{customdata[{i}]:.2f}}<br>"
+                            else:
+                                hover_template += f"{hcol}: %{{customdata[{i}]}}<br>"
+                        hover_template = hover_template.rstrip("<br>") + "<extra></extra>"
+                    else:
+                        hover_template = (
+                            f"<b>%{{hovertext}}</b><br>{col}: {category}<extra></extra>"
+                        )
+
+                    cat_traces.append(
+                        go.Scatter(
+                            x=scores_df.iloc[mask_positions]["PC1"],
+                            y=scores_df.iloc[mask_positions]["PC2"],
+                            mode="markers",
+                            marker={"size": 8, "color": color},
+                            name=str(category),
+                            hovertext=hover_text,
+                            customdata=np.column_stack(
+                                [hover_data_dict[hcol] for hcol in filtered_hover_list]
+                            )
+                            if filtered_hover_list
+                            else None,
+                            hovertemplate=hover_template,
+                            visible=False,
+                        )
+                    )
+
+                trace_groups_scatter[col] = cat_traces
+                traces_scatter.extend(cat_traces)
+
+        # Create dropdown buttons
+        buttons_scatter = []
+        for label, group in trace_groups_scatter.items():
+            visibility = [False] * len(traces_scatter)
+            for t in group:
+                visibility[traces_scatter.index(t)] = True
+
+            buttons_scatter.append(
+                {
+                    "label": label,
+                    "method": "update",
+                    "args": [
+                        {"visible": visibility},
+                        {
+                            "title": f"PCA — PC1 vs PC2 Projection (PC1 {pc1_var:.1f}%, PC2 {pc2_var:.1f}%) – Color by {label}"
+                        },
+                    ],
+                }
+            )
+
+        # Set first group visible
+        if trace_groups_scatter:
+            first_group = list(trace_groups_scatter.values())[0]
+            for trace in first_group:
+                trace.visible = True
+
+        first_label = list(trace_groups_scatter.keys())[0] if trace_groups_scatter else "Medium"
+        fig_scatter = go.Figure(traces_scatter)
         fig_scatter.update_layout(
-            legend_title_text="Medium",
+            title=f"PCA — PC1 vs PC2 Projection (PC1 {pc1_var:.1f}%, PC2 {pc2_var:.1f}%) – Color by {first_label}",
+            xaxis_title=f"PC1 ({pc1_var:.1f}%)",
+            yaxis_title=f"PC2 ({pc2_var:.1f}%)",
+            updatemenus=[
+                {
+                    "buttons": buttons_scatter,
+                    "direction": "down",
+                    "showactive": True,
+                    "x": 1.02,
+                    "y": 1,
+                }
+            ]
+            if len(buttons_scatter) > 1
+            else [],
             template="plotly_white",
             height=600,
-            width=800
+            width=800,
+            hovermode="closest",
         )
 
         self.update_progress_value(80, "Creating biplot...")
 
-        # Create biplot
-        # Calculate loadings (variable contributions)
+        # Create biplot with same dropdown functionality
         loadings = pca.components_.T[:, :2] * np.sqrt(pca.explained_variance_[:2])
-
-        # Scale scores to [-1, 1] range for visualization
         scores_2d = scores[:, :2]
         scores_2d_scaled = scores_2d / np.maximum(1e-12, np.abs(scores_2d).max(axis=0))
-
-        # Normalize loadings
         max_abs_loading = np.abs(loadings).max()
         loadings_scaled = loadings / (max_abs_loading if max_abs_loading > 0 else 1.0)
 
-        # Create biplot figure
-        fig_biplot = go.Figure()
-        fig_biplot.update_layout(
-            title=f"PCA Biplot (PC1 {pc1_var:.1f}%, PC2 {pc2_var:.1f}%)",
-            xaxis_title=f"PC1 ({pc1_var:.1f}%)",
-            yaxis_title=f"PC2 ({pc2_var:.1f}%)",
-            template="plotly_white",
-            height=700,
-            width=900
-        )
+        traces_biplot = []
+        trace_groups_biplot = {}
 
-        # Add sample points grouped by medium
-        for grp, gdf in scores_df.assign(
-            PC1s=scores_2d_scaled[:, 0],
-            PC2s=scores_2d_scaled[:, 1]
-        ).groupby(medium_col):
-            fig_biplot.add_trace(go.Scatter(
-                x=gdf["PC1s"], y=gdf["PC2s"],
-                mode="markers",
-                name=str(grp),
-                hovertext=gdf[medium_col],
-                hovertemplate=f"{medium_col}: %{{hovertext}}<br>PC1: %{{x:.3f}}<br>PC2: %{{y:.3f}}<extra></extra>"
-            ))
+        for col in list_columns_to_color_by:
+            color_data = df_color[col].copy()
+            is_numeric = pd.api.types.is_numeric_dtype(color_data)
 
-        # Add variable loading arrows as traces (so they appear in legend)
+            if is_numeric:
+                skewness = stats.skew(color_data.dropna())
+                apply_log = skewness > 2
+
+                if apply_log:
+                    min_positive = color_data[color_data > 0].min() if (color_data > 0).any() else 1
+                    color_data_transformed = np.log10(color_data + min_positive * 0.01)
+                    col_label = f"{col} (log10)"
+                else:
+                    color_data_transformed = color_data
+                    col_label = col
+
+                filtered_hover_list = [
+                    hcol for hcol in hover_data_list if hcol not in (col, col_label)
+                ]
+                hover_data_dict = {hcol: scores_df[hcol] for hcol in filtered_hover_list}
+                hover_text = scores_df.index.tolist()
+
+                hover_template = f"<b>%{{hovertext}}</b><br>{col_label}: %{{marker.color:.2f}}<br>"
+                if filtered_hover_list:
+                    for i, hcol in enumerate(filtered_hover_list):
+                        if pd.api.types.is_numeric_dtype(scores_df[hcol]):
+                            hover_template += f"{hcol}: %{{customdata[{i}]:.2f}}<br>"
+                        else:
+                            hover_template += f"{hcol}: %{{customdata[{i}]}}<br>"
+                    hover_template = hover_template.rstrip("<br>") + "<extra></extra>"
+                else:
+                    hover_template = f"<b>%{{hovertext}}</b><br>{col_label}: %{{marker.color:.2f}}<extra></extra>"
+
+                trace = go.Scatter(
+                    x=scores_2d_scaled[:, 0],
+                    y=scores_2d_scaled[:, 1],
+                    mode="markers",
+                    marker={
+                        "size": 8,
+                        "color": color_data_transformed,
+                        "colorscale": "Viridis",
+                        "showscale": True,
+                        "colorbar": {
+                            "title": col_label,
+                            "x": 1.3,  # Move colorbar further right to avoid legend overlap
+                            "xanchor": "left",
+                        },
+                    },
+                    name=col_label,
+                    hovertext=hover_text,
+                    customdata=np.column_stack(
+                        [hover_data_dict[hcol] for hcol in filtered_hover_list]
+                    )
+                    if filtered_hover_list
+                    else None,
+                    hovertemplate=hover_template,
+                    visible=False,
+                )
+                trace_groups_biplot[col_label] = [trace]
+                traces_biplot.append(trace)
+            else:
+                cat_traces = []
+                unique_categories = color_data.unique()
+                colors = px.colors.qualitative.Plotly
+
+                for idx, category in enumerate(unique_categories):
+                    cat_mask = color_data == category
+                    # Get boolean array positions instead of index labels
+                    mask_positions = np.where(cat_mask)[0]
+
+                    filtered_hover_list = [hcol for hcol in hover_data_list if hcol != col]
+                    hover_data_dict = {
+                        hcol: scores_df.iloc[mask_positions][hcol] for hcol in filtered_hover_list
+                    }
+
+                    color = colors[idx % len(colors)]
+                    hover_text = scores_df.iloc[mask_positions].index.tolist()
+
+                    hover_template = f"<b>%{{hovertext}}</b><br>{col}: {category}<br>"
+                    if filtered_hover_list:
+                        for i, hcol in enumerate(filtered_hover_list):
+                            if pd.api.types.is_numeric_dtype(scores_df[hcol]):
+                                hover_template += f"{hcol}: %{{customdata[{i}]:.2f}}<br>"
+                            else:
+                                hover_template += f"{hcol}: %{{customdata[{i}]}}<br>"
+                        hover_template = hover_template.rstrip("<br>") + "<extra></extra>"
+                    else:
+                        hover_template = (
+                            f"<b>%{{hovertext}}</b><br>{col}: {category}<extra></extra>"
+                        )
+
+                    cat_traces.append(
+                        go.Scatter(
+                            x=scores_2d_scaled[mask_positions, 0],
+                            y=scores_2d_scaled[mask_positions, 1],
+                            mode="markers",
+                            marker={"size": 8, "color": color},
+                            name=str(category),
+                            hovertext=hover_text,
+                            customdata=np.column_stack(
+                                [hover_data_dict[hcol] for hcol in filtered_hover_list]
+                            )
+                            if filtered_hover_list
+                            else None,
+                            hovertemplate=hover_template,
+                            visible=False,
+                        )
+                    )
+
+                trace_groups_biplot[col] = cat_traces
+                traces_biplot.extend(cat_traces)
+
+        # Add variable loading arrows (always visible)
         for i, var in enumerate(X_num.columns):
             x, y = loadings_scaled[i, 0], loadings_scaled[i, 1]
-
-            # Add arrow as a scatter trace with annotations
-            # This makes it controllable via legend
-            fig_biplot.add_trace(go.Scatter(
-                x=[0, x],
-                y=[0, y],
-                mode="lines+text",
-                line=dict(color="gray", width=2),
-                text=["", var],  # Empty text at origin, variable name at tip
-                textposition="top center",
-                textfont=dict(size=10, color="black"),
-                name=var,
-                hovertemplate=f"{var}<br>PC1: {x:.3f}<br>PC2: {y:.3f}<extra></extra>",
-                showlegend=True
-            ))
-
-            # Add arrowhead using annotation (these won't show in legend but will follow trace visibility)
-            fig_biplot.add_annotation(
-                x=x, y=y,
-                ax=0, ay=0,
-                xref="x", yref="y",
-                axref="x", ayref="y",
-                showarrow=True,
-                arrowhead=2,
-                arrowsize=1,
-                arrowwidth=2,
-                arrowcolor="gray",
-                visible=True
+            traces_biplot.append(
+                go.Scatter(
+                    x=[0, x],
+                    y=[0, y],
+                    mode="lines+text",
+                    line={"color": "gray", "width": 2},
+                    text=["", var],
+                    textposition="top center",
+                    textfont={"size": 10, "color": "black"},
+                    name=var,
+                    hovertemplate=f"{var}<br>PC1: {x:.3f}<br>PC2: {y:.3f}<extra></extra>",
+                    showlegend=True,
+                    visible=True,  # Always visible
+                )
             )
 
-        # Make plot square and add margins
-        fig_biplot.update_yaxes(scaleanchor="x", scaleratio=1)
+        # Create dropdown buttons for biplot
+        buttons_biplot = []
+        num_loadings = len(X_num.columns)
+        for label, group in trace_groups_biplot.items():
+            visibility = [False] * len(traces_biplot)
+            # Make sample traces visible based on selection
+            for t in group:
+                visibility[traces_biplot.index(t)] = True
+            # Always show loading arrows (last num_loadings traces)
+            for i in range(len(traces_biplot) - num_loadings, len(traces_biplot)):
+                visibility[i] = True
+
+            buttons_biplot.append(
+                {
+                    "label": label,
+                    "method": "update",
+                    "args": [
+                        {"visible": visibility},
+                        {
+                            "title": f"PCA Biplot (PC1 {pc1_var:.1f}%, PC2 {pc2_var:.1f}%) – Color by {label}"
+                        },
+                    ],
+                }
+            )
+
+        # Set first group visible
+        if trace_groups_biplot:
+            first_group = list(trace_groups_biplot.values())[0]
+            for trace in first_group:
+                trace.visible = True
+
+        fig_biplot = go.Figure(traces_biplot)
         fig_biplot.update_layout(
-            margin=dict(l=40, r=40, t=60, b=40),
-            legend=dict(
-                orientation="v",
-                yanchor="top",
-                y=1,
-                xanchor="left",
-                x=1.02,
-                tracegroupgap=10
-            )
+            title=f"PCA Biplot (PC1 {pc1_var:.1f}%, PC2 {pc2_var:.1f}%) – Color by {first_label}",
+            xaxis_title=f"PC1 ({pc1_var:.1f}%)",
+            yaxis_title=f"PC2 ({pc2_var:.1f}%)",
+            updatemenus=[
+                {
+                    "buttons": buttons_biplot,
+                    "direction": "down",
+                    "showactive": True,
+                    "x": 1.02,
+                    "y": 1,
+                }
+            ]
+            if len(buttons_biplot) > 1
+            else [],
+            template="plotly_white",
+            height=700,
+            width=900,
+            hovermode="closest",
+            legend={
+                "x": 1.02,
+                "y": 0.5,
+                "xanchor": "left",
+                "yanchor": "middle",
+            },
         )
+        fig_biplot.update_yaxes(scaleanchor="x", scaleratio=1)
+        fig_biplot.update_layout(margin={"l": 40, "r": 40, "t": 60, "b": 40})
 
         self.update_progress_value(95, "Preparing outputs...")
 
@@ -312,7 +658,7 @@ class CellCultureMediumPCA(Task):
         self.update_progress_value(100, "Done")
 
         return {
-            'scores_table': scores_table,
-            'scatter_plot': scatter_resource,
-            'biplot': biplot_resource
+            "scores_table": scores_table,
+            "scatter_plot": scatter_resource,
+            "biplot": biplot_resource,
         }

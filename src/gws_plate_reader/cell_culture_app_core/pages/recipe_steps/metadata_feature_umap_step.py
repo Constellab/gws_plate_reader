@@ -31,9 +31,9 @@ def launch_metadata_feature_umap_scenario(
     min_dist: float,
     metric: str,
     scale_data: bool,
-    n_clusters: Optional[int],
-    columns_to_exclude: Optional[List[str]] = None,
-    hover_data_columns: Optional[List[str]] = None,
+    n_clusters: int | None,
+    columns_to_exclude: Optional[list[str]] = None,
+    hover_data_columns: Optional[list[str]] = None,
 ) -> Optional[Scenario]:
     """
     Launch a Metadata Feature UMAP analysis scenario
@@ -146,7 +146,6 @@ def launch_metadata_feature_umap_scenario(
             umap_task.set_param("min_dist", min_dist)
             umap_task.set_param("metric", metric)
             umap_task.set_param("scale_data", scale_data)
-            umap_task.set_param("color_by", medium_name_column)
             if n_clusters is not None:
                 umap_task.set_param("n_clusters", n_clusters)
             if columns_to_exclude:
@@ -429,7 +428,11 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
         )
 
         # Check minimum number of data columns (excluding Series and Medium columns)
-        data_columns_for_analysis = [col for col in all_merged_columns if col not in ["Series", "Medium", default_medium_column]]
+        data_columns_for_analysis = [
+            col
+            for col in all_merged_columns
+            if col not in ["Series", "Medium", default_medium_column]
+        ]
         data_columns_count = len(data_columns_for_analysis)
         st.info(translate_service.translate("data_columns_count").format(count=data_columns_count))
         if data_columns_count < 2:
@@ -547,7 +550,7 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
         hover_data_columns = st.multiselect(
             translate_service.translate("hover_columns_label"),
             options=all_merged_columns,
-            default=[],
+            default=None,
             help=translate_service.translate("hover_data_help"),
         )
         # Convert empty list to None
@@ -596,4 +599,3 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
                 st.rerun()
             else:
                 st.error(translate_service.translate("umap_launch_error"))
-

@@ -211,11 +211,6 @@ def render_metadata_feature_umap_results(
             st.metric(translate_service.translate("number_of_series_label"), len(df_2d))
             st.metric(translate_service.translate("columns_label"), len(df_2d.columns))
 
-            # Show column names
-            st.caption(f"**{translate_service.translate('available_columns_caption')}**")
-            for col in df_2d.columns:
-                st.caption(f"- {col}")
-
         # Download button
         csv = df_2d.to_csv(index=False)
         st.download_button(
@@ -241,11 +236,6 @@ def render_metadata_feature_umap_results(
         with col2:
             st.metric(translate_service.translate("number_of_series_label"), len(df_3d))
             st.metric(translate_service.translate("columns_label"), len(df_3d.columns))
-
-            # Show column names
-            st.caption(f"**{translate_service.translate('available_columns_caption')}**")
-            for col in df_3d.columns:
-                st.caption(f"- {col}")
 
         # Download button
         csv = df_3d.to_csv(index=False)

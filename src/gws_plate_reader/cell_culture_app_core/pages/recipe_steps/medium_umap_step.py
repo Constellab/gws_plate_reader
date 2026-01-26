@@ -75,6 +75,7 @@ def launch_medium_umap_scenario(
     metric: str,
     scale_data: bool,
     n_clusters: int | None,
+    list_hover_data_columns: list[str] | None = None,
 ) -> Scenario | None:
     """
     Launch a Medium UMAP analysis scenario
@@ -88,6 +89,7 @@ def launch_medium_umap_scenario(
     :param metric: Distance metric for UMAP
     :param scale_data: Whether to scale data before UMAP
     :param n_clusters: Number of clusters for K-Means (optional)
+    :param list_hover_data_columns: List of columns to include as hover data in UMAP plots (optional)
     :return: The created scenario or None if error
     """
     translate_service = cell_culture_state.get_translate_service()
@@ -151,10 +153,11 @@ def launch_medium_umap_scenario(
             umap_task.set_param("min_dist", min_dist)
             umap_task.set_param("metric", metric)
             umap_task.set_param("scale_data", scale_data)
-            umap_task.set_param("color_by", cell_culture_state.MEDIUM_COLUMN_NAME)
             umap_task.set_param("columns_to_exclude", [cell_culture_state.MEDIUM_COLUMN_NAME])
             if n_clusters is not None:
                 umap_task.set_param("n_clusters", n_clusters)
+            if list_hover_data_columns is not None:
+                umap_task.set_param("hover_data_columns", list_hover_data_columns)
 
             # Add outputs
             protocol_proxy.add_output(
@@ -475,6 +478,12 @@ def render_medium_umap_step(
                 value=3,
                 help=translate_service.translate("n_clusters_help"),
             )
+        list_hover_data_columns = st.multiselect(
+            translate_service.translate("hover_data_columns_label"),
+            options=available_columns,
+            default=None,
+            help=translate_service.translate("hover_data_columns_help"),
+        )
 
         # Submit button
         submit_button = st.form_submit_button(
@@ -503,6 +512,7 @@ def render_medium_umap_step(
                     metric,
                     scale_data,
                     n_clusters,
+                    list_hover_data_columns,
                 )
 
                 if umap_scenario:

@@ -943,5 +943,7 @@
     "pca_columns_to_exclude": "🚫 Columns to exclude from PCA analysis",
     "pca_columns_to_exclude_help": "Columns not to use in PCA (default: non-numeric columns and features except targets)",
     "medium_column_label_umap": "📋 Column containing the medium identifiers",
-    "medium_column_help": "Select the column that contains the names/identifiers of the culture media"
+    "medium_column_help": "Select the column that contains the names/identifiers of the culture media",
+    "hover_data_columns_label": "🔍 Columns to show on hover",
+    "hover_data_columns_help": "Select columns to display as additional information when hovering over points"
 }

@@ -73,6 +73,7 @@ def launch_medium_pca_scenario(
     load_scenario: Scenario,
     selected_media: list[str],
     columns_to_exclude: list[str] | None = None,
+    list_hover_data_columns: list[str] | None = None,
 ) -> Scenario | None:
     """
     Launch a Medium PCA analysis scenario
@@ -146,6 +147,9 @@ def launch_medium_pca_scenario(
 
             if columns_to_exclude:
                 pca_task.set_param("columns_to_exclude", columns_to_exclude)
+
+            if list_hover_data_columns:
+                pca_task.set_param("hover_data_columns", list_hover_data_columns)
 
             # Add outputs
             protocol_proxy.add_output(
@@ -384,6 +388,13 @@ def render_medium_pca_step(
             help=translate_service.translate("pca_select_media"),
         )
 
+        list_hover_data_columns = st.multiselect(
+            translate_service.translate("hover_data_columns_label"),
+            options=available_columns,
+            default=None,
+            help=translate_service.translate("hover_data_columns_help"),
+        )
+
         # Submit button
         submit_button = st.form_submit_button(
             f"🚀 {translate_service.translate('pca_launch_button')}",
@@ -405,6 +416,7 @@ def render_medium_pca_step(
                     load_scenario,
                     selected_media,
                     columns_to_exclude,
+                    list_hover_data_columns,
                 )
 
                 if pca_scenario:

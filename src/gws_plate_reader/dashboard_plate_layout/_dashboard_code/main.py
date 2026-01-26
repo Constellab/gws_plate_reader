@@ -1,18 +1,29 @@
-import os
 import json
+import os
+from typing import Any
+
 import streamlit as st
+from gws_core import (
+    File,
+    FrontService,
+    JSONImporter,
+    ResourceModel,
+    ResourceOrigin,
+    Settings,
+    TagService,
+    TagValueModel,
+)
 from streamlit_extras.stylable_container import stylable_container
+
 from gws_plate_reader.dashboard_plate_layout.plate_layout_state import PlateLayoutState
-from gws_core import File, ResourceOrigin, ResourceModel, Settings, FrontService, JSONImporter, TagService
-from gws_core import TagService, TagValueModel
-from typing import Optional, Tuple
 
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
 sources: list
 params: dict
 
-def key_tag_selector() -> Optional[Tuple[str, any]]:
+
+def key_tag_selector() -> tuple[str, Any] | None:
     """Simple tag key selector that returns (key, value) tuple"""
 
     # Get all tag keys
@@ -29,12 +40,14 @@ def key_tag_selector() -> Optional[Tuple[str, any]]:
     selected_keys = st.multiselect(
         "Select tag(s):",
         options=list(tag_key_options.keys()),
-        default=list(plate_layout_state.get_selected_key_tags().keys()) if plate_layout_state.get_selected_key_tags() else [],
+        default=list(plate_layout_state.get_selected_key_tags().keys())
+        if plate_layout_state.get_selected_key_tags()
+        else [],
         format_func=lambda x: tag_key_options[x],
         placeholder="Choose at least a tag...",
         on_change=save_selected_keys,
         args=(tag_key_options,),
-        key="multiselect_tag_keys"
+        key="multiselect_tag_keys",
     )
 
     if not selected_keys:
@@ -44,7 +57,7 @@ def key_tag_selector() -> Optional[Tuple[str, any]]:
     return {key: tag_key_options[key] for key in selected_keys}
 
 
-def save_selected_keys(tag_key_options : dict):
+def save_selected_keys(tag_key_options: dict):
     current_selected = set(plate_layout_state.get_multiselect_tag_keys())
     previous_selected = set(plate_layout_state.get_selected_key_tags().keys())
 
@@ -56,17 +69,19 @@ def save_selected_keys(tag_key_options : dict):
         keys_with_data = []
         for key in removed_keys:
             for well_data in plate_layout_state.get_plate_layout().values():
-                if key in well_data and isinstance(well_data.get(key), dict): # Check if key exists
+                if key in well_data and isinstance(well_data.get(key), dict):  # Check if key exists
                     keys_with_data.append(key)
                     break
 
         if keys_with_data:
             # Store the removal request for confirmation
-            plate_layout_state.set_pending_key_removal({
-                'keys': list(removed_keys),
-                'keys_with_data': keys_with_data,
-                'new_selection': current_selected
-            })
+            plate_layout_state.set_pending_key_removal(
+                {
+                    "keys": list(removed_keys),
+                    "keys_with_data": keys_with_data,
+                    "new_selection": current_selected,
+                }
+            )
             # Revert the multiselect to previous state temporarily
             plate_layout_state.set_multiselect_tag_keys(list(previous_selected))
             return
@@ -81,14 +96,11 @@ def save_selected_keys(tag_key_options : dict):
     # Add new keys with empty values to existing wells
     if added_keys and plate_layout_state.get_plate_layout():
         plate_layout = plate_layout_state.get_plate_layout()
-        for well_name, well_data in plate_layout.items():
+        for _well_name, well_data in plate_layout.items():
             if well_data:  # Only add to wells that already have some data
                 for new_key in added_keys:
                     if new_key not in well_data:
-                        well_data[new_key] = {
-                            "label": tag_key_options[new_key],
-                            "value": ""
-                        }
+                        well_data[new_key] = {"label": tag_key_options[new_key], "value": ""}
 
         plate_layout_state.set_plate_layout(plate_layout)
 
@@ -98,12 +110,13 @@ def save_selected_keys(tag_key_options : dict):
             json.dump(plate_layout_state.get_plate_layout(), json_file, indent=4)
 
     # Save the selected keys to keys.json
-    file_dict_keys_path = os.path.join(
-        folder_data, "keys.json")
+    file_dict_keys_path = os.path.join(folder_data, "keys.json")
     with open(file_dict_keys_path, "w") as json_file:
         json.dump(plate_layout_state.get_selected_key_tags(), json_file, indent=4)
 
+
 plate_layout_state = PlateLayoutState()
+
 
 # Function to display success message after rerun
 def show_success_message():
@@ -112,10 +125,11 @@ def show_success_message():
         # Clear message after displaying
         plate_layout_state.set_success_message(None)
 
+
 @st.dialog("Delete key(s)")
 def dialog_delete_keys():
     removal_data = plate_layout_state.get_pending_key_removal()
-    keys_with_data = removal_data['keys_with_data']
+    keys_with_data = removal_data["keys_with_data"]
 
     st.warning(f"⚠️ The following key(s) have data in wells: **{', '.join(keys_with_data)}**")
     st.write("Do you want to really delete this key? Data related to this key will be deleted.")
@@ -131,15 +145,17 @@ def dialog_delete_keys():
     with col2:
         if st.button("✅ Yes, delete key(s) and data", key="delete_keys"):
             # Proceed with removal
-            removed_keys = removal_data['keys']
-            new_selection = removal_data['new_selection']
+            removed_keys = removal_data["keys"]
+            new_selection = removal_data["new_selection"]
 
             # Remove keys from selected_key_tags
             tag_service = TagService()
             all_tag_keys = tag_service.get_all_tags()
             tag_key_options = {tag.key: f"{tag.label}" for tag in all_tag_keys}
 
-            selected_key_tags = {key: tag_key_options[key] for key in new_selection if key in tag_key_options}
+            selected_key_tags = {
+                key: tag_key_options[key] for key in new_selection if key in tag_key_options
+            }
             plate_layout_state.set_selected_key_tags(selected_key_tags)
 
             # Remove data from all wells for the removed keys
@@ -174,7 +190,6 @@ def dialog_delete_keys():
 
 
 def show_content():
-
     # Create tabs
     tab_dict, tab_plate_layout = st.tabs(["Tags", "Plate Layout"])
 
@@ -188,14 +203,13 @@ def show_content():
         else:
             selected_key_tags = key_tag_selector()
 
-
-
     with tab_plate_layout:
         # Add the button to generate plate layout ressource
         if st.button("Generate plate layout ressource", icon=":material/note_add:"):
-            path_temp = os.path.join(os.path.abspath(
-                os.path.dirname(__file__)), Settings.make_temp_dir())
-            full_path = os.path.join(path_temp, f"Plate_layout.json")
+            path_temp = os.path.join(
+                os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir()
+            )
+            full_path = os.path.join(path_temp, "Plate_layout.json")
             plate_layout: File = File(full_path)
             # Convert dict to JSON string
             json_str = json.dumps(plate_layout_state.get_plate_layout(), indent=4)
@@ -203,100 +217,113 @@ def show_content():
             # Import the resource as JSONDict
             plate_layout_json_dict = JSONImporter.call(plate_layout)
             plate_layout_resource = ResourceModel.save_from_resource(
-                plate_layout_json_dict, ResourceOrigin.UPLOADED, flagged=True)
+                plate_layout_json_dict, ResourceOrigin.UPLOADED, flagged=True
+            )
             st.success(
-                f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(plate_layout_resource.id)}")
+                f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(plate_layout_resource.id)}"
+            )
         if not plate_layout_state.get_selected_key_tags():
             st.warning("Please select at least one key")
-        else:
-            if plate_layout_state.get_well_clicked():
-                st.write(
-                    f"Fill informations for {', '.join(plate_layout_state.get_well_clicked())}:")
+        elif plate_layout_state.get_well_clicked():
+            st.write(f"Fill informations for {', '.join(plate_layout_state.get_well_clicked())}:")
 
-                # Add selector for each key
-                set_selected_key = []
-                for key, value in plate_layout_state.get_selected_key_tags().items():
-                    # Get values for selected key
-                    tag_values = list(TagValueModel.select().where(TagValueModel.tag_key == key))
+            # Add selector for each key
+            set_selected_key = []
+            for key, value in plate_layout_state.get_selected_key_tags().items():
+                # Get values for selected key
+                tag_values = list(TagValueModel.select().where(TagValueModel.tag_key == key))
 
-                    if tag_values:
-                        # Select from existing values
-                        values = [tv.get_tag_value() for tv in tag_values]
-                        selected_key = st.selectbox(
-                            label=value, options=values, placeholder="Choose an option", index=None, key=f"select_{key}")
-                        set_selected_key.append((selected_key, value))
+                if tag_values:
+                    # Select from existing values
+                    values = [tv.get_tag_value() for tv in tag_values]
+                    selected_key = st.selectbox(
+                        label=value,
+                        options=values,
+                        placeholder="Choose an option",
+                        index=None,
+                        key=f"select_{key}",
+                    )
+                    set_selected_key.append((selected_key, value))
 
+            # Save information for selected wells
+            if st.button("Save these informations", icon=":material/save:"):
+                plate_layout = plate_layout_state.get_plate_layout()
+                for selected_key, label in set_selected_key:
+                    for well in plate_layout_state.get_well_clicked():
+                        if well not in plate_layout:
+                            plate_layout[well] = {}
 
-                # Save information for selected wells
-                if st.button("Save these informations", icon = ":material/save:"):
+                        # Find the actual key from the label
+                        key = None
+                        for k, v in plate_layout_state.get_selected_key_tags().items():
+                            if v == label:
+                                key = k
+                                break
+
+                        if key:
+                            # Save in new format with label and value
+                            plate_layout[well][key] = {
+                                "label": label,
+                                "value": selected_key if selected_key is not None else "",
+                            }
+
+                # Remove wells where all values are empty
+                wells_to_delete = []
+                for well, well_data in plate_layout.items():
+                    if all(
+                        data.get("value", "") == ""
+                        for data in well_data.values()
+                        if isinstance(data, dict)
+                    ):
+                        wells_to_delete.append(well)
+
+                for well in wells_to_delete:
+                    del plate_layout[well]
+
+                plate_layout_state.set_plate_layout(plate_layout)
+
+                # Save the plate layout to a JSON file
+                file_plate_layout_path = os.path.join(folder_data, "plate_layout.json")
+                os.makedirs(
+                    os.path.dirname(file_plate_layout_path), exist_ok=True
+                )  # Ensure directory exists
+                with open(file_plate_layout_path, "w") as json_file:
+                    json.dump(plate_layout_state.get_plate_layout(), json_file, indent=4)
+
+                plate_layout_state.set_success_message("Information saved successfully! ✅")
+                st.rerun()
+            show_success_message()  # Show success message if it exists
+
+            if any(
+                well in plate_layout_state.get_plate_layout()
+                for well in plate_layout_state.get_well_clicked()
+            ):
+                # Remove information for selected wells
+                if st.button(
+                    "**:red[Remove saved information]**",
+                    icon=":material/delete:",
+                    key="remove_button",
+                ):
                     plate_layout = plate_layout_state.get_plate_layout()
-                    for selected_key, label in set_selected_key:
-                        for well in plate_layout_state.get_well_clicked():
-                            if well not in plate_layout:
-                                plate_layout[well] = {}
-
-                            # Find the actual key from the label
-                            key = None
-                            for k, v in plate_layout_state.get_selected_key_tags().items():
-                                if v == label:
-                                    key = k
-                                    break
-
-                            if key:
-                                # Save in new format with label and value
-                                plate_layout[well][key] = {
-                                    "label": label,
-                                    "value": selected_key if selected_key is not None else ""
-                                }
-
-                    # Remove wells where all values are empty
-                    wells_to_delete = []
-                    for well, well_data in plate_layout.items():
-                        if all(data.get('value', '') == '' for data in well_data.values() if isinstance(data, dict)):
-                            wells_to_delete.append(well)
-
-                    for well in wells_to_delete:
-                        del plate_layout[well]
+                    for well in plate_layout_state.get_well_clicked():
+                        if well in plate_layout:
+                            plate_layout.pop(well, None)
 
                     plate_layout_state.set_plate_layout(plate_layout)
 
                     # Save the plate layout to a JSON file
-                    file_plate_layout_path = os.path.join(
-                        folder_data, "plate_layout.json")
-                    os.makedirs(os.path.dirname(file_plate_layout_path),
-                                exist_ok=True)  # Ensure directory exists
+                    file_plate_layout_path = os.path.join(folder_data, "plate_layout.json")
+                    os.makedirs(
+                        os.path.dirname(file_plate_layout_path), exist_ok=True
+                    )  # Ensure directory exists
                     with open(file_plate_layout_path, "w") as json_file:
-                        json.dump(
-                            plate_layout_state.get_plate_layout(), json_file, indent=4)
+                        json.dump(plate_layout_state.get_plate_layout(), json_file, indent=4)
 
                     plate_layout_state.set_success_message("Information saved successfully! ✅")
                     st.rerun()
-                show_success_message()  # Show success message if it exists
 
-                if any(well in plate_layout_state.get_plate_layout() for well in plate_layout_state.get_well_clicked()):
-                    # Remove information for selected wells
-                    if st.button(f"**:red[Remove saved information]**", icon = ":material/delete:", key = "remove_button"):
-                        plate_layout = plate_layout_state.get_plate_layout()
-                        for well in plate_layout_state.get_well_clicked():
-                            if well in plate_layout:
-                                plate_layout.pop(well, None)
-
-                        plate_layout_state.set_plate_layout(plate_layout)
-
-                        # Save the plate layout to a JSON file
-                        file_plate_layout_path = os.path.join(
-                            folder_data, "plate_layout.json")
-                        os.makedirs(os.path.dirname(file_plate_layout_path),
-                                    exist_ok=True)  # Ensure directory exists
-                        with open(file_plate_layout_path, "w") as json_file:
-                            json.dump(
-                                plate_layout_state.get_plate_layout(), json_file, indent=4)
-
-                        plate_layout_state.set_success_message("Information saved successfully! ✅")
-                        st.rerun()
-
-            else:
-                st.warning("Please select one well at least.")
+        else:
+            st.warning("Please select one well at least.")
 
 
 # -------------------------------------------------------------------------------------------#
@@ -304,22 +331,22 @@ if not sources:
     raise Exception("Source paths are not provided.")
 folder_data = sources[0].path
 # Retrieve existing plate layout if provided
-if len(sources)>1:
-    existing_plate_layout = sources[1].get_data()
-else :
-    existing_plate_layout = None
+existing_plate_layout = sources[1].get_data() if len(sources) > 1 else None
 number_wells = params["number_wells"]
+
 
 def validate_plate_layout(existing_plate_layout, number_wells):
     if number_wells == 48:
-        invalid_letters = {'G', 'H'}
-        invalid_numbers = {'9', '10', '11', '12'}
+        invalid_letters = {"G", "H"}
+        invalid_numbers = {"9", "10", "11", "12"}
 
-        for well in existing_plate_layout.keys():
+        for well in existing_plate_layout:
             letter, number = well[0], well[1:]
 
             if letter in invalid_letters or number in invalid_numbers:
-                raise ValueError(f"Invalid well detected: {well}. Please verify that your plate layout correspond to the number of wells you entered in parameters")
+                raise ValueError(
+                    f"Invalid well detected: {well}. Please verify that your plate layout correspond to the number of wells you entered in parameters"
+                )
 
     return True
 
@@ -340,24 +367,27 @@ def update_labels(dict_keys: dict):
 
     # Handle plate_layout format (nested dictionary)
     else:
-        for well_name, well_data in dict_keys.items():
+        for _well_name, well_data in dict_keys.items():
             if isinstance(well_data, dict):
                 for key, data in well_data.items():
-                    if isinstance(data, dict) and 'label' in data:
-                        if key in tag_key_options and data['label'] != tag_key_options[key]:
-                            data['label'] = tag_key_options[key]
-                            updated = True
+                    if (
+                        isinstance(data, dict)
+                        and "label" in data
+                        and key in tag_key_options
+                        and data["label"] != tag_key_options[key]
+                    ):
+                        data["label"] = tag_key_options[key]
+                        updated = True
 
     return updated, dict_keys
 
 
-files_keys = [f for f in os.listdir(
-    folder_data) if f.endswith("keys.json")]
+files_keys = [f for f in os.listdir(folder_data) if f.endswith("keys.json")]
 
 if files_keys:
     # Load the file and display its contents
     file_path = os.path.join(folder_data, files_keys[0])
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         selected_key_tags = json.load(f)
         plate_layout_state.set_selected_key_tags(selected_key_tags)
     # Check if the label has changed for any key
@@ -365,17 +395,15 @@ if files_keys:
     if updated:
         plate_layout_state.set_selected_key_tags(updated_key_tags)
         # Save the updated selected keys to keys.json
-        file_dict_keys_path = os.path.join(
-            folder_data, "keys.json")
+        file_dict_keys_path = os.path.join(folder_data, "keys.json")
         with open(file_dict_keys_path, "w") as json_file:
             json.dump(plate_layout_state.get_selected_key_tags(), json_file, indent=4)
 
-files_plate_layout = [f for f in os.listdir(
-    folder_data) if f.endswith("plate_layout.json")]
+files_plate_layout = [f for f in os.listdir(folder_data) if f.endswith("plate_layout.json")]
 if files_plate_layout:
     # Load the file and display its contents
     file_path_plate_layout = os.path.join(folder_data, files_plate_layout[0])
-    with open(file_path_plate_layout, "r") as f:
+    with open(file_path_plate_layout) as f:
         plate_layout = json.load(f)
         plate_layout_state.set_plate_layout(plate_layout)
 
@@ -402,8 +430,8 @@ elif existing_plate_layout:
     all_tag_keys = tag_service.get_all_tags()
     tag_key_options = {tag.key: f"{tag.label}" for tag in all_tag_keys}
 
-    for well_name, well_data in plate_layout_state.get_plate_layout().items():
-        for key in well_data.keys():
+    for _well_name, well_data in plate_layout_state.get_plate_layout().items():
+        for key in well_data:
             if key not in existing_keys and key in tag_key_options:
                 existing_keys[key] = tag_key_options[key]
 
@@ -421,38 +449,33 @@ elif existing_plate_layout:
         plate_layout_state.set_selected_key_tags(updated_selected_key_tags)
 
     # Save the selected keys to keys.json
-    file_dict_keys_path = os.path.join(
-        folder_data, "keys.json")
+    file_dict_keys_path = os.path.join(folder_data, "keys.json")
     with open(file_dict_keys_path, "w") as json_file:
         json.dump(plate_layout_state.get_selected_key_tags(), json_file, indent=4)
 
     # Save the plate layout to a JSON file
-    file_plate_layout_path = os.path.join(
-        folder_data, "plate_layout.json")
-    os.makedirs(os.path.dirname(file_plate_layout_path),
-                exist_ok=True)  # Ensure directory exists
+    file_plate_layout_path = os.path.join(folder_data, "plate_layout.json")
+    os.makedirs(os.path.dirname(file_plate_layout_path), exist_ok=True)  # Ensure directory exists
     with open(file_plate_layout_path, "w") as json_file:
-        json.dump(
-            plate_layout_state.get_plate_layout(), json_file, indent=4)
+        json.dump(plate_layout_state.get_plate_layout(), json_file, indent=4)
 
-else:
-    if "plate_layout" not in st.session_state:
-        st.session_state["plate_layout"] = {}
+elif "plate_layout" not in st.session_state:
+    st.session_state["plate_layout"] = {}
 
 if number_wells == 96:
     # Define the structure of the 96-well microplate
     ROWS = 8
     COLS = 12
     size_sidebar = 600
-    size_button = 42
-    font_size = 4
+    size_button = 40
+    font_size = 11
 elif number_wells == 48:
     # Define the structure of the 48-well microplate
     ROWS = 6
     COLS = 8
     size_sidebar = 450
-    size_button = 44
-    font_size = 8
+    size_button = 40
+    font_size = 11
 
 
 # Inject custom CSS to set the width of the sidebar
@@ -470,11 +493,14 @@ st.markdown(
 
 
 with st.sidebar:
+
     @st.fragment
     def fragment_sidebar_function():
         st.write("Microplate")
-        with stylable_container(key="well_button", css_styles=f"""
-            button{{
+        with stylable_container(
+            key="well_button",
+            css_styles=f"""
+            button {{
                 display: inline-block;
                 width: {size_button}px;  /* Adjust width and height as needed */
                 height: {size_button}px;
@@ -488,16 +514,31 @@ with st.sidebar:
                 margin: 0;
                 cursor: pointer;
                 text-decoration: none;  /* Remove underline */
-                }}
+                white-space: nowrap;     /* keep label on one line */
+                overflow: hidden;
+                text-overflow: ellipsis; /* truncate long labels */
+            }}
             button:active {{
                 position:relative;
                 top:1px;
-                }}
-                """,):
-
+            }}
+            .stButton button {{
+                width: {size_button}px !important;
+                height: {size_button}px !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                padding: 0 4px !important;
+                font-size: {font_size}px !important;
+            }}
+            .stTooltipHoverTarget {{
+                width: {size_button}px !important;
+                height: {size_button}px !important;
+            }}
+            """,
+        ):
             # Define the structure of the microplate
-            wells = [[f"{chr(65 + row)}{col + 1}" for col in range(COLS)]
-                     for row in range(ROWS)]
+            wells = [[f"{chr(65 + row)}{col + 1}" for col in range(COLS)] for row in range(ROWS)]
 
             # Column header buttons
             cols_header = st.columns(COLS + 1)
@@ -522,7 +563,6 @@ with st.sidebar:
                     plate_layout_state.set_selected_cols(selected_cols)
                     plate_layout_state.set_well_clicked(well_clicked)
                     st.rerun(scope="app")
-
 
             # Loop over the wells and create a grid of buttons
             for row in range(ROWS):
@@ -555,51 +595,83 @@ with st.sidebar:
                     if well in plate_layout_state.get_plate_layout():
                         sorted_items = sorted(plate_layout_state.get_plate_layout()[well].items())
                         help_tab = "| Property | Value |\n|----------|-------|\n" + "\n".join(
-                            [f"| **{data.get('label', key)}** | {data.get('value', '')} |"
-                             for key, data in sorted_items if isinstance(data, dict)])
+                            [
+                                f"| **{data.get('label', key)}** | {data.get('value', '')} |"
+                                for key, data in sorted_items
+                                if isinstance(data, dict)
+                            ]
+                        )
                     else:
                         help_tab = "No data available"
 
                     well_clicked = plate_layout_state.get_well_clicked()
                     if well in well_clicked:
-                        if well in plate_layout_state.get_plate_layout() and all(plate_layout_state.get_plate_layout()[well].get(key, {}).get('value') for key in plate_layout_state.get_selected_key_tags().keys()):
-                            if cols_object[col+1].button(f":green[{well}] ✓", key=well, help=help_tab):
+                        if well in plate_layout_state.get_plate_layout() and all(
+                            plate_layout_state.get_plate_layout()[well].get(key, {}).get("value")
+                            for key in plate_layout_state.get_selected_key_tags()
+                        ):
+                            if cols_object[col + 1].button(
+                                f":green[{well}] ✓", key=well, help=help_tab
+                            ):
                                 well_clicked.remove(well)
                                 plate_layout_state.set_well_clicked(well_clicked)
                                 st.rerun(scope="app")
                         elif well in plate_layout_state.get_plate_layout():
-                            if cols_object[col+1].button(f":green[{well}]", key=well, help=help_tab):
+                            if cols_object[col + 1].button(
+                                f":green[{well}]", key=well, help=help_tab
+                            ):
                                 well_clicked.remove(well)
                                 plate_layout_state.set_well_clicked(well_clicked)
                                 st.rerun(scope="app")
-                        else:
-                            if cols_object[col+1].button(f"**:green[{well}]**", key=well):
-                                well_clicked.remove(well)
-                                plate_layout_state.set_well_clicked(well_clicked)
-                                st.rerun(scope="app")
-                    else:
-                        if well in plate_layout_state.get_plate_layout() and all(plate_layout_state.get_plate_layout()[well].get(key, {}).get('value') for key in plate_layout_state.get_selected_key_tags().keys()):
-                            if cols_object[col+1].button(f"{well} ✓", key=well, help=help_tab):
-                                well_clicked.append(well)
-                                plate_layout_state.set_well_clicked(well_clicked)
-                                st.rerun(scope="app")
-                        elif well in plate_layout_state.get_plate_layout():
-                            if cols_object[col+1].button(well, key=well, help=help_tab):
-                                well_clicked.append(well)
-                                plate_layout_state.set_well_clicked(well_clicked)
-                                st.rerun(scope="app")
-                        else:
-                            if cols_object[col+1].button(f"**{well}**", key=well):
-                                well_clicked.append(well)
-                                plate_layout_state.set_well_clicked(well_clicked)
-                                st.rerun(scope="app")
+                        elif cols_object[col + 1].button(f"**:green[{well}]**", key=well):
+                            well_clicked.remove(well)
+                            plate_layout_state.set_well_clicked(well_clicked)
+                            st.rerun(scope="app")
+                    elif well in plate_layout_state.get_plate_layout() and all(
+                        plate_layout_state.get_plate_layout()[well].get(key, {}).get("value")
+                        for key in plate_layout_state.get_selected_key_tags()
+                    ):
+                        if cols_object[col + 1].button(f"{well} ✓", key=well, help=help_tab):
+                            well_clicked.append(well)
+                            plate_layout_state.set_well_clicked(well_clicked)
+                            st.rerun(scope="app")
+                    elif well in plate_layout_state.get_plate_layout():
+                        if cols_object[col + 1].button(well, key=well, help=help_tab):
+                            well_clicked.append(well)
+                            plate_layout_state.set_well_clicked(well_clicked)
+                            st.rerun(scope="app")
+                    elif cols_object[col + 1].button(f"**{well}**", key=well):
+                        well_clicked.append(well)
+                        plate_layout_state.set_well_clicked(well_clicked)
+                        st.rerun(scope="app")
 
             st.write(
-                f"All the wells clicked are: {', '.join(plate_layout_state.get_well_clicked())}")
+                f"All the wells clicked are: {', '.join(plate_layout_state.get_well_clicked())}"
+            )
 
     fragment_sidebar_function()
 
-    # Add the reset button
-    st.button("Reset wells selection", on_click=plate_layout_state.reset_wells)
+    # Restore standard Streamlit styling for the reset button (keep it non-circular)
+    st.markdown(
+        """
+        <style>
+            /* Target the reset button by its streamlit key class */
+            div[class*="st-key-reset_wells"] .stButton button,
+            div[class*="st-key-reset_wells"] .stTooltipHoverTarget {
+                border-radius: 0.5rem !important;
+                width: auto !important;
+                height: auto !important;
+                padding: 0.25rem 0.75rem !important;
+                line-height: normal !important;
+                font-size: 14px !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Add the reset button (standard Streamlit appearance)
+    st.button("Reset wells selection", on_click=plate_layout_state.reset_wells, key="reset_wells")
+
 
 show_content()

@@ -14,7 +14,7 @@
             },
             {
                 "name": "gws_design_of_experiments",
-                "version": "0.1.5"
+                "version": "0.1.6"
             }
         ],
         "pip": [

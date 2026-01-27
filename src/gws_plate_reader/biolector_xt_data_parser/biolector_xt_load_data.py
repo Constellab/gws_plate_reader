@@ -47,33 +47,26 @@ def create_venn_diagram_wells(well_sets: dict[str, set[str]]) -> go.Figure:
         Plotly Figure with the Venn diagram showing well data completeness
     """
 
-    # Extract sets
-    A = well_sets.get('cultivation_labels', set())  # CultivationLabels from metadata
-    B = well_sets.get('medium_info', set())  # Wells in medium_info (info_table)
-    C = well_sets.get('raw_data', set())  # Wells with raw_data
+    # Extraire les ensembles
+    A = well_sets.get('cultivation_labels', set())  # CultivationLabels
+    B = well_sets.get('raw_data', set())  # raw_data
 
-    # Calculate all regions for 3-circle Venn
-    only_A = len(A - B - C)  # Only CultivationLabels
-    only_B = len(B - A - C)  # Only medium_info
-    only_C = len(C - A - B)  # Only raw_data
-    A_and_B = len((A & B) - C)  # CultivationLabels ∩ medium_info (excluding raw_data)
-    A_and_C = len((A & C) - B)  # CultivationLabels ∩ raw_data (excluding medium_info)
-    B_and_C = len((B & C) - A)  # medium_info ∩ raw_data (excluding CultivationLabels)
-    A_and_B_and_C = len(A & B & C)  # All three (complete wells - no missing_value)
+    # Calculer les régions pour 2-cercles
+    only_A = len(A - B)  # Seulement CultivationLabels
+    only_B = len(B - A)  # Seulement raw_data
+    both = len(A & B)    # Intersection
 
-    # Create figure
+    # Créer la figure
     fig = go.Figure()
 
-    # Circle parameters
+    # Paramètres des cercles (horizontal)
     radius = 0.28
-    Ax, Ay = 0.5, 0.72   # CultivationLabels (top)
-    Bx, By = 0.35, 0.5   # medium_info (left)
-    Cx, Cy = 0.65, 0.5   # raw_data (right)
+    Ax, Ay = 0.35, 0.5   # CultivationLabels (gauche)
+    Bx, By = 0.65, 0.5   # raw_data (droite)
 
-    # Create circles using parametric equations
     theta = np.linspace(0, 2 * np.pi, 100)
 
-    # Circle A - CultivationLabels (Blue)
+    # Cercle A - CultivationLabels (Bleu)
     x_A = radius * np.cos(theta) + Ax
     y_A = radius * np.sin(theta) + Ay
     fig.add_trace(go.Scatter(
@@ -87,25 +80,11 @@ def create_venn_diagram_wells(well_sets: dict[str, set[str]]) -> go.Figure:
         showlegend=False
     ))
 
-    # Circle B - medium_info (Green)
+    # Cercle B - raw_data (Orange)
     x_B = radius * np.cos(theta) + Bx
     y_B = radius * np.sin(theta) + By
     fig.add_trace(go.Scatter(
         x=x_B, y=y_B,
-        fill='toself',
-        fillcolor='rgba(76, 175, 80, 0.3)',
-        line=dict(color='rgba(76, 175, 80, 0.8)', width=3),
-        name='medium_info',
-        mode='lines',
-        hoverinfo='skip',
-        showlegend=False
-    ))
-
-    # Circle C - raw_data (Orange)
-    x_C = radius * np.cos(theta) + Cx
-    y_C = radius * np.sin(theta) + Cy
-    fig.add_trace(go.Scatter(
-        x=x_C, y=y_C,
         fill='toself',
         fillcolor='rgba(255, 152, 0, 0.3)',
         line=dict(color='rgba(255, 152, 0, 0.8)', width=3),
@@ -115,47 +94,33 @@ def create_venn_diagram_wells(well_sets: dict[str, set[str]]) -> go.Figure:
         showlegend=False
     ))
 
-    # Add titles near the top of each circle
+    # Titres au-dessus de chaque cercle
     fig.add_annotation(x=Ax, y=Ay + radius + 0.05, text="<b>CultivationLabels</b>",
                        showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Bx, y=By + radius + 0.05, text="<b>medium_info</b>",
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Cx, y=Cy + radius + 0.05, text="<b>raw_data</b>",
+    fig.add_annotation(x=Bx, y=By + radius + 0.05, text="<b>raw_data</b>",
                        showarrow=False, font=dict(size=14))
 
-    # Add region counts
-    fig.add_annotation(x=Ax, y=Ay + 0.18, text=str(only_A),
+    # Compteurs de régions
+    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A),
                        showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Bx - 0.13, y=By - 0.05, text=str(only_B),
+    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B),
                        showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Cx + 0.13, y=Cy - 0.05, text=str(only_C),
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=0.30, y=0.65, text=str(A_and_B),
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=0.65, y=0.65, text=str(A_and_C),
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=(Bx + Cx) / 2, y=By - 0.12, text=str(B_and_C),
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(
-        x=Ax, y=By + 0.1,
-        text=f"<b>{A_and_B_and_C}</b>",
-        showarrow=False,
-        font=dict(size=16, color='darkgreen'),
-        bgcolor='rgba(255, 255, 255, 0.9)',
-        borderpad=4,
-        bordercolor='darkgreen',
-        borderwidth=2
-    )
+    fig.add_annotation(x=(Ax + Bx) / 2, y=Ay, text=f"<b>{both}</b>",
+                       showarrow=False, font=dict(size=16, color='darkgreen'),
+                       bgcolor='rgba(255, 255, 255, 0.9)',
+                       borderpad=4,
+                       bordercolor='darkgreen',
+                       borderwidth=2)
 
-    # Update layout
+    # Mettre à jour le layout
     fig.update_layout(
-        title="Well Data Availability - Venn Diagram (CultivationLabels, medium_info, raw_data)",
+        title="Well Data Availability - Venn Diagram (CultivationLabels, raw_data)",
         showlegend=False,
         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
         yaxis=dict(
-            showticklabels=False, showgrid=False, zeroline=False, range=[0.2, 1.05],
+            showticklabels=False, showgrid=False, zeroline=False, range=[0.2, 0.8],
             scaleanchor="x", scaleratio=1),
-        height=600, width=600,
+        height=500, width=600,
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
     )

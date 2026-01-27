@@ -37,18 +37,20 @@ def render_logistic_growth_results(
     protocol_proxy = scenario_proxy.get_protocol()
 
     # Create tabs for different views
-    tab_params, tab_curves, tab_histogram = st.tabs([
-        translate_service.translate('parameters_tab'),
-        translate_service.translate('fitted_curves_tab'),
-        translate_service.translate('distribution_tab')
-    ])
+    tab_params, tab_curves, tab_histogram = st.tabs(
+        [
+            translate_service.translate("parameters_tab"),
+            translate_service.translate("fitted_curves_tab"),
+            translate_service.translate("distribution_tab"),
+        ]
+    )
 
     with tab_params:
         st.markdown(f"### 📊 {translate_service.translate('growth_parameters_table')}")
         parameters_table = protocol_proxy.get_output("parameters")
         if parameters_table and isinstance(parameters_table, Table):
             df = parameters_table.get_data()
-            st.dataframe(df, use_container_width=True, height=400)
+            st.dataframe(df, width="stretch", height=400)
 
             # Option to download
             csv = df.to_csv(index=True)
@@ -64,28 +66,25 @@ def render_logistic_growth_results(
             col1, col2, col3, col4 = st.columns(4)
 
             with col1:
-                st.metric(
-                    translate_service.translate('logistic_growth_wells_fitted'),
-                    len(df)
-                )
+                st.metric(translate_service.translate("logistic_growth_wells_fitted"), len(df))
 
-            if 'Growth_Rate' in df.columns:
+            if "Growth_Rate" in df.columns:
                 with col2:
                     st.metric(
-                        translate_service.translate('logistic_growth_mean_growth_rate'),
-                        f"{df['Growth_Rate'].mean():.4f}"
+                        translate_service.translate("logistic_growth_mean_growth_rate"),
+                        f"{df['Growth_Rate'].mean():.4f}",
                     )
                 with col3:
                     st.metric(
-                        translate_service.translate('logistic_growth_std_growth_rate'),
-                        f"{df['Growth_Rate'].std():.4f}"
+                        translate_service.translate("logistic_growth_std_growth_rate"),
+                        f"{df['Growth_Rate'].std():.4f}",
                     )
 
-            if 'Avg_R2' in df.columns:
+            if "Avg_R2" in df.columns:
                 with col4:
                     st.metric(
-                        translate_service.translate('logistic_growth_mean_r2'),
-                        f"{df['Avg_R2'].mean():.3f}"
+                        translate_service.translate("logistic_growth_mean_r2"),
+                        f"{df['Avg_R2'].mean():.3f}",
                     )
         else:
             st.warning(translate_service.translate("parameters_table_not_found"))

@@ -22,7 +22,7 @@ def render_graph_view_step(
     cell_culture_state: CellCultureState,
     scenario: Optional[Scenario] = None,
     output_name: str = None,
-    filtered_resource_set = None,
+    filtered_resource_set=None,
     target_scenario: Optional[Scenario] = None,
     visualization_data: list = None,
     selected_batches: list = None,
@@ -73,7 +73,9 @@ def render_graph_view_step(
                         return
 
                 except Exception as e:
-                    st.error(translate_service.translate("error_retrieving_data").format(error=str(e)))
+                    st.error(
+                        translate_service.translate("error_retrieving_data").format(error=str(e))
+                    )
                     return
 
             # Backward compatibility: if no scenario provided, try to get latest selection
@@ -106,7 +108,12 @@ def render_graph_view_step(
                 return
 
         # If selections not provided, show backward compatibility UI
-        if selected_batches is None or selected_samples is None or selected_index is None or selected_columns is None:
+        if (
+            selected_batches is None
+            or selected_samples is None
+            or selected_index is None
+            or selected_columns is None
+        ):
             # Get unique values for filters (excluding empty strings)
             unique_batches = sorted(
                 list(set(item["Batch"] for item in visualization_data if item["Batch"]))
@@ -119,7 +126,9 @@ def render_graph_view_step(
             index_columns = cell_culture_state.get_index_columns_from_resource_set(
                 filtered_resource_set
             )
-            data_columns = cell_culture_state.get_data_columns_from_resource_set(filtered_resource_set)
+            data_columns = cell_culture_state.get_data_columns_from_resource_set(
+                filtered_resource_set
+            )
 
             # === Section 1: Filters ===
             st.markdown(f"### {translate_service.translate('filters_and_selection')}")
@@ -134,8 +143,8 @@ def render_graph_view_step(
                 # Build well data with structure: {well: {plate: data, ...}, ...}
                 well_data = {}
                 for item in visualization_data:
-                    sample = item.get('Sample', '')
-                    batch = item.get('Batch', '')
+                    sample = item.get("Sample", "")
+                    batch = item.get("Batch", "")
 
                     # Use Sample as well name and Batch as plate name
                     if sample and batch:
@@ -144,11 +153,19 @@ def render_graph_view_step(
                             well_data[sample] = {}
 
                         # Add plate data (excluding Resource_Name, Sample, and Batch)
-                        well_data[sample][batch] = {k: v for k, v in item.items() if k not in ['Resource_Name', 'Sample', 'Batch']}
+                        well_data[sample][batch] = {
+                            k: v
+                            for k, v in item.items()
+                            if k not in ["Resource_Name", "Sample", "Batch"]
+                        }
                     elif sample:
                         # Single plate mode - well is the sample name, no batch
                         if sample not in well_data:
-                            well_data[sample] = {k: v for k, v in item.items() if k not in ['Resource_Name', 'Sample', 'Batch']}
+                            well_data[sample] = {
+                                k: v
+                                for k, v in item.items()
+                                if k not in ["Resource_Name", "Sample", "Batch"]
+                            }
 
                 # Render microplate selector
                 selected_wells = render_microplate_selector(
@@ -156,7 +173,7 @@ def render_graph_view_step(
                     unique_samples=unique_samples,
                     translate_service=translate_service,
                     session_key_prefix="graph_view",
-                    include_medium=recipe.has_medium_info
+                    include_medium=recipe.has_medium_info,
                 )
 
                 # For compatibility with existing code, map selected wells to batch/sample
@@ -166,8 +183,8 @@ def render_graph_view_step(
                 selected_samples = []
                 for well in selected_wells:
                     # Extract plate name and base well from "plate_name_well" format
-                    if '_' in well:
-                        parts = well.rsplit('_', 1)
+                    if "_" in well:
+                        parts = well.rsplit("_", 1)
                         if len(parts) == 2:
                             plate_name = parts[0]
                             base_well = parts[1]
@@ -200,7 +217,7 @@ def render_graph_view_step(
                         if st.button(
                             translate_service.translate("select_all_batches"),
                             key="select_all_batches_graph",
-                            use_container_width=True,
+                            width="stretch",
                         ):
                             st.session_state.graph_view_batches = unique_batches
                             st.rerun()
@@ -230,7 +247,7 @@ def render_graph_view_step(
                         if st.button(
                             translate_service.translate("select_all_samples"),
                             key="select_all_samples_graph",
-                            use_container_width=True,
+                            width="stretch",
                         ):
                             st.session_state.graph_view_samples = unique_samples
                             st.rerun()
@@ -306,12 +323,12 @@ def render_graph_view_step(
                 # Add rows to the list
                 for _, row in df.iterrows():
                     row_dict = row.to_dict()
-                    row_dict['Batch'] = batch
-                    row_dict['Sample'] = sample
+                    row_dict["Batch"] = batch
+                    row_dict["Sample"] = sample
                     # Only add Medium if recipe has medium info
                     if recipe.has_medium_info:
-                        row_dict['Medium'] = medium
-                    row_dict['Resource_Name'] = resource_name
+                        row_dict["Medium"] = medium
+                    row_dict["Resource_Name"] = resource_name
                     all_data_rows.append(row_dict)
 
         df_all = pd.DataFrame(all_data_rows)

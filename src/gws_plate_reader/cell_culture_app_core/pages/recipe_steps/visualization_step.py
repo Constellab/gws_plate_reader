@@ -102,8 +102,8 @@ def render_visualization_step(
             # First, build a mapping of well -> Medium from visualization_data (tags)
             well_to_medium = {}
             for item in visualization_data:
-                sample = item.get('Sample', '')
-                medium = item.get('Medium', '')
+                sample = item.get("Sample", "")
+                medium = item.get("Medium", "")
                 if sample and medium:
                     well_to_medium[sample] = medium
 
@@ -120,21 +120,18 @@ def render_visualization_step(
                     # The Series column contains "plate_name_well" format (e.g., "plate_0_C1")
                     # Extract well position from the last part after underscore
                     for _, row in df.iterrows():
-                        series_value = str(row.get('Series', ''))
+                        series_value = str(row.get("Series", ""))
                         if series_value:
                             # Extract well from Series (last part after underscore)
-                            parts = series_value.rsplit('_', 1)
+                            parts = series_value.rsplit("_", 1)
                             well = parts[-1] if parts else series_value
 
                             # Build metadata dict (exclude Series column)
-                            metadata = {
-                                col: row[col] for col in df.columns
-                                if col != 'Series'
-                            }
+                            metadata = {col: row[col] for col in df.columns if col != "Series"}
 
                             # Add Medium name from visualization_data tags
                             if well in well_to_medium:
-                                metadata['Medium'] = well_to_medium[well]
+                                metadata["Medium"] = well_to_medium[well]
 
                             well_data[well] = metadata
 
@@ -144,7 +141,7 @@ def render_visualization_step(
                 unique_samples=unique_samples,
                 translate_service=translate_service,
                 session_key_prefix="visualization",
-                include_medium=recipe.has_medium_info
+                include_medium=recipe.has_medium_info,
             )
 
             # For compatibility with existing code, map selected wells to batch/sample
@@ -154,8 +151,8 @@ def render_visualization_step(
             selected_samples = []
             for well in selected_wells:
                 # Extract plate name and base well from "plate_name_well" format
-                if '_' in well:
-                    parts = well.rsplit('_', 1)
+                if "_" in well:
+                    parts = well.rsplit("_", 1)
                     if len(parts) == 2:
                         plate_name = parts[0]
                         base_well = parts[1]
@@ -172,22 +169,22 @@ def render_visualization_step(
             with col1:
                 col1_select, col1_button = st.columns([3, 1])
                 if (
-                        "visualization_batches" not in st.session_state
-                        or len(
-                            [
-                                batch
-                                for batch in st.session_state.visualization_batches
-                                if batch not in unique_batches
-                            ]
-                        )
-                        > 0
-                    ):
+                    "visualization_batches" not in st.session_state
+                    or len(
+                        [
+                            batch
+                            for batch in st.session_state.visualization_batches
+                            if batch not in unique_batches
+                        ]
+                    )
+                    > 0
+                ):
                     st.session_state.visualization_batches = []
                 with col1_button:
                     if st.button(
                         translate_service.translate("select_all_batches"),
                         key="select_all_batches_viz",
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         st.session_state.visualization_batches = unique_batches
                         st.rerun()
@@ -201,22 +198,22 @@ def render_visualization_step(
             with col2:
                 col2_select, col2_button = st.columns([3, 1])
                 if (
-                        "visualization_samples" not in st.session_state
-                        or len(
-                            [
-                                sample
-                                for sample in st.session_state.visualization_samples
-                                if sample not in unique_samples
-                            ]
-                        )
-                        > 0
-                    ):
-                        st.session_state.visualization_samples = []
+                    "visualization_samples" not in st.session_state
+                    or len(
+                        [
+                            sample
+                            for sample in st.session_state.visualization_samples
+                            if sample not in unique_samples
+                        ]
+                    )
+                    > 0
+                ):
+                    st.session_state.visualization_samples = []
                 with col2_button:
                     if st.button(
                         translate_service.translate("select_all_samples"),
                         key="select_all_samples_viz",
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         st.session_state.visualization_samples = unique_samples
                         st.rerun()
@@ -265,50 +262,61 @@ def render_visualization_step(
             )
 
         # Store selections in session state for tabs to access
-        st.session_state['viz_selected_batches'] = selected_batches
-        st.session_state['viz_selected_samples'] = selected_samples
-        st.session_state['viz_selected_index'] = selected_index
-        st.session_state['viz_selected_columns'] = selected_columns
-        st.session_state['viz_filtered_resource_set'] = filtered_resource_set
-        st.session_state['viz_target_scenario'] = target_scenario
-        st.session_state['viz_visualization_data'] = visualization_data
+        st.session_state["viz_selected_batches"] = selected_batches
+        st.session_state["viz_selected_samples"] = selected_samples
+        st.session_state["viz_selected_index"] = selected_index
+        st.session_state["viz_selected_columns"] = selected_columns
+        st.session_state["viz_filtered_resource_set"] = filtered_resource_set
+        st.session_state["viz_target_scenario"] = target_scenario
+        st.session_state["viz_visualization_data"] = visualization_data
 
         # Create tabs for the three visualization types
-        tab1, tab2, tab3 = st.tabs([
-            translate_service.translate("table"),
-            translate_service.translate("graphs"),
-            translate_service.translate("medium")
-        ])
+        tab1, tab2, tab3 = st.tabs(
+            [
+                translate_service.translate("table"),
+                translate_service.translate("graphs"),
+                translate_service.translate("medium"),
+            ]
+        )
 
         with tab1:
             render_table_view_step(
-                recipe, cell_culture_state, scenario, output_name,
-                st.session_state.get('viz_filtered_resource_set'),
-                st.session_state.get('viz_target_scenario'),
-                st.session_state.get('viz_visualization_data'),
-                st.session_state.get('viz_selected_batches'),
-                st.session_state.get('viz_selected_samples'),
-                st.session_state.get('viz_selected_index'),
-                st.session_state.get('viz_selected_columns')
+                recipe,
+                cell_culture_state,
+                scenario,
+                output_name,
+                st.session_state.get("viz_filtered_resource_set"),
+                st.session_state.get("viz_target_scenario"),
+                st.session_state.get("viz_visualization_data"),
+                st.session_state.get("viz_selected_batches"),
+                st.session_state.get("viz_selected_samples"),
+                st.session_state.get("viz_selected_index"),
+                st.session_state.get("viz_selected_columns"),
             )
 
         with tab2:
             render_graph_view_step(
-                recipe, cell_culture_state, scenario, output_name,
-                st.session_state.get('viz_filtered_resource_set'),
-                st.session_state.get('viz_target_scenario'),
-                st.session_state.get('viz_visualization_data'),
-                st.session_state.get('viz_selected_batches'),
-                st.session_state.get('viz_selected_samples'),
-                st.session_state.get('viz_selected_index'),
-                st.session_state.get('viz_selected_columns')
+                recipe,
+                cell_culture_state,
+                scenario,
+                output_name,
+                st.session_state.get("viz_filtered_resource_set"),
+                st.session_state.get("viz_target_scenario"),
+                st.session_state.get("viz_visualization_data"),
+                st.session_state.get("viz_selected_batches"),
+                st.session_state.get("viz_selected_samples"),
+                st.session_state.get("viz_selected_index"),
+                st.session_state.get("viz_selected_columns"),
             )
 
         with tab3:
             render_medium_view_step(
-                recipe, cell_culture_state, scenario, output_name,
-                st.session_state.get('viz_selected_batches'),
-                st.session_state.get('viz_selected_samples')
+                recipe,
+                cell_culture_state,
+                scenario,
+                output_name,
+                st.session_state.get("viz_selected_batches"),
+                st.session_state.get("viz_selected_samples"),
             )
 
     except Exception as e:

@@ -40,7 +40,7 @@ class CellCultureRecipe(ABC):
     pipeline_id: Optional[str] = None
     file_info: Optional[Dict[str, str]] = None  # Info about uploaded files
     has_data_raw: bool = True  # Whether this recipe has raw data (for feature extraction)
-    has_medium_info: bool = True  # Whether this recipe has medium info (for feature extraction)
+    has_medium_info: bool = True  # Whether this recipe has medium info (for pca/umap and medium view step)
 
     @classmethod
     def from_scenario(cls, scenario: Scenario) -> "CellCultureRecipe":

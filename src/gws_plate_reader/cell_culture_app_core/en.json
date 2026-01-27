@@ -75,7 +75,7 @@
     "folder_metadata_required": "Metadata Folder (Required)",
     "select_folder_metadata": "Select Metadata Folder",
     "folder_metadata_help": "Folder containing the BXT.json metadata file from Biolector XT",
-    "info_table_optional": "Info Table (Optional)",
+    "info_table_optional": "Info Table",
     "select_info_table": "Select Info Table",
     "info_table_help": "Optional table mapping wells to medium names (Well, Medium)",
     "add_plate": "Add plate",

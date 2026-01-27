@@ -350,82 +350,83 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
         with col4:
             st.metric(translate_service.translate("data_tables"), len(resources))
 
-        # Try to get the Venn diagram from the load scenario output
-        venn_diagram = cell_culture_state.get_venn_diagram_output()
+        if recipe.analysis_type != 'biolector':
+            # Try to get the Venn diagram from the load scenario output
+            venn_diagram = cell_culture_state.get_venn_diagram_output()
 
-        if venn_diagram is not None:
-            # Display the pre-computed Venn diagram from the load task
-            try:
-                fig = venn_diagram.get_figure()
-                st.plotly_chart(fig, use_container_width=True)
-            except Exception:
-                # Fallback: compute on the fly if there's an issue
-                if missing_data or valid_data:
-                    # Build sets of (batch, sample) tuples for each data type
-                    sample_sets = {"info": set(), "raw_data": set(), "follow_up": set()}
+            if venn_diagram is not None:
+                # Display the pre-computed Venn diagram from the load task
+                try:
+                    fig = venn_diagram.get_figure()
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception:
+                    # Fallback: compute on the fly if there's an issue
+                    if missing_data or valid_data:
+                        # Build sets of (batch, sample) tuples for each data type
+                        sample_sets = {"info": set(), "raw_data": set(), "follow_up": set()}
 
-                    # Process all data (valid and missing)
-                    for item in valid_data + missing_data:
-                        batch = item.get("Batch", "")
-                        sample = item.get("Sample", "")
-                        missing_value = item.get("Missing Value", "")
+                        # Process all data (valid and missing)
+                        for item in valid_data + missing_data:
+                            batch = item.get("Batch", "")
+                            sample = item.get("Sample", "")
+                            missing_value = item.get("Missing Value", "")
 
-                        if batch and sample:
-                            sample_tuple = (batch, sample)
+                            if batch and sample:
+                                sample_tuple = (batch, sample)
 
-                            # Parse missing types (empty string means no missing data for basic types)
-                            missing_types = (
-                                [t.strip() for t in missing_value.split(",") if t.strip()]
-                                if missing_value
-                                else []
-                            )
+                                # Parse missing types (empty string means no missing data for basic types)
+                                missing_types = (
+                                    [t.strip() for t in missing_value.split(",") if t.strip()]
+                                    if missing_value
+                                    else []
+                                )
 
-                            # Add to sets for data types that are NOT missing
-                            if "info" not in missing_types:
-                                sample_sets["info"].add(sample_tuple)
-                            if "raw_data" not in missing_types:
-                                sample_sets["raw_data"].add(sample_tuple)
-                            if (
-                                "follow_up" not in missing_types
-                                and "follow_up_empty" not in missing_types
-                            ):
-                                sample_sets["follow_up"].add(sample_tuple)
+                                # Add to sets for data types that are NOT missing
+                                if "info" not in missing_types:
+                                    sample_sets["info"].add(sample_tuple)
+                                if "raw_data" not in missing_types:
+                                    sample_sets["raw_data"].add(sample_tuple)
+                                if (
+                                    "follow_up" not in missing_types
+                                    and "follow_up_empty" not in missing_types
+                                ):
+                                    sample_sets["follow_up"].add(sample_tuple)
 
-                    # Create Venn diagram
-                    fig_venn = create_venn_diagram_3_sets_fallback(sample_sets, translate_service)
-                    st.plotly_chart(fig_venn, use_container_width=True)
-        elif missing_data or valid_data:
-            # Fallback: compute on the fly if venn diagram output not found
-            # Build sets of (batch, sample) tuples for each data type
-            sample_sets = {"info": set(), "raw_data": set(), "follow_up": set()}
+                        # Create Venn diagram
+                        fig_venn = create_venn_diagram_3_sets_fallback(sample_sets, translate_service)
+                        st.plotly_chart(fig_venn, use_container_width=True)
+            elif missing_data or valid_data:
+                # Fallback: compute on the fly if venn diagram output not found
+                # Build sets of (batch, sample) tuples for each data type
+                sample_sets = {"info": set(), "raw_data": set(), "follow_up": set()}
 
-            # Process all data (valid and missing)
-            for item in valid_data + missing_data:
-                batch = item.get("Batch", "")
-                sample = item.get("Sample", "")
-                missing_value = item.get("Missing Value", "")
+                # Process all data (valid and missing)
+                for item in valid_data + missing_data:
+                    batch = item.get("Batch", "")
+                    sample = item.get("Sample", "")
+                    missing_value = item.get("Missing Value", "")
 
-                if batch and sample:
-                    sample_tuple = (batch, sample)
+                    if batch and sample:
+                        sample_tuple = (batch, sample)
 
-                    # Parse missing types (empty string means no missing data for basic types)
-                    missing_types = (
-                        [t.strip() for t in missing_value.split(",") if t.strip()]
-                        if missing_value
-                        else []
-                    )
+                        # Parse missing types (empty string means no missing data for basic types)
+                        missing_types = (
+                            [t.strip() for t in missing_value.split(",") if t.strip()]
+                            if missing_value
+                            else []
+                        )
 
-                    # Add to sets for data types that are NOT missing
-                    if "info" not in missing_types:
-                        sample_sets["info"].add(sample_tuple)
-                    if "raw_data" not in missing_types:
-                        sample_sets["raw_data"].add(sample_tuple)
-                    if "follow_up" not in missing_types and "follow_up_empty" not in missing_types:
-                        sample_sets["follow_up"].add(sample_tuple)
+                        # Add to sets for data types that are NOT missing
+                        if "info" not in missing_types:
+                            sample_sets["info"].add(sample_tuple)
+                        if "raw_data" not in missing_types:
+                            sample_sets["raw_data"].add(sample_tuple)
+                        if "follow_up" not in missing_types and "follow_up_empty" not in missing_types:
+                            sample_sets["follow_up"].add(sample_tuple)
 
-            # Create Venn diagram
-            fig_venn = create_venn_diagram_3_sets_fallback(sample_sets, translate_service)
-            st.plotly_chart(fig_venn, use_container_width=True)
+                # Create Venn diagram
+                fig_venn = create_venn_diagram_3_sets_fallback(sample_sets, translate_service)
+                st.plotly_chart(fig_venn, use_container_width=True)
 
         if missing_data:
             # Section 3: Missing data information

@@ -8,6 +8,7 @@ import unicodedata
 import streamlit as st
 
 
+@st.fragment
 def render_microplate_selector(
     well_data: dict,
     unique_samples: list,

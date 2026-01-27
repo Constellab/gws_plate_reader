@@ -102,10 +102,11 @@ def render_visualization_step(
             # First, build a mapping of well -> Medium from visualization_data (tags)
             well_to_medium = {}
             for item in visualization_data:
-                sample = item.get("Sample", "")
-                medium = item.get("Medium", "")
-                if sample and medium:
-                    well_to_medium[sample] = medium
+                batch = item.get('Batch', '')
+                sample = item.get('Sample', '')
+                medium = item.get('Medium', '')
+                if sample and medium and batch:
+                    well_to_medium[sample] = {batch: medium}
 
             # Get the metadata table from the load scenario
             metadata_resource_model = cell_culture_state.get_load_scenario_output_resource_model(
@@ -125,15 +126,16 @@ def render_visualization_step(
                             # Extract well from Series (last part after underscore)
                             parts = series_value.rsplit("_", 1)
                             well = parts[-1] if parts else series_value
+                            plate = series_value[:-len(well)-1]
 
                             # Build metadata dict (exclude Series column)
                             metadata = {col: row[col] for col in df.columns if col != "Series"}
 
                             # Add Medium name from visualization_data tags
                             if well in well_to_medium:
-                                metadata["Medium"] = well_to_medium[well]
+                                metadata['Medium'] = well_to_medium[well].get(plate, '')
 
-                            well_data[well] = metadata
+                            well_data[well] = {plate : metadata}
 
             # Render microplate selector
             selected_wells = render_microplate_selector(
@@ -270,54 +272,52 @@ def render_visualization_step(
         st.session_state["viz_target_scenario"] = target_scenario
         st.session_state["viz_visualization_data"] = visualization_data
 
-        # Create tabs for the three visualization types
-        tab1, tab2, tab3 = st.tabs(
-            [
+        if recipe.has_medium_info:
+            # Create tabs for the three visualization types
+            tab1, tab2, tab3 = st.tabs([
                 translate_service.translate("table"),
                 translate_service.translate("graphs"),
-                translate_service.translate("medium"),
-            ]
-        )
+                translate_service.translate("medium")
+            ])
+
+
+            with tab3:
+                render_medium_view_step(
+                    recipe, cell_culture_state, scenario, output_name,
+                    st.session_state.get('viz_selected_batches'),
+                    st.session_state.get('viz_selected_samples')
+                )
+        else:
+            # Create tabs for Table and Graph only
+            tab1, tab2 = st.tabs([
+                translate_service.translate("table"),
+                translate_service.translate("graphs")
+            ])
 
         with tab1:
             render_table_view_step(
-                recipe,
-                cell_culture_state,
-                scenario,
-                output_name,
-                st.session_state.get("viz_filtered_resource_set"),
-                st.session_state.get("viz_target_scenario"),
-                st.session_state.get("viz_visualization_data"),
-                st.session_state.get("viz_selected_batches"),
-                st.session_state.get("viz_selected_samples"),
-                st.session_state.get("viz_selected_index"),
-                st.session_state.get("viz_selected_columns"),
+                recipe, cell_culture_state, scenario, output_name,
+                st.session_state.get('viz_filtered_resource_set'),
+                st.session_state.get('viz_target_scenario'),
+                st.session_state.get('viz_visualization_data'),
+                st.session_state.get('viz_selected_batches'),
+                st.session_state.get('viz_selected_samples'),
+                st.session_state.get('viz_selected_index'),
+                st.session_state.get('viz_selected_columns')
             )
 
         with tab2:
             render_graph_view_step(
-                recipe,
-                cell_culture_state,
-                scenario,
-                output_name,
-                st.session_state.get("viz_filtered_resource_set"),
-                st.session_state.get("viz_target_scenario"),
-                st.session_state.get("viz_visualization_data"),
-                st.session_state.get("viz_selected_batches"),
-                st.session_state.get("viz_selected_samples"),
-                st.session_state.get("viz_selected_index"),
-                st.session_state.get("viz_selected_columns"),
+                recipe, cell_culture_state, scenario, output_name,
+                st.session_state.get('viz_filtered_resource_set'),
+                st.session_state.get('viz_target_scenario'),
+                st.session_state.get('viz_visualization_data'),
+                st.session_state.get('viz_selected_batches'),
+                st.session_state.get('viz_selected_samples'),
+                st.session_state.get('viz_selected_index'),
+                st.session_state.get('viz_selected_columns')
             )
 
-        with tab3:
-            render_medium_view_step(
-                recipe,
-                cell_culture_state,
-                scenario,
-                output_name,
-                st.session_state.get("viz_selected_batches"),
-                st.session_state.get("viz_selected_samples"),
-            )
 
     except Exception as e:
         st.error(translate_service.translate("error_loading_visualization").format(error=str(e)))

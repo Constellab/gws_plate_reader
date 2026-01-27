@@ -23,6 +23,9 @@ from gws_core import (
 from gws_core.resource.resource_model import ResourceModel
 from gws_core.streamlit import StreamlitTranslateService
 
+from .biolector_recipe import (
+    BiolectorRecipe,
+)
 from .cell_culture_recipe import CellCultureRecipe
 
 
@@ -199,19 +202,37 @@ class CellCultureState(ABC):
         return st.session_state.get(self.TRANSLATE_SERVICE)
 
     # Standalone method
-    @classmethod
     def get_is_standalone(self) -> bool:
         return st.session_state.get(self.STANDALONE_KEY, False)
 
-    @classmethod
     def set_is_standalone(self, value: bool) -> None:
         st.session_state[self.STANDALONE_KEY] = value
 
     # method for creating recipe instances
-    @classmethod
     def create_recipe_from_scenario(self, scenario: Scenario) -> CellCultureRecipe:
         """
         Create a recipe instance from a scenario.
+        Must be implemented by subclasses to return the appropriate Recipe class.
+
+        :param scenario: The scenario to create the recipe from
+        :return: A CellCultureRecipe instance (or subclass)
+        """
+        if not scenario:
+            raise ValueError("Scenario cannot be None")
+        entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+        microplate_tags = entity_tag_list.get_tags_by_key(
+                self.TAG_MICROPLATE_ANALYSIS
+            )
+        microplate_analysis = (
+            microplate_tags[0].tag_value if microplate_tags else "false"
+        )
+        if microplate_analysis.lower() == "true":
+            return BiolectorRecipe.from_scenario(scenario)
+        return self.create_fermentor_recipe_from_scenario(scenario)
+
+    def create_fermentor_recipe_from_scenario(self, scenario: Scenario) -> CellCultureRecipe:
+        """
+        Create a fermentor recipe instance from a scenario.
         Must be implemented by subclasses to return the appropriate Recipe class.
 
         :param scenario: The scenario to create the recipe from

@@ -75,7 +75,7 @@
     "folder_metadata_required": "Dossier de Métadonnées (Requis)",
     "select_folder_metadata": "Sélectionner le Dossier de Métadonnées",
     "folder_metadata_help": "Dossier contenant le fichier BXT.json de métadonnées du Biolector XT",
-    "info_table_optional": "Table Info (Optionnel)",
+    "info_table_optional": "Table Info",
     "select_info_table": "Sélectionner la Table Info",
     "info_table_help": "Table optionnelle associant les puits aux noms de milieux (Well, Medium)",
     "add_plate": "Ajouter une plaque",

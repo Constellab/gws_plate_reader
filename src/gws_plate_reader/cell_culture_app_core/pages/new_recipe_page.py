@@ -10,7 +10,6 @@ import time
 import streamlit as st
 from gws_core import (
     File,
-    Folder,
     InputTask,
     ProcessProxy,
     ProtocolProxy,
@@ -19,9 +18,10 @@ from gws_core import (
     ScenarioCreationType,
     ScenarioProxy,
     StringHelper,
-    Table,
     Tag,
 )
+from gws_core.impl.file.file_decompress_task import FileDecompressTask
+from gws_core.impl.table.tasks.table_importer import TableImporter
 from gws_core.resource.resource_set.resource_set_tasks import ResourceStacker
 from gws_core.streamlit import StreamlitContainers, StreamlitResourceSelect, StreamlitRouter
 
@@ -851,7 +851,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
                 with open(temp_file_path, "wb") as temp_file:
                     temp_file.write(medium_table_file.getvalue())
 
-                table_resource = Table.from_csv(temp_file_path)
+                table_resource = TableImporter.call(File(temp_file_path))
                 table_resource.name = medium_table_file.name
 
                 medium_table_model = ResourceModel.save_from_resource(
@@ -880,8 +880,8 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
                         with open(temp_file_path, "wb") as temp_file:
                             temp_file.write(plate_data["raw_data_file"].getvalue())
 
-                        raw_data_resource = Table.from_csv(temp_file_path)
-                        raw_data_resource.name = plate_data["raw_data_file"].name
+                        raw_data_resource = TableImporter.call(File(temp_file_path))
+                        raw_data_resource.name = plate_data['raw_data_file'].name
 
                         plate_resources["raw_data"] = ResourceModel.save_from_resource(
                             resource=raw_data_resource,
@@ -899,8 +899,8 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
                         with open(temp_zip_path, "wb") as temp_file:
                             temp_file.write(plate_data["folder_metadata_file"].getvalue())
 
-                        folder_resource = Folder.from_zip(temp_zip_path)
-                        folder_resource.name = plate_data["folder_metadata_file"].name
+                        folder_resource = FileDecompressTask.call(File(temp_zip_path))
+                        folder_resource.name = plate_data['folder_metadata_file'].name
 
                         plate_resources["folder_metadata"] = ResourceModel.save_from_resource(
                             resource=folder_resource,
@@ -918,8 +918,8 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
                         with open(temp_info_path, "wb") as temp_file:
                             temp_file.write(plate_data["info_table_file"].getvalue())
 
-                        info_table_resource = Table.from_csv(temp_info_path)
-                        info_table_resource.name = plate_data["info_table_file"].name
+                        info_table_resource = TableImporter.call(File(temp_info_path))
+                        info_table_resource.name = plate_data['info_table_file'].name
 
                         plate_resources["info_table"] = ResourceModel.save_from_resource(
                             resource=info_table_resource,

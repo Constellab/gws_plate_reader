@@ -4,6 +4,7 @@ BiolectorXT Recipe class - extends CellCultureRecipe with BiolectorXT-specific l
 from dataclasses import dataclass
 
 from gws_core import Scenario
+from gws_core.scenario.scenario_proxy import ScenarioProxy
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 
@@ -56,9 +57,18 @@ class BiolectorRecipe(CellCultureRecipe):
         ]
         file_info = cls._extract_file_info(entity_tag_list, file_tags)
 
-        # Extract has_medium_info flag
-        has_medium_info_str = cls._extract_tag_value(entity_tag_list, "has_medium_info", "true")
-        has_medium_info = has_medium_info_str.lower() == "true"
+        try:
+            scenario_proxy = ScenarioProxy.from_existing_scenario(scenario.id)
+            protocol_proxy = scenario_proxy.get_protocol()
+
+            if not protocol_proxy:
+                return FileNotFoundError
+
+            resource_model = protocol_proxy.get_input_resource_model('medium_table_input')
+            resource = resource_model.get_resource() if resource_model else None
+            has_medium_info = resource is not None
+        except Exception:
+            has_medium_info = False
 
         # Initialize with main scenario only, other scenarios will be loaded separately
         scenarios_by_step = {

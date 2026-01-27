@@ -50,7 +50,7 @@ def render_new_recipe_page(biolector_state: BiolectorState) -> None:
         col_back, col_title = st.columns([1, 15])
 
         with col_back:
-            if st.button("", icon=":material/arrow_back:", use_container_width=False):
+            if st.button("", icon=":material/arrow_back:", width="content"):
                 router.navigate("first-page")
 
         with col_title:

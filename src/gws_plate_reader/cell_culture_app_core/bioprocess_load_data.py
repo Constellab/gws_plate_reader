@@ -115,7 +115,7 @@ def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
             y=y_C,
             fill="toself",
             fillcolor="rgba(156, 39, 176, 0.3)",
-            line=dict(color="rgba(156, 39, 176, 0.8)", width=3),
+            line={"color": "rgba(156, 39, 176, 0.8)", "width": 3},
             name="Follow-up",
             mode="lines",
             hoverinfo="skip",
@@ -125,39 +125,39 @@ def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
 
     # Add titles near the top of each circle
     fig.add_annotation(
-        x=Ax, y=Ay + radius + 0.05, text="<b>Info</b>", showarrow=False, font=dict(size=14)
+        x=Ax, y=Ay + radius + 0.05, text="<b>Info</b>", showarrow=False, font={"size": 14}
     )
     fig.add_annotation(
-        x=Bx, y=By + radius + 0.05, text="<b>Raw Data</b>", showarrow=False, font=dict(size=14)
+        x=Bx, y=By + radius + 0.05, text="<b>Raw Data</b>", showarrow=False, font={"size": 14}
     )
     fig.add_annotation(
-        x=Cx, y=Cy + radius + 0.05, text="<b>Follow-up</b>", showarrow=False, font=dict(size=14)
+        x=Cx, y=Cy + radius + 0.05, text="<b>Follow-up</b>", showarrow=False, font={"size": 14}
     )
 
     # Add region counts (manually positioned for clarity)
     # Only A (Info only)
-    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A), showarrow=False, font=dict(size=14))
+    fig.add_annotation(
+        x=Ax - 0.13, y=Ay - 0.05, text=str(only_A), showarrow=False, font={"size": 14}
+    )
 
     # Only B (Raw Data only)
-    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B), showarrow=False, font=dict(size=14))
+    fig.add_annotation(
+        x=Bx + 0.13, y=By - 0.05, text=str(only_B), showarrow=False, font={"size": 14}
+    )
 
     # Only C (Follow-up only)
-    fig.add_annotation(x=Cx, y=Cy + 0.18, text=str(only_C), showarrow=False, font=dict(size=14))
+    fig.add_annotation(x=Cx, y=Cy + 0.18, text=str(only_C), showarrow=False, font={"size": 14})
 
     # A ∩ B (excluding C) - Info & Raw Data
     fig.add_annotation(
-        x=(Ax + Bx) / 2, y=Ay - 0.08, text=str(A_and_B), showarrow=False, font=dict(size=14)
+        x=(Ax + Bx) / 2, y=Ay - 0.12, text=str(A_and_B), showarrow=False, font={"size": 14}
     )
 
     # A ∩ C (excluding B) - Info & Follow-up
-    fig.add_annotation(
-        x=Ax + 0.07, y=Ay + 0.16, text=str(A_and_C), showarrow=False, font=dict(size=14)
-    )
+    fig.add_annotation(x=0.65, y=0.65, text=str(A_and_C), showarrow=False, font={"size": 14})
 
     # B ∩ C (excluding A) - Raw Data & Follow-up
-    fig.add_annotation(
-        x=Bx - 0.07, y=By + 0.16, text=str(B_and_C), showarrow=False, font=dict(size=14)
-    )
+    fig.add_annotation(x=0.30, y=0.65, text=str(B_and_C), showarrow=False, font={"size": 14})
 
     # A ∩ B ∩ C (center) - All three (complete)
     fig.add_annotation(
@@ -165,7 +165,7 @@ def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
         y=Ay + 0.1,
         text=f"<b>{A_and_B_and_C}</b>",
         showarrow=False,
-        font=dict(size=16, color="darkgreen"),
+        font={"size": 16, "color": "darkgreen"},
         bgcolor="rgba(255, 255, 255, 0.9)",
         borderpad=4,
         bordercolor="darkgreen",
@@ -176,15 +176,15 @@ def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
     fig.update_layout(
         title="Data Availability - Venn Diagram (Info, Raw Data, Follow-up)",
         showlegend=False,
-        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
-        yaxis=dict(
-            showticklabels=False,
-            showgrid=False,
-            zeroline=False,
-            range=[0.2, 1.05],
-            scaleanchor="x",
-            scaleratio=1,
-        ),
+        xaxis={"showticklabels": False, "showgrid": False, "zeroline": False, "range": [0, 1]},
+        yaxis={
+            "showticklabels": False,
+            "showgrid": False,
+            "zeroline": False,
+            "range": [0.2, 1.05],
+            "scaleanchor": "x",
+            "scaleratio": 1,
+        },
         height=600,
         width=600,
         plot_bgcolor="rgba(0,0,0,0)",

@@ -3,7 +3,7 @@ Overview Step for Cell Culture Dashboard
 Displays analysis overview, input files, basic statistics, missing data information, and data visualizations
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultur
 
 
 def create_venn_diagram_3_sets_fallback(
-    sample_sets: Dict[str, set], translate_service
+    sample_sets: dict[str, set], translate_service
 ) -> go.Figure:
     """
     Create a Venn diagram with 3 overlapping circles (info, raw_data, follow_up)
@@ -60,7 +60,7 @@ def create_venn_diagram_3_sets_fallback(
             y=y_A,
             fill="toself",
             fillcolor="rgba(33, 150, 243, 0.3)",
-            line=dict(color="rgba(33, 150, 243, 0.8)", width=3),
+            line={"color": "rgba(33, 150, 243, 0.8)", "width": 3},
             name="Info",
             mode="lines",
             hoverinfo="skip",
@@ -77,7 +77,7 @@ def create_venn_diagram_3_sets_fallback(
             y=y_B,
             fill="toself",
             fillcolor="rgba(76, 175, 80, 0.3)",
-            line=dict(color="rgba(76, 175, 80, 0.8)", width=3),
+            line={"color": "rgba(76, 175, 80, 0.8)", "width": 3},
             name="Raw Data",
             mode="lines",
             hoverinfo="skip",
@@ -94,7 +94,7 @@ def create_venn_diagram_3_sets_fallback(
             y=y_C,
             fill="toself",
             fillcolor="rgba(156, 39, 176, 0.3)",
-            line=dict(color="rgba(156, 39, 176, 0.8)", width=3),
+            line={"color": "rgba(156, 39, 176, 0.8)", "width": 3},
             name="Follow-up",
             mode="lines",
             hoverinfo="skip",
@@ -104,28 +104,28 @@ def create_venn_diagram_3_sets_fallback(
 
     # Add titles near the top of each circle
     fig.add_annotation(
-        x=Ax, y=Ay + radius + 0.05, text="<b>Info</b>", showarrow=False, font=dict(size=14)
+        x=Ax, y=Ay + radius + 0.05, text="<b>Info</b>", showarrow=False, font={"size": 14}
     )
     fig.add_annotation(
-        x=Bx, y=By + radius + 0.05, text="<b>Raw Data</b>", showarrow=False, font=dict(size=14)
+        x=Bx, y=By + radius + 0.05, text="<b>Raw Data</b>", showarrow=False, font={"size": 14}
     )
     fig.add_annotation(
-        x=Cx, y=Cy + radius + 0.05, text="<b>Follow-up</b>", showarrow=False, font=dict(size=14)
+        x=Cx, y=Cy + radius + 0.05, text="<b>Follow-up</b>", showarrow=False, font={"size": 14}
     )
 
     # Add region counts
-    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A), showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B), showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Cx, y=Cy + 0.18, text=str(only_C), showarrow=False, font=dict(size=14))
     fig.add_annotation(
-        x=(Ax + Bx) / 2, y=Ay - 0.08, text=str(A_and_B), showarrow=False, font=dict(size=14)
+        x=Ax - 0.13, y=Ay - 0.05, text=str(only_A), showarrow=False, font={"size": 14}
     )
     fig.add_annotation(
-        x=Ax + 0.07, y=Ay + 0.16, text=str(A_and_C), showarrow=False, font=dict(size=14)
+        x=Bx + 0.13, y=By - 0.05, text=str(only_B), showarrow=False, font={"size": 14}
     )
+    fig.add_annotation(x=Cx, y=Cy + 0.18, text=str(only_C), showarrow=False, font={"size": 14})
     fig.add_annotation(
-        x=Bx - 0.07, y=By + 0.16, text=str(B_and_C), showarrow=False, font=dict(size=14)
+        x=(Ax + Bx) / 2, y=Ay - 0.12, text=str(A_and_B), showarrow=False, font={"size": 14}
     )
+    fig.add_annotation(x=0.65, y=0.65, text=str(A_and_C), showarrow=False, font={"size": 14})
+    fig.add_annotation(x=0.30, y=0.65, text=str(B_and_C), showarrow=False, font={"size": 14})
 
     # Center - All three (complete)
     fig.add_annotation(
@@ -133,7 +133,7 @@ def create_venn_diagram_3_sets_fallback(
         y=Ay + 0.1,
         text=f"<b>{A_and_B_and_C}</b>",
         showarrow=False,
-        font=dict(size=16, color="darkgreen"),
+        font={"size": 16, "color": "darkgreen"},
         bgcolor="rgba(255, 255, 255, 0.9)",
         borderpad=4,
         bordercolor="darkgreen",
@@ -144,8 +144,8 @@ def create_venn_diagram_3_sets_fallback(
     fig.update_layout(
         title=translate_service.translate("missing_data_pattern"),
         showlegend=False,
-        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
-        yaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0.2, 1.05]),
+        xaxis={"showticklabels": False, "showgrid": False, "zeroline": False, "range": [0, 1]},
+        yaxis={"showticklabels": False, "showgrid": False, "zeroline": False, "range": [0.2, 1.05]},
         height=500,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -156,7 +156,7 @@ def create_venn_diagram_3_sets_fallback(
 
 def prepare_complete_data_for_visualization(
     resource_set: ResourceSet, cell_culture_state: CellCultureState
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Prepare complete (non-missing) data from ResourceSet for visualization"""
     try:
         resources = resource_set.get_resources()
@@ -200,8 +200,8 @@ def prepare_complete_data_for_visualization(
 def prepare_extended_complete_data(
     resource_set: ResourceSet,
     cell_culture_state: CellCultureState,
-    selected_columns: List[str] = None,
-) -> List[Dict[str, Any]]:
+    selected_columns: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Prepare extended complete data from ResourceSet including selected columns"""
     try:
         resources = resource_set.get_resources()
@@ -267,7 +267,11 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
     # Check scenario status and display appropriate message
     scenario_status = load_scenario.status
 
-    if scenario_status in [ScenarioStatus.RUNNING, ScenarioStatus.IN_QUEUE, ScenarioStatus.WAITING_FOR_CLI_PROCESS]:
+    if scenario_status in [
+        ScenarioStatus.RUNNING,
+        ScenarioStatus.IN_QUEUE,
+        ScenarioStatus.WAITING_FOR_CLI_PROCESS,
+    ]:
         st.info(translate_service.translate("overview_scenario_running"))
         return
 
@@ -292,7 +296,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
         missing_data = []
         all_data = []
 
-        for resource_name, resource in resources.items():
+        for _resource_name, resource in resources.items():
             if isinstance(resource, Table):
                 df = resource.get_data()
 

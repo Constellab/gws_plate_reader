@@ -4,7 +4,6 @@ Handles data selection with interactive table and scenario launching
 """
 
 from datetime import datetime
-from typing import Optional
 
 import pandas as pd
 import streamlit as st
@@ -27,7 +26,7 @@ def launch_selection_scenario(
     load_scenario: Scenario,
     cell_culture_state: CellCultureState,
     interpolation_config: dict = None,
-) -> Optional[Scenario]:
+) -> Scenario | None:
     """Launch a scenario to filter the ResourceSet based on user selection."""
 
     translate_service = cell_culture_state.get_translate_service()

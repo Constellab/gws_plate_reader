@@ -350,7 +350,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
         with col4:
             st.metric(translate_service.translate("data_tables"), len(resources))
 
-        if recipe.analysis_type != 'biolector':
+        if recipe.analysis_type != "biolector":
             # Try to get the Venn diagram from the load scenario output
             venn_diagram = cell_culture_state.get_venn_diagram_output()
 
@@ -393,7 +393,9 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
                                     sample_sets["follow_up"].add(sample_tuple)
 
                         # Create Venn diagram
-                        fig_venn = create_venn_diagram_3_sets_fallback(sample_sets, translate_service)
+                        fig_venn = create_venn_diagram_3_sets_fallback(
+                            sample_sets, translate_service
+                        )
                         st.plotly_chart(fig_venn, use_container_width=True)
             elif missing_data or valid_data:
                 # Fallback: compute on the fly if venn diagram output not found
@@ -421,7 +423,10 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
                             sample_sets["info"].add(sample_tuple)
                         if "raw_data" not in missing_types:
                             sample_sets["raw_data"].add(sample_tuple)
-                        if "follow_up" not in missing_types and "follow_up_empty" not in missing_types:
+                        if (
+                            "follow_up" not in missing_types
+                            and "follow_up_empty" not in missing_types
+                        ):
                             sample_sets["follow_up"].add(sample_tuple)
 
                 # Create Venn diagram
@@ -472,13 +477,9 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
 
         if complete_visualization_data:
             # Get unique values for grouping
-            unique_batches = sorted(
-                list(set(item["Batch"] for item in complete_visualization_data))
-            )
-            unique_samples = sorted(
-                list(set(item["Sample"] for item in complete_visualization_data))
-            )
-            unique_media = sorted(list(set(item["Medium"] for item in complete_visualization_data)))
+            unique_batches = sorted({item["Batch"] for item in complete_visualization_data})
+            unique_samples = sorted({item["Sample"] for item in complete_visualization_data})
+            unique_media = sorted({item["Medium"] for item in complete_visualization_data})
 
             # Create summary charts
             col1, col2 = st.columns(2)

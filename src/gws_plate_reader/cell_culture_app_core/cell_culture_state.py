@@ -2,11 +2,12 @@
 Base State class for Cell Culture Dashboards
 Manages common state and session management - Abstract base class
 """
+
 import json
 import os
 import tempfile
 from abc import ABC
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -129,23 +130,22 @@ class CellCultureState(ABC):
         "optimization": {"title": "optimization_analysis", "icon": "auto_mode", "children": []},
     }
 
-    def __init__(self, lang_translation_folder_path: str, lang_specific_folder_path: str | None = None):
+    def __init__(
+        self, lang_translation_folder_path: str, lang_specific_folder_path: str | None = None
+    ):
         """Initialize the state manager with translation service."""
         # Get the path of the current file's directory if not provided
         if lang_translation_folder_path is None:
-            raise ValueError('No lang_translation_folder_path')
+            raise ValueError("No lang_translation_folder_path")
 
-        if lang_specific_folder_path :
+        if lang_specific_folder_path:
             # Create temporary directory for merged translations
-            temp_dir = tempfile.mkdtemp(prefix='translations_')
+            temp_dir = tempfile.mkdtemp(prefix="translations_")
 
             # Merge translations for each language
-            for lang in ['en', 'fr']:
+            for lang in ["en", "fr"]:
                 self.merge_translation_files(
-                    lang_translation_folder_path,
-                    lang_specific_folder_path,
-                    temp_dir,
-                    lang
+                    lang_translation_folder_path, lang_specific_folder_path, temp_dir, lang
                 )
             lang_translation_folder_path = temp_dir
 
@@ -159,24 +159,24 @@ class CellCultureState(ABC):
     # Function to merge JSON files
     def merge_translation_files(self, base_path, specific_path, output_path, lang):
         """Merge base and specific translation files for a given language."""
-        base_file = os.path.join(base_path, f'{lang}.json')
-        specific_file = os.path.join(specific_path, f'{lang}_specific.json')
-        output_file = os.path.join(output_path, f'{lang}.json')
+        base_file = os.path.join(base_path, f"{lang}.json")
+        specific_file = os.path.join(specific_path, f"{lang}_specific.json")
+        output_file = os.path.join(output_path, f"{lang}.json")
 
         merged_data = {}
 
         # Load base translations (gws_plate_reader)
         if os.path.exists(base_file):
-            with open(base_file, encoding='utf-8') as f:
+            with open(base_file, encoding="utf-8") as f:
                 merged_data.update(json.load(f))
 
         # Load and merge specific translations
         if os.path.exists(specific_file):
-            with open(specific_file, encoding='utf-8') as f:
+            with open(specific_file, encoding="utf-8") as f:
                 merged_data.update(json.load(f))
 
         # Write merged translations
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(merged_data, f, ensure_ascii=False, indent=4)
 
     def _initialize_session_state(self) -> None:
@@ -220,12 +220,8 @@ class CellCultureState(ABC):
         if not scenario:
             raise ValueError("Scenario cannot be None")
         entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-        microplate_tags = entity_tag_list.get_tags_by_key(
-                self.TAG_MICROPLATE_ANALYSIS
-            )
-        microplate_analysis = (
-            microplate_tags[0].tag_value if microplate_tags else "false"
-        )
+        microplate_tags = entity_tag_list.get_tags_by_key(self.TAG_MICROPLATE_ANALYSIS)
+        microplate_analysis = microplate_tags[0].tag_value if microplate_tags else "false"
         if microplate_analysis.lower() == "true":
             return BiolectorRecipe.from_scenario(scenario)
         return self.create_fermentor_recipe_from_scenario(scenario)
@@ -241,7 +237,7 @@ class CellCultureState(ABC):
         return CellCultureRecipe.from_scenario(scenario)
 
     # Recipe instance management
-    def get_selected_recipe_instance(self) -> Optional[CellCultureRecipe]:
+    def get_selected_recipe_instance(self) -> CellCultureRecipe | None:
         """Get the selected Recipe instance from session state."""
         return st.session_state.get(self.SELECTED_RECIPE_INSTANCE_KEY)
 
@@ -283,7 +279,7 @@ class CellCultureState(ABC):
         """Set the selected resources in session state."""
         st.session_state[self.SELECTED_RESOURCES_KEY] = resources
 
-    def get_selected_resource_set(self) -> Optional[Any]:
+    def get_selected_resource_set(self) -> Any | None:
         """Get the selected resource set from session state."""
         return st.session_state.get(self.SELECTED_RESOURCE_SET_KEY)
 
@@ -292,12 +288,12 @@ class CellCultureState(ABC):
         st.session_state[self.SELECTED_RESOURCE_SET_KEY] = resource_set
 
     # Recipe instance delegation methods
-    def get_recipe_name(self) -> Optional[str]:
+    def get_recipe_name(self) -> str | None:
         """Get the current recipe name from the Recipe instance."""
         recipe = self.get_selected_recipe_instance()
         return recipe.name if recipe else None
 
-    def get_pipeline_id(self) -> Optional[str]:
+    def get_pipeline_id(self) -> str | None:
         """Get the current pipeline ID from the Recipe instance."""
         recipe = self.get_selected_recipe_instance()
         return recipe.pipeline_id if recipe else None
@@ -312,7 +308,7 @@ class CellCultureState(ABC):
         recipe = self.get_selected_recipe_instance()
         return recipe.get_visualization_scenarios() if recipe else []
 
-    def get_main_scenario(self) -> Optional[Scenario]:
+    def get_main_scenario(self) -> Scenario | None:
         """Get the main scenario from the Recipe instance."""
         recipe = self.get_selected_recipe_instance()
         return recipe.get_load_scenario() if recipe else None
@@ -336,7 +332,7 @@ class CellCultureState(ABC):
 
             return protocol_proxy.get_input_resource_model(name)
 
-        except Exception as e:
+        except Exception:
             # Return empty dict if there's an error accessing inputs
             return None
 
@@ -359,7 +355,7 @@ class CellCultureState(ABC):
 
             return protocol_proxy.get_output_resource_model(name)
 
-        except Exception as e:
+        except Exception:
             # Return empty dict if there's an error accessing outputs
             return None
 
@@ -383,11 +379,11 @@ class CellCultureState(ABC):
 
             return protocol_proxy.get_output_resource_model(name)
 
-        except Exception as e:
+        except Exception:
             # Return empty dict if there's an error accessing outputs
             return None
 
-    def get_medium_csv_input_resource_model(self) -> Optional[ResourceModel]:
+    def get_medium_csv_input_resource_model(self) -> ResourceModel | None:
         """
         Get the medium CSV input resource model from the load scenario.
 
@@ -441,7 +437,7 @@ class CellCultureState(ABC):
             current_scenarios.append(scenario)
             recipe.add_scenarios_by_step("selection", current_scenarios)
 
-    def get_latest_selection_scenario(self) -> Optional[Scenario]:
+    def get_latest_selection_scenario(self) -> Scenario | None:
         """Get the most recent selection scenario."""
         selection_scenarios = self.get_selection_scenarios()
         if not selection_scenarios:
@@ -473,7 +469,7 @@ class CellCultureState(ABC):
         """Set the selected folder ID."""
         st.session_state["selected_folder_id"] = folder_id
 
-    def get_selected_folder_id(self) -> Optional[str]:
+    def get_selected_folder_id(self) -> str | None:
         """Get the selected folder ID."""
         return st.session_state.get("selected_folder_id")
 
@@ -509,7 +505,7 @@ class CellCultureState(ABC):
         table_resource_model.save()
 
     # Common utility methods for ResourceSet processing
-    def get_load_scenario_output(self) -> Optional[ResourceSet]:
+    def get_load_scenario_output(self) -> ResourceSet | None:
         """Get a specific output from the main scenario."""
         main_scenario = self.get_main_scenario()
         if not main_scenario:
@@ -539,9 +535,8 @@ class CellCultureState(ABC):
 
     def get_quality_check_scenario_output_resource_model(
         self, quality_check_scenario: Scenario
-    ) -> Optional[ResourceModel]:
+    ) -> ResourceModel | None:
         """Get the filtered real data ResourceSet from a quality check scenario (for analyses)"""
-        from gws_core.protocol.protocol_proxy import ProtocolProxy
 
         protocol_proxy = self.get_quality_check_protocol_proxy(quality_check_scenario)
         if not protocol_proxy:
@@ -549,9 +544,7 @@ class CellCultureState(ABC):
 
         return protocol_proxy.get_output_resource_model(self.QUALITY_CHECK_SCENARIO_OUTPUT_NAME)
 
-    def get_interpolation_scenario_output(
-        self, selection_scenario: Scenario
-    ) -> Optional[ResourceSet]:
+    def get_interpolation_scenario_output(self, selection_scenario: Scenario) -> ResourceSet | None:
         """Get the subsampled ResourceSet from a selection scenario"""
         try:
             scenario_proxy = ScenarioProxy.from_existing_scenario(selection_scenario.id)
@@ -563,7 +556,6 @@ class CellCultureState(ABC):
 
     def get_quality_check_protocol_proxy(self, quality_check_scenario: Scenario):
         """Get the protocol proxy from a quality check scenario"""
-        from gws_core.protocol.protocol_proxy import ProtocolProxy
 
         try:
             scenario_proxy = ScenarioProxy.from_existing_scenario(quality_check_scenario.id)
@@ -575,7 +567,7 @@ class CellCultureState(ABC):
 
     def get_quality_check_scenario_interpolated_output_resource_model(
         self, quality_check_scenario: Scenario
-    ) -> Optional[ResourceModel]:
+    ) -> ResourceModel | None:
         """Get the filtered subsampled ResourceSet from a quality check scenario"""
         protocol_proxy = self.get_quality_check_protocol_proxy(quality_check_scenario)
         if not protocol_proxy:
@@ -656,7 +648,7 @@ class CellCultureState(ABC):
                         if is_index_column:
                             index_columns.append(col_name)
 
-            return sorted(list(set(index_columns)))
+            return sorted(set(index_columns))
         except Exception:
             return []
 
@@ -678,7 +670,7 @@ class CellCultureState(ABC):
                         if is_data_column:
                             data_columns.append(col_name)
 
-            return sorted(list(set(data_columns)))
+            return sorted(set(data_columns))
         except Exception:
             return []
 
@@ -694,14 +686,13 @@ class CellCultureState(ABC):
             resources = resource_set.get_resources()
 
             for resource in resources.values():
-                if isinstance(resource, Table):
-                    if column_name in resource.get_column_names():
-                        col_tags = resource.get_column_tags_by_name(column_name)
-                        unit = col_tags.get("unit")
+                if isinstance(resource, Table) and column_name in resource.get_column_names():
+                    col_tags = resource.get_column_tags_by_name(column_name)
+                    unit = col_tags.get("unit")
 
-                        if unit:
-                            return f"{column_name} ({unit})"
-                        return column_name
+                    if unit:
+                        return f"{column_name} ({unit})"
+                    return column_name
 
             return column_name
         except Exception:

@@ -3,11 +3,11 @@ Metadata Feature UMAP Analysis Step for Cell Culture Dashboard
 Allows users to run UMAP analysis on combined metadata and feature extraction data
 """
 
+import traceback
 from datetime import datetime
-from typing import List, Optional
 
 import streamlit as st
-from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, ScenarioStatus, Tag
+from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, Tag
 from gws_core.streamlit import StreamlitAuthenticateUser
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
@@ -32,9 +32,9 @@ def launch_metadata_feature_umap_scenario(
     metric: str,
     scale_data: bool,
     n_clusters: int | None,
-    columns_to_exclude: Optional[list[str]] = None,
-    hover_data_columns: Optional[list[str]] = None,
-) -> Optional[Scenario]:
+    columns_to_exclude: list[str] | None = None,
+    hover_data_columns: list[str] | None = None,
+) -> Scenario | None:
     """
     Launch a Metadata Feature UMAP analysis scenario
 
@@ -269,8 +269,6 @@ def launch_metadata_feature_umap_scenario(
                 scenario_type="Metadata Feature UMAP", error=str(e)
             )
         )
-        import traceback
-
         st.code(traceback.format_exc())
         return None
 
@@ -410,7 +408,7 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
             results_df = results_table.get_data()
             # Get all columns from both tables (excluding 'Series' which is the merge key)
             all_merged_columns = sorted(
-                list(set(metadata_df.columns.tolist() + results_df.columns.tolist()))
+                set(metadata_df.columns.tolist() + results_df.columns.tolist())
             )
         else:
             # Fallback to metadata columns only
@@ -462,7 +460,7 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
         return
 
     # Check existing UMAP scenarios for this feature extraction
-    existing_umap_scenarios = recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
+    recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
         feature_extraction_scenario.id
     )
 

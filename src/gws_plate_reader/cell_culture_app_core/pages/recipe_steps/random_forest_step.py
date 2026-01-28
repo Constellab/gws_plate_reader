@@ -3,8 +3,8 @@ Random Forest Regression Analysis Step for Cell Culture Dashboard
 Allows users to run Random Forest regression analysis on combined metadata and feature extraction data
 """
 
+import traceback
 from datetime import datetime
-from typing import List, Optional
 
 import streamlit as st
 from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, Tag
@@ -23,9 +23,9 @@ def launch_random_forest_scenario(
     cell_culture_state: CellCultureState,
     feature_extraction_scenario: Scenario,
     target_column: str,
-    columns_to_exclude: Optional[List[str]],
+    columns_to_exclude: list[str] | None,
     test_size: float,
-) -> Optional[Scenario]:
+) -> Scenario | None:
     """
     Launch a Random Forest Regression analysis scenario
 
@@ -232,8 +232,6 @@ def launch_random_forest_scenario(
     except Exception as e:
         translate_service = cell_culture_state.get_translate_service()
         st.error(translate_service.translate("error_launching_random_forest").format(error=str(e)))
-        import traceback
-
         st.code(traceback.format_exc())
         return None
 
@@ -271,7 +269,6 @@ def render_random_forest_step(
 
     # Display selected feature extraction scenario
 
-
     # Get available columns from merged table (metadata + features)
     try:
         # Get metadata table from load scenario
@@ -302,7 +299,7 @@ def render_random_forest_step(
             results_df = results_table.get_data()
             # Get all columns from both tables (excluding 'Series' which is the merge key)
             all_merged_columns = sorted(
-                list(set(metadata_df.columns.tolist() + results_df.columns.tolist()))
+                set(metadata_df.columns.tolist() + results_df.columns.tolist())
             )
 
             # Identify feature extraction columns
@@ -311,12 +308,10 @@ def render_random_forest_step(
             # Separate numeric and non-numeric columns
             metadata_numeric_cols = metadata_df.select_dtypes(include=["number"]).columns.tolist()
             results_numeric_cols = results_df.select_dtypes(include=["number"]).columns.tolist()
-            all_numeric_columns = sorted(list(set(metadata_numeric_cols + results_numeric_cols)))
+            all_numeric_columns = sorted(set(metadata_numeric_cols + results_numeric_cols))
 
             # Calculate non-numeric columns to exclude by default
-            all_non_numeric_columns = sorted(
-                list(set(all_merged_columns) - set(all_numeric_columns))
-            )
+            all_non_numeric_columns = sorted(set(all_merged_columns) - set(all_numeric_columns))
         else:
             # Fallback to metadata columns only
             all_merged_columns = sorted(metadata_df.columns.tolist())
@@ -326,21 +321,15 @@ def render_random_forest_step(
             feature_extraction_columns = []
 
             # Calculate non-numeric columns to exclude by default
-            all_non_numeric_columns = sorted(
-                list(set(all_merged_columns) - set(all_numeric_columns))
-            )
+            all_non_numeric_columns = sorted(set(all_merged_columns) - set(all_numeric_columns))
 
     except Exception as e:
         st.error(translate_service.translate("error_reading_tables").format(error=str(e)))
-        import traceback
-
         st.code(traceback.format_exc())
         return
 
     # Check existing Random Forest scenarios for this feature extraction
-    existing_rf_scenarios = recipe.get_random_forest_scenarios_for_feature_extraction(
-        feature_extraction_scenario.id
-    )
+    recipe.get_random_forest_scenarios_for_feature_extraction(feature_extraction_scenario.id)
 
     # Configuration form for new Random Forest
     st.markdown("---")
@@ -377,10 +366,8 @@ def render_random_forest_step(
     # 1. All non-numeric columns
     # 2. All feature extraction columns (except the target if it's from features)
     default_excluded = sorted(
-        list(
-            set(all_non_numeric_columns)
-            | set([col for col in feature_extraction_columns if col != target_column])
-        )
+        set(all_non_numeric_columns)
+        | {col for col in feature_extraction_columns if col != target_column}
     )
 
     # Columns to exclude

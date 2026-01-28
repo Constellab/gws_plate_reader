@@ -1,17 +1,32 @@
-from gws_core import (InputSpec, OutputSpec, InputSpecs, OutputSpecs, Table, ListParam, Tag,
-                      TypingStyle, ResourceSet, Task, task_decorator, ConfigSpecs, ConfigParams)
-from typing import Dict, Any, List
 import json
+from typing import Any
 
+from gws_core import (
+    ConfigParams,
+    ConfigSpecs,
+    InputSpec,
+    InputSpecs,
+    ListParam,
+    OutputSpec,
+    OutputSpecs,
+    ResourceSet,
+    Table,
+    Tag,
+    Task,
+    TypingStyle,
+    task_decorator,
+)
 
 BATCH_TAG_KEY = "batch"
 SAMPLE_TAG_KEY = "sample"
 
 
-@task_decorator("FilterFermentorAnalyseLoadedResourceSetBySelection",
-                human_name="Filter Cell Culture ResourceSet by Selection",
-                short_description="Filter cell culture data by selecting specific batch/sample combinations",
-                style=TypingStyle.material_icon(material_icon_name="filter", background_color="#28a745"))
+@task_decorator(
+    "FilterFermentorAnalyseLoadedResourceSetBySelection",
+    human_name="Filter Cell Culture ResourceSet by Selection",
+    short_description="Filter cell culture data by selecting specific batch/sample combinations",
+    style=TypingStyle.material_icon(material_icon_name="filter", background_color="#28a745"),
+)
 class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     """
     Filter fermentation data ResourceSet by selecting specific batch/sample combinations.
@@ -210,33 +225,44 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
     - Compatible with Streamlit dashboard for interactive use
     """
 
-    input_specs: InputSpecs = InputSpecs({
-        'resource_set': InputSpec(ResourceSet,
-                                  human_name="Input ResourceSet to filter",
-                                  short_description="ResourceSet from CellCultureLoadData containing batch/sample tagged resources",
-                                  optional=False),
-    })
+    input_specs: InputSpecs = InputSpecs(
+        {
+            "resource_set": InputSpec(
+                ResourceSet,
+                human_name="Input ResourceSet to filter",
+                short_description="ResourceSet from CellCultureLoadData containing batch/sample tagged resources",
+                optional=False,
+            ),
+        }
+    )
 
-    output_specs: OutputSpecs = OutputSpecs({
-        'filtered_resource_set': OutputSpec(ResourceSet,
-                                            human_name="Filtered ResourceSet",
-                                            short_description="ResourceSet containing only selected batch/sample combinations")
-    })
+    output_specs: OutputSpecs = OutputSpecs(
+        {
+            "filtered_resource_set": OutputSpec(
+                ResourceSet,
+                human_name="Filtered ResourceSet",
+                short_description="ResourceSet containing only selected batch/sample combinations",
+            )
+        }
+    )
 
-    config_specs = ConfigSpecs({
-        'selection_criteria': ListParam(
-            human_name="Selection criteria with Batch/Sample pairs",
-            short_description="List of dictionaries with 'batch' and 'sample' keys for filtering",
-            optional=False
-        )
-    })
+    config_specs = ConfigSpecs(
+        {
+            "selection_criteria": ListParam(
+                human_name="Selection criteria with Batch/Sample pairs",
+                short_description="List of dictionaries with 'batch' and 'sample' keys for filtering",
+                optional=False,
+            )
+        }
+    )
 
-    def run(self, params: ConfigParams, inputs) -> Dict[str, Any]:
-        resource_set: ResourceSet = inputs['resource_set']
-        selection_criteria: List[Dict[str, str]] = params.get_value('selection_criteria')
+    def run(self, params: ConfigParams, inputs) -> dict[str, Any]:
+        resource_set: ResourceSet = inputs["resource_set"]
+        selection_criteria: list[dict[str, str]] = params.get_value("selection_criteria")
 
         self.log_info_message(
-            f"Filtering ResourceSet with {len(selection_criteria)} selected batch/sample combinations")
+            f"Filtering ResourceSet with {len(selection_criteria)} selected batch/sample combinations"
+        )
 
         # Create a new ResourceSet for filtered data
         filtered_res = ResourceSet()
@@ -244,10 +270,10 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
         # Create selection criteria set for faster lookup
         selection_set = set()
         for criteria in selection_criteria:
-            if type(criteria) != dict and type(criteria) == str:
+            if not isinstance(criteria, dict) and isinstance(criteria, str):
                 criteria = json.loads(criteria)
-            batch = criteria.get(BATCH_TAG_KEY, '')
-            sample_name = criteria.get(SAMPLE_TAG_KEY, '')
+            batch = criteria.get(BATCH_TAG_KEY, "")
+            sample_name = criteria.get(SAMPLE_TAG_KEY, "")
             selection_set.add((batch, sample_name))
 
         self.log_info_message(f"Selection criteria: {selection_set}")
@@ -257,15 +283,14 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
 
         # Filter each resource in the ResourceSet based on tags
         for resource_name, resource in resource_set.get_resources().items():
-
             if not isinstance(resource, Table):
-                self.log_debug_message(
-                    f"⏭️ Skipping non-Table resource '{resource_name}'")
+                self.log_debug_message(f"⏭️ Skipping non-Table resource '{resource_name}'")
                 continue
 
             if not resource.tags:
                 self.log_warning_message(
-                    f"⚠️ Resource '{resource_name}' has no tags and will be skipped")
+                    f"⚠️ Resource '{resource_name}' has no tags and will be skipped"
+                )
                 continue
 
             # Check if this resource matches any of the selected Batch/Sample pairs
@@ -288,13 +313,16 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
                     if (batch_tag_value, sample_tag_value) in selection_set:
                         should_include = True
                         self.log_info_message(
-                            f"✅ Including resource '{resource_name}' - batch: '{batch_tag_value}', sample: '{sample_tag_value}'")
+                            f"✅ Including resource '{resource_name}' - batch: '{batch_tag_value}', sample: '{sample_tag_value}'"
+                        )
                     else:
                         self.log_debug_message(
-                            f"⏭️ Skipping resource '{resource_name}' - batch: '{batch_tag_value}', sample: '{sample_tag_value}' not in selection")
+                            f"⏭️ Skipping resource '{resource_name}' - batch: '{batch_tag_value}', sample: '{sample_tag_value}' not in selection"
+                        )
                 else:
                     self.log_warning_message(
-                        f"⚠️ Resource '{resource_name}' missing required tags - batch: {batch_tag_value}, sample: {sample_tag_value}")
+                        f"⚠️ Resource '{resource_name}' missing required tags - batch: {batch_tag_value}, sample: {sample_tag_value}"
+                    )
 
             # If this resource should be included, add it to filtered ResourceSet
             if should_include:
@@ -308,18 +336,23 @@ class FilterFermentorAnalyseLoadedResourceSetBySelection(Task):
                         filtered_table.tags.add_tag(Tag(key=tag.key, value=tag.value))
 
                 for column_name in resource.get_column_names():
-                    col_tags: Dict[str, str] = resource.get_column_tags_by_name(column_name)
+                    col_tags: dict[str, str] = resource.get_column_tags_by_name(column_name)
                     for col_tag_key, col_tag_value in col_tags.items():
-                        filtered_table.add_column_tag_by_name(column_name, col_tag_key, col_tag_value)
+                        filtered_table.add_column_tag_by_name(
+                            column_name, col_tag_key, col_tag_value
+                        )
 
                 # Add the filtered resource with preserved tags
                 filtered_res.add_resource(filtered_table, resource_name)
                 matched_count += 1
 
-        self.log_success_message(f"Filtered {matched_count}/{total_resources} resources based on selection criteria")
+        self.log_success_message(
+            f"Filtered {matched_count}/{total_resources} resources based on selection criteria"
+        )
 
         if matched_count == 0:
             self.log_warning_message(
-                "No resources matched the selection criteria. Check that resources have proper 'batch' and 'sample' tags.")
+                "No resources matched the selection criteria. Check that resources have proper 'batch' and 'sample' tags."
+            )
 
-        return {'filtered_resource_set': filtered_res}
+        return {"filtered_resource_set": filtered_res}

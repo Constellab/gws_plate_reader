@@ -3,6 +3,8 @@ Random Forest Regression Results Display for Cell Culture Dashboard
 Displays results from Random Forest regression analysis
 """
 
+import traceback
+
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus
 
@@ -153,6 +155,4 @@ def render_random_forest_results(
 
     except Exception as e:
         st.error(translate_service.translate("error_displaying_results").format(error=str(e)))
-        import traceback
-
         st.code(traceback.format_exc())

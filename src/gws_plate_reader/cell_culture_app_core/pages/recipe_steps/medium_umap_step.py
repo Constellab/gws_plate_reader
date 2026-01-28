@@ -3,6 +3,7 @@ Medium UMAP Analysis Step for Cell Culture Dashboard
 Allows users to run UMAP analysis on medium composition data
 """
 
+import traceback
 from datetime import datetime
 
 import streamlit as st
@@ -58,7 +59,7 @@ def get_available_media_from_quality_check(
                     if tag.key == cell_culture_state.TAG_MEDIUM and tag.value:
                         media.add(tag.value)
 
-        return sorted(list(media))
+        return sorted(media)
     except Exception as e:
         # Handle any exception during media extraction
         st.error(translate_service.translate("error_extracting_media").format(error=str(e)))
@@ -260,8 +261,6 @@ def launch_medium_umap_scenario(
                 scenario_type="Medium UMAP", error=str(e)
             )
         )
-        import traceback
-
         st.code(traceback.format_exc())
         return None
 
@@ -365,9 +364,7 @@ def render_medium_umap_step(
         return
 
     # Check existing UMAP scenarios
-    existing_umap_scenarios = recipe.get_medium_umap_scenarios_for_quality_check(
-        quality_check_scenario.id
-    )
+    recipe.get_medium_umap_scenarios_for_quality_check(quality_check_scenario.id)
 
     # Configuration form for new UMAP
     st.markdown("---")

@@ -3,8 +3,8 @@ Quality Check Step for Cell Culture Dashboard
 Handles quality check configuration and scenario launching for selections
 """
 
+import traceback
 from datetime import datetime
-from typing import Dict, List, Optional
 
 import streamlit as st
 from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, Tag
@@ -20,7 +20,7 @@ from gws_plate_reader.cell_culture_filter import CellCultureQualityCheck
 
 def get_available_columns_from_selection(
     selection_scenario: Scenario, cell_culture_state: CellCultureState
-) -> List[str]:
+) -> list[str]:
     """Get list of available numeric columns from a selection scenario's interpolated output"""
     try:
         # Get interpolated ResourceSet from selection scenario using state method
@@ -40,14 +40,14 @@ def get_available_columns_from_selection(
                 numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
                 columns.update(numeric_cols)
 
-        return sorted(list(columns))
+        return sorted(columns)
     except Exception:
         return []
 
 
 def render_quality_check_config_form(
     selection: Scenario, cell_culture_state: CellCultureState, config_key: str
-) -> Dict:
+) -> dict:
     """Render custom quality check configuration form with column selection
 
     :param selection: The selection scenario
@@ -218,7 +218,7 @@ def launch_quality_check_scenario(
     selection_scenario: Scenario,
     cell_culture_state: CellCultureState,
     quality_check_config: dict = None,
-) -> Optional[Scenario]:
+) -> Scenario | None:
     """Launch a quality check scenario for a specific selection."""
 
     translate_service = cell_culture_state.get_translate_service()
@@ -420,8 +420,6 @@ def launch_quality_check_scenario(
 
     except Exception as e:
         st.error(translate_service.translate("qc_error_launching_scenario").format(error=str(e)))
-        import traceback
-
         st.code(traceback.format_exc())
         return None
 
@@ -429,7 +427,7 @@ def launch_quality_check_scenario(
 def render_quality_check_step(
     recipe: CellCultureRecipe,
     cell_culture_state: CellCultureState,
-    selection_scenario: Optional[Scenario] = None,
+    selection_scenario: Scenario | None = None,
 ) -> None:
     """Render the quality check step with configuration form
 

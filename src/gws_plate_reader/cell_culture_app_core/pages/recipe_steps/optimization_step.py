@@ -5,7 +5,6 @@ Allows users to run optimization on combined metadata and feature extraction dat
 
 import traceback
 from datetime import datetime
-from typing import List, Optional
 
 import streamlit as st
 from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, Tag
@@ -26,9 +25,9 @@ def launch_optimization_scenario(
     manual_constraints_resource_id: str,
     population_size: int,
     iterations: int,
-    targets_thresholds: List[dict],
-    columns_to_exclude: Optional[List[str]] = None,
-) -> Optional[Scenario]:
+    targets_thresholds: list[dict],
+    columns_to_exclude: list[str] | None = None,
+) -> Scenario | None:
     """
     Launch an Optimization analysis scenario
 
@@ -244,8 +243,6 @@ def launch_optimization_scenario(
                 scenario_type="Optimization", error=str(e)
             )
         )
-        import traceback
-
         st.code(traceback.format_exc())
         return None
 
@@ -311,7 +308,7 @@ def render_optimization_step(
             results_df = results_table.get_data()
             # Get all columns from both tables (excluding 'Series' which is the merge key)
             all_merged_columns = sorted(
-                list(set(metadata_df.columns.tolist() + results_df.columns.tolist()))
+                set(metadata_df.columns.tolist() + results_df.columns.tolist())
             )
 
             # Identify feature extraction columns
@@ -320,12 +317,10 @@ def render_optimization_step(
             # Separate numeric and non-numeric columns
             metadata_numeric_cols = metadata_df.select_dtypes(include=["number"]).columns.tolist()
             results_numeric_cols = results_df.select_dtypes(include=["number"]).columns.tolist()
-            all_numeric_columns = sorted(list(set(metadata_numeric_cols + results_numeric_cols)))
+            all_numeric_columns = sorted(set(metadata_numeric_cols + results_numeric_cols))
 
             # Calculate non-numeric columns to exclude by default
-            all_non_numeric_columns = sorted(
-                list(set(all_merged_columns) - set(all_numeric_columns))
-            )
+            all_non_numeric_columns = sorted(set(all_merged_columns) - set(all_numeric_columns))
         else:
             # Fallback to metadata columns only
             all_merged_columns = sorted(metadata_df.columns.tolist())
@@ -335,9 +330,7 @@ def render_optimization_step(
             feature_extraction_columns = []
 
             # Calculate non-numeric columns to exclude by default
-            all_non_numeric_columns = sorted(
-                list(set(all_merged_columns) - set(all_numeric_columns))
-            )
+            all_non_numeric_columns = sorted(set(all_merged_columns) - set(all_numeric_columns))
 
     except Exception as e:
         st.error(f"{translate_service.translate('error_reading_tables')} : {str(e)}")
@@ -345,9 +338,7 @@ def render_optimization_step(
         return
 
     # Check existing Optimization scenarios for this feature extraction
-    existing_optimization_scenarios = recipe.get_optimization_scenarios_for_feature_extraction(
-        feature_extraction_scenario.id
-    )
+    recipe.get_optimization_scenarios_for_feature_extraction(feature_extraction_scenario.id)
 
     # Configuration form for new Optimization
     st.markdown("---")
@@ -362,7 +353,9 @@ def render_optimization_step(
     # Use StreamlitResourceSelect to select JSONDict resource
     resource_select_constraints = StreamlitResourceSelect()
     # Filter to show only JSONDict resources
-    resource_select_constraints.set_resource_typing_names_filter(["RESOURCE.gws_core.JSONDict"], disabled=True)
+    resource_select_constraints.set_resource_typing_names_filter(
+        ["RESOURCE.gws_core.JSONDict"], disabled=True
+    )
     resource_select_constraints.select_resource(
         placeholder=translate_service.translate("select_constraints_resource_placeholder"),
         key=f"optimization_constraints_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
@@ -468,10 +461,8 @@ def render_optimization_step(
     # 2. All feature extraction columns (except those selected as targets)
     selected_targets = [t["targets"] for t in targets_thresholds]
     default_excluded = sorted(
-        list(
-            set(all_non_numeric_columns)
-            | set([col for col in feature_extraction_columns if col not in selected_targets])
-        )
+        set(all_non_numeric_columns)
+        | {col for col in feature_extraction_columns if col not in selected_targets}
     )
 
     # Columns to exclude

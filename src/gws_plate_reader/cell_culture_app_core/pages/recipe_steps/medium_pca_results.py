@@ -60,7 +60,8 @@ def render_medium_pca_results(
         with st.expander(
             f"📊 {translate_service.translate('pca_results_title')} - {translate_service.translate('parameters_tab')}"
         ):
-            height = 400 if len(df) > 12 else "auto"
+            max_rows_df = 12
+            height = 400 if len(df) > max_rows_df else "auto"
             st.dataframe(df, width="stretch", height=height)
 
             # Download button

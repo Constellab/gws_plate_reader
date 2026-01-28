@@ -59,8 +59,6 @@ def render_settings_page(cell_culture_state: CellCultureState):
         if current_lang != selected_lang_enum:
             # Change the language in the translate service
             translate_service.change_lang(selected_lang_enum)
-            # Update the state
-            cell_culture_state.set_translate_service(translate_service)
             st.rerun()
 
         st.markdown("---")

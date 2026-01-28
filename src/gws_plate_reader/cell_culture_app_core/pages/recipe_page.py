@@ -3,8 +3,6 @@ Main Analysis Page for Cell Culture Dashboards
 Coordinates the different analysis steps and sub-pages
 """
 
-from typing import Dict, List, Optional, Tuple
-
 import streamlit as st
 from gws_core import Scenario, ScenarioStatus
 from gws_core.streamlit import (
@@ -17,24 +15,19 @@ from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
-from gws_plate_reader.cell_culture_app_core.functions_steps import (
-    get_status_emoji,
-    get_status_material_icon,
-)
+from gws_plate_reader.cell_culture_app_core.functions_steps import get_status_emoji
 
 from .recipe_steps import (
     render_causal_effect_results,
     render_causal_effect_step,
     render_feature_extraction_results,
     render_feature_extraction_step,
-    render_graph_view_step,
     render_logistic_growth_results,
     render_logistic_growth_step,
     render_medium_pca_results,
     render_medium_pca_step,
     render_medium_umap_results,
     render_medium_umap_step,
-    render_medium_view_step,
     render_metadata_feature_umap_results,
     render_metadata_feature_umap_step,
     render_optimization_results,
@@ -46,13 +39,12 @@ from .recipe_steps import (
     render_random_forest_results,
     render_random_forest_step,
     render_selection_step,
-    render_table_view_step,
     render_visualization_step,
 )
 
 
 # Helper functions similar to ubiome
-def has_successful_scenario(step_name: str, scenarios_by_step: Dict[str, List[Scenario]]) -> bool:
+def has_successful_scenario(step_name: str, scenarios_by_step: dict[str, list[Scenario]]) -> bool:
     """Check if steps are completed (have successful scenarios)"""
     if step_name not in scenarios_by_step:
         return False
@@ -61,8 +53,8 @@ def has_successful_scenario(step_name: str, scenarios_by_step: Dict[str, List[Sc
 
 def get_step_icon(
     step_name: str,
-    scenarios_by_step: Dict[str, List[Scenario]],
-    list_scenarios: Optional[List[Scenario]] = None,
+    scenarios_by_step: dict[str, list[Scenario]],
+    list_scenarios: list[Scenario] | None = None,
 ) -> str:
     """Get icon for step - check_circle if step has scenarios, empty otherwise."""
     if step_name not in scenarios_by_step:
@@ -72,7 +64,7 @@ def get_step_icon(
     return "check_circle"
 
 
-def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[StreamlitTreeMenu, str]:
+def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> tuple[StreamlitTreeMenu, str]:
     """Build tree menu for analysis navigation"""
 
     translate_service = cell_culture_state.get_translate_service()
@@ -106,14 +98,13 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
 
             # Create folder for this selection
             selection_folder = StreamlitTreeMenuItem(
-                label=selection_label,
-                key=f"selection_folder_{scenario.id}"
+                label=selection_label, key=f"selection_folder_{scenario.id}"
             )
 
             # Add visualization sub-item (combines Table, Graph and Medium views)
             visualization_sub_item = StreamlitTreeMenuItem(
                 label=translate_service.translate("visualization"),
-                key=f"visualization_{scenario.id}"
+                key=f"visualization_{scenario.id}",
             )
             selection_folder.add_child(visualization_sub_item)
 
@@ -136,21 +127,20 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
 
                     # Create folder for this QC scenario
                     qc_folder = StreamlitTreeMenuItem(
-                        label=qc_label,
-                        key=f"qc_folder_{qc_scenario.id}"
+                        label=qc_label, key=f"qc_folder_{qc_scenario.id}"
                     )
 
                     # Add Visualization view for QC results (combines Table, Graph and Medium views)
                     qc_visualization_item = StreamlitTreeMenuItem(
                         label=translate_service.translate("visualization"),
-                        key=f"qc_visualization_{qc_scenario.id}"
+                        key=f"qc_visualization_{qc_scenario.id}",
                     )
                     qc_folder.add_child(qc_visualization_item)
 
                     # Analysis sub-folder
                     analysis_folder = StreamlitTreeMenuItem(
                         label=translate_service.translate("analysis"),
-                        key=f"analysis_qc_{qc_scenario.id}"
+                        key=f"analysis_qc_{qc_scenario.id}",
                     )
                     qc_folder.add_child(analysis_folder)
 
@@ -160,9 +150,18 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
 
                     # Insert biolector analyses before feature_extraction for microplate recipes
                     if recipe.analysis_type == "microplate":
-                        biolector_analyses = list(cell_culture_state.BIOLECTOR_ANALYSIS_TREE.items())
+                        biolector_analyses = list(
+                            cell_culture_state.BIOLECTOR_ANALYSIS_TREE.items()
+                        )
                         # Find the index of feature_extraction
-                        fe_index = next((i for i, (k, _) in enumerate(analysis_items_config) if k == "feature_extraction"), len(analysis_items_config))
+                        fe_index = next(
+                            (
+                                i
+                                for i, (k, _) in enumerate(analysis_items_config)
+                                if k == "feature_extraction"
+                            ),
+                            len(analysis_items_config),
+                        )
                         # Insert biolector analyses before feature_extraction
                         for idx, item in enumerate(biolector_analyses):
                             analysis_items_config.insert(fe_index + idx, item)
@@ -174,7 +173,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
 
                         analysis_item = StreamlitTreeMenuItem(
                             label=translate_service.translate(analysis_info["title"]),
-                            key=f"analysis_{analysis_type}_qc_{qc_scenario.id}"
+                            key=f"analysis_{analysis_type}_qc_{qc_scenario.id}",
                         )
 
                         # For Medium PCA, add existing scenarios as sub-folders
@@ -196,8 +195,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
 
                                     # Create sub-item for this PCA scenario
                                     pca_result_item = StreamlitTreeMenuItem(
-                                        label=pca_label,
-                                        key=f"pca_result_{pca_scenario.id}"
+                                        label=pca_label, key=f"pca_result_{pca_scenario.id}"
                                     )
 
                                     analysis_item.add_child(pca_result_item)
@@ -221,8 +219,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
 
                                     # Create sub-item for this UMAP scenario
                                     umap_result_item = StreamlitTreeMenuItem(
-                                        label=umap_label,
-                                        key=f"umap_result_{umap_scenario.id}"
+                                        label=umap_label, key=f"umap_result_{umap_scenario.id}"
                                     )
                                     analysis_item.add_child(umap_result_item)
 
@@ -246,7 +243,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                     # Create sub-item for this LG scenario
                                     lg_result_item = StreamlitTreeMenuItem(
                                         label=lg_label,
-                                        key=f"logistic_growth_result_{lg_scenario.id}"
+                                        key=f"logistic_growth_result_{lg_scenario.id}",
                                     )
                                     analysis_item.add_child(lg_result_item)
 
@@ -271,22 +268,27 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
 
                                     # Create sub-item for this FE scenario
                                     fe_result_item = StreamlitTreeMenuItem(
-                                        label=fe_label,
-                                        key=f"fe_result_{fe_scenario.id}"
+                                        label=fe_label, key=f"fe_result_{fe_scenario.id}"
                                     )
 
-                                    for post_feature_extraction_analysis_type, post_feature_extraction_analysis_info in cell_culture_state.POST_FEATURE_EXTRACTION_ANALYSIS_TREE.items():
+                                    for (
+                                        post_feature_extraction_analysis_type,
+                                        post_feature_extraction_analysis_info,
+                                    ) in cell_culture_state.POST_FEATURE_EXTRACTION_ANALYSIS_TREE.items():
                                         # Skip all post feature extraction analyses if recipe has no medium info
                                         if not recipe.has_medium_info:
                                             continue
 
-                                        if post_feature_extraction_analysis_type == 'metadata_feature_umap':
+                                        if (
+                                            post_feature_extraction_analysis_type
+                                            == "metadata_feature_umap"
+                                        ):
                                             # Create sub-item for launching new metadata feature UMAP analysis
                                             fe_umap_launch_item = StreamlitTreeMenuItem(
                                                 label=translate_service.translate(
                                                     post_feature_extraction_analysis_info["title"]
                                                 ),
-                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}"
+                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}",
                                             )
                                             fe_result_item.add_child(fe_umap_launch_item)
 
@@ -322,7 +324,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                     # Create sub-sub-item for this metadata feature UMAP result
                                                     metadata_umap_result_item = StreamlitTreeMenuItem(
                                                         label=metadata_umap_label,
-                                                        key=f"metadata_feature_umap_result_{metadata_umap_scenario.id}"
+                                                        key=f"metadata_feature_umap_result_{metadata_umap_scenario.id}",
                                                     )
                                                     fe_umap_launch_item.add_child(
                                                         metadata_umap_result_item
@@ -337,7 +339,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                 label=translate_service.translate(
                                                     post_feature_extraction_analysis_info["title"]
                                                 ),
-                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}"
+                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}",
                                             )
                                             fe_result_item.add_child(fe_pls_launch_item)
 
@@ -362,7 +364,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                     # Create sub-sub-item for this PLS regression result
                                                     pls_result_item = StreamlitTreeMenuItem(
                                                         label=pls_label,
-                                                        key=f"pls_regression_result_{pls_scenario.id}"
+                                                        key=f"pls_regression_result_{pls_scenario.id}",
                                                     )
                                                     fe_pls_launch_item.add_child(pls_result_item)
 
@@ -375,7 +377,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                 label=translate_service.translate(
                                                     post_feature_extraction_analysis_info["title"]
                                                 ),
-                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}"
+                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}",
                                             )
                                             fe_result_item.add_child(fe_rf_launch_item)
 
@@ -403,7 +405,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                     # Create sub-sub-item for this Random Forest regression result
                                                     rf_result_item = StreamlitTreeMenuItem(
                                                         label=rf_label,
-                                                        key=f"random_forest_result_{rf_scenario.id}"
+                                                        key=f"random_forest_result_{rf_scenario.id}",
                                                     )
                                                     fe_rf_launch_item.add_child(rf_result_item)
 
@@ -415,7 +417,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                 label=translate_service.translate(
                                                     post_feature_extraction_analysis_info["title"]
                                                 ),
-                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}"
+                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}",
                                             )
                                             fe_result_item.add_child(fe_causal_launch_item)
 
@@ -444,7 +446,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                     # Create sub-sub-item for this Causal Effect result
                                                     causal_result_item = StreamlitTreeMenuItem(
                                                         label=causal_label,
-                                                        key=f"causal_effect_result_{causal_scenario.id}"
+                                                        key=f"causal_effect_result_{causal_scenario.id}",
                                                     )
                                                     fe_causal_launch_item.add_child(
                                                         causal_result_item
@@ -458,7 +460,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                 label=translate_service.translate(
                                                     post_feature_extraction_analysis_info["title"]
                                                 ),
-                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}"
+                                                key=f"analysis_{post_feature_extraction_analysis_type}_fe_{fe_scenario.id}",
                                             )
                                             fe_result_item.add_child(fe_opt_launch_item)
 
@@ -483,7 +485,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> Tuple[Stre
                                                     # Create sub-sub-item for this Optimization result
                                                     opt_result_item = StreamlitTreeMenuItem(
                                                         label=opt_label,
-                                                        key=f"optimization_result_{opt_scenario.id}"
+                                                        key=f"optimization_result_{opt_scenario.id}",
                                                     )
                                                     fe_opt_launch_item.add_child(opt_result_item)
 
@@ -586,7 +588,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in selection_scenarios if s.id == scenario_id), None
                 )
                 if target_scenario:
-                    st.title(f"{recipe.name} - {translate_service.translate('visualization')} - {target_scenario.title}")
+                    st.title(
+                        f"{recipe.name} - {translate_service.translate('visualization')} - {target_scenario.title}"
+                    )
                     render_visualization_step(
                         recipe,
                         cell_culture_state,
@@ -655,7 +659,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                 )
                 if target_qc_scenario:
-                    st.title(f"{recipe.name} - {translate_service.translate('logistic_growth_analysis')}")
+                    st.title(
+                        f"{recipe.name} - {translate_service.translate('logistic_growth_analysis')}"
+                    )
                     render_logistic_growth_step(
                         recipe, cell_culture_state, quality_check_scenario=target_qc_scenario
                     )
@@ -670,7 +676,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == lg_scenario_id), None
                 )
                 if target_lg_scenario:
-                    st.title(f"{recipe.name} - {translate_service.translate('logistic_growth_analysis')} - {target_lg_scenario.title}")
+                    st.title(
+                        f"{recipe.name} - {translate_service.translate('logistic_growth_analysis')} - {target_lg_scenario.title}"
+                    )
                     render_logistic_growth_results(recipe, cell_culture_state, target_lg_scenario)
                 else:
                     st.error("Logistic Growth scenario not found")
@@ -726,7 +734,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == fe_scenario_id), None
                 )
                 if target_fe_scenario:
-                    st.title(f"{recipe.name} - Feature Extraction Results - {target_fe_scenario.title}")
+                    st.title(
+                        f"{recipe.name} - Feature Extraction Results - {target_fe_scenario.title}"
+                    )
                     # Use the render function from feature_extraction_results.py
                     render_feature_extraction_results(
                         recipe, cell_culture_state, target_fe_scenario
@@ -765,7 +775,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(f"{recipe.name} - Metadata Feature UMAP Analysis - {target_fe_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - Metadata Feature UMAP Analysis - {target_fe_scenario.title}"
+                        )
                         # Render the step page to launch new analyses or view existing ones
                         render_metadata_feature_umap_step(
                             recipe,
@@ -786,7 +798,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == umap_scenario_id), None
                 )
                 if target_umap_scenario:
-                    st.title(f"{recipe.name} - Metadata Feature UMAP Results - {target_umap_scenario.title}")
+                    st.title(
+                        f"{recipe.name} - Metadata Feature UMAP Results - {target_umap_scenario.title}"
+                    )
                     # Use the render function from metadata_feature_umap_results.py
                     render_metadata_feature_umap_results(
                         recipe, cell_culture_state, target_umap_scenario
@@ -825,7 +839,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(f"{recipe.name} - PLS Regression Analysis - {target_fe_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - PLS Regression Analysis - {target_fe_scenario.title}"
+                        )
                         # Render the step page to launch new analyses or view existing ones
                         render_pls_regression_step(
                             recipe,
@@ -846,7 +862,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == pls_scenario_id), None
                 )
                 if target_pls_scenario:
-                    st.title(f"{recipe.name} - PLS Regression Results - {target_pls_scenario.title}")
+                    st.title(
+                        f"{recipe.name} - PLS Regression Results - {target_pls_scenario.title}"
+                    )
                     # Use the render function from pls_regression_results.py
                     render_pls_regression_results(recipe, cell_culture_state, target_pls_scenario)
                 else:
@@ -883,7 +901,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(f"{recipe.name} - Random Forest Regression Analysis - {target_fe_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - Random Forest Regression Analysis - {target_fe_scenario.title}"
+                        )
                         # Render the step page to launch new analyses or view existing ones
                         render_random_forest_step(
                             recipe,
@@ -941,7 +961,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(f"{recipe.name} - Causal Effect Analysis - {target_fe_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - Causal Effect Analysis - {target_fe_scenario.title}"
+                        )
                         # Render the step page to launch new analyses or view existing ones
                         render_causal_effect_step(
                             recipe,
@@ -962,7 +984,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == causal_scenario_id), None
                 )
                 if target_causal_scenario:
-                    st.title(f"{recipe.name} - Causal Effect Results - {target_causal_scenario.title}")
+                    st.title(
+                        f"{recipe.name} - Causal Effect Results - {target_causal_scenario.title}"
+                    )
                     # Use the render function from causal_effect_results.py
                     render_causal_effect_results(recipe, cell_culture_state, target_causal_scenario)
                 else:
@@ -999,7 +1023,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(f"{recipe.name} - Optimization Analysis - {target_fe_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - Optimization Analysis - {target_fe_scenario.title}"
+                        )
                         # Render the step page to launch new analyses or view existing ones
                         render_optimization_step(
                             recipe,

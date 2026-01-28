@@ -2,10 +2,11 @@
 Base Recipe class for Cell Culture Dashboards
 Encapsulates recipe information and scenarios - Abstract base class
 """
-from abc import ABC, abstractmethod
+
+from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from gws_core import Scenario, User
 from gws_core.tag.entity_tag_list import EntityTagList, TagEntityType
@@ -31,16 +32,18 @@ class CellCultureRecipe(ABC):
     created_at: datetime
 
     # Analysis scenarios organized by step
-    scenarios: Dict[str, List[Scenario]]
+    scenarios: dict[str, list[Scenario]]
 
     # Main scenario (data processing)
-    main_scenario: Optional[Scenario] = None
+    main_scenario: Scenario | None = None
 
     # Additional metadata
-    pipeline_id: Optional[str] = None
-    file_info: Optional[Dict[str, str]] = None  # Info about uploaded files
+    pipeline_id: str | None = None
+    file_info: dict[str, str] | None = None  # Info about uploaded files
     has_data_raw: bool = True  # Whether this recipe has raw data (for feature extraction)
-    has_medium_info: bool = True  # Whether this recipe has medium info (for pca/umap and medium view step)
+    has_medium_info: bool = (
+        True  # Whether this recipe has medium info (for pca/umap and medium view step)
+    )
 
     @classmethod
     def from_scenario(cls, scenario: Scenario) -> "CellCultureRecipe":
@@ -90,8 +93,8 @@ class CellCultureRecipe(ABC):
 
     @classmethod
     def _extract_tag_value(
-        cls, entity_tag_list: EntityTagList, tag_key: str, default: Optional[str] = None
-    ) -> Optional[str]:
+        cls, entity_tag_list: EntityTagList, tag_key: str, default: str | None = None
+    ) -> str | None:
         """
         Helper method to extract a single tag value.
 
@@ -105,8 +108,8 @@ class CellCultureRecipe(ABC):
 
     @classmethod
     def _extract_file_info(
-        cls, entity_tag_list: EntityTagList, file_tags: List[tuple]
-    ) -> Dict[str, str]:
+        cls, entity_tag_list: EntityTagList, file_tags: list[tuple]
+    ) -> dict[str, str]:
         """
         Helper method to extract file information from tags.
 
@@ -121,7 +124,7 @@ class CellCultureRecipe(ABC):
                 file_info[display_name] = file_name_tags[0].tag_value
         return file_info
 
-    def add_selection_scenarios(self, selection_scenarios: List[Scenario]) -> None:
+    def add_selection_scenarios(self, selection_scenarios: list[Scenario]) -> None:
         """
         Add selection scenarios to this recipe
 
@@ -129,7 +132,7 @@ class CellCultureRecipe(ABC):
         """
         self.add_scenarios_by_step("selection", selection_scenarios)
 
-    def add_scenarios_by_step(self, step: str, scenarios: List[Scenario]):
+    def add_scenarios_by_step(self, step: str, scenarios: list[Scenario]):
         """
         Add scenarios for a specific step
 
@@ -159,7 +162,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
 
-    def get_analyses_scenarios(self) -> List[Scenario]:
+    def get_analyses_scenarios(self) -> list[Scenario]:
         """
         Get all analyses scenarios for this recipe
 
@@ -167,7 +170,7 @@ class CellCultureRecipe(ABC):
         """
         return self.get_scenarios_for_step("analyses")
 
-    def get_analyses_scenarios_for_selection(self, selection_id: str) -> List[Scenario]:
+    def get_analyses_scenarios_for_selection(self, selection_id: str) -> list[Scenario]:
         """
         Get analyses scenarios linked to a specific selection scenario
 
@@ -208,7 +211,7 @@ class CellCultureRecipe(ABC):
             reloaded_scenarios.sort(key=lambda s: s.created_at or s.last_modified_at, reverse=False)
             self.scenarios[step_name] = reloaded_scenarios
 
-    def get_scenarios_for_step(self, step: str) -> List[Scenario]:
+    def get_scenarios_for_step(self, step: str) -> list[Scenario]:
         """
         Get scenarios for a specific step
 
@@ -217,7 +220,7 @@ class CellCultureRecipe(ABC):
         """
         return self.scenarios.get(step, [])
 
-    def get_load_scenario(self) -> Optional[Scenario]:
+    def get_load_scenario(self) -> Scenario | None:
         """
         Get the main data processing scenario
 
@@ -225,7 +228,7 @@ class CellCultureRecipe(ABC):
         """
         return self.scenarios.get("data_processing", [None])[0]
 
-    def get_selection_scenarios(self) -> List[Scenario]:
+    def get_selection_scenarios(self) -> list[Scenario]:
         """
         Get selection scenarios for this recipe
 
@@ -233,7 +236,7 @@ class CellCultureRecipe(ABC):
         """
         return self.get_scenarios_for_step("selection")
 
-    def get_quality_check_scenarios(self) -> List[Scenario]:
+    def get_quality_check_scenarios(self) -> list[Scenario]:
         """
         Get all quality check scenarios for this recipe
 
@@ -241,7 +244,7 @@ class CellCultureRecipe(ABC):
         """
         return self.get_scenarios_for_step("quality_check")
 
-    def get_selection_scenarios_organized(self) -> Dict[str, Scenario]:
+    def get_selection_scenarios_organized(self) -> dict[str, Scenario]:
         """
         Get selection scenarios organized by their display name (timestamp)
 
@@ -261,7 +264,7 @@ class CellCultureRecipe(ABC):
 
         return organized
 
-    def get_visualization_scenarios(self) -> List[Scenario]:
+    def get_visualization_scenarios(self) -> list[Scenario]:
         """
         Get visualization scenarios for this recipe
 
@@ -301,7 +304,7 @@ class CellCultureRecipe(ABC):
         """
         return len(self.file_info) if self.file_info else 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary representation
 
@@ -321,7 +324,7 @@ class CellCultureRecipe(ABC):
             "scenario_counts": {step: len(scenarios) for step, scenarios in self.scenarios.items()},
         }
 
-    def get_quality_check_scenarios_for_selection(self, selection_id: str) -> List[Scenario]:
+    def get_quality_check_scenarios_for_selection(self, selection_id: str) -> list[Scenario]:
         """
         Get quality check scenarios linked to a specific selection scenario
 
@@ -364,7 +367,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("quality_check", updated_qc_scenarios)
 
-    def get_medium_pca_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+    def get_medium_pca_scenarios_for_quality_check(self, qc_id: str) -> list[Scenario]:
         """
         Get Medium PCA scenarios for a specific quality check
 
@@ -413,7 +416,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
 
-    def get_medium_umap_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+    def get_medium_umap_scenarios_for_quality_check(self, qc_id: str) -> list[Scenario]:
         """
         Get Medium UMAP scenarios for a specific quality check
 
@@ -462,7 +465,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
 
-    def get_feature_extraction_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+    def get_feature_extraction_scenarios_for_quality_check(self, qc_id: str) -> list[Scenario]:
         """
         Get Feature Extraction scenarios for a specific quality check
 
@@ -515,7 +518,7 @@ class CellCultureRecipe(ABC):
 
     def get_metadata_feature_umap_scenarios_for_feature_extraction(
         self, fe_id: str
-    ) -> List[Scenario]:
+    ) -> list[Scenario]:
         """
         Get Metadata Feature UMAP scenarios for a specific feature extraction scenario
 
@@ -564,7 +567,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
 
-    def get_pls_regression_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+    def get_pls_regression_scenarios_for_feature_extraction(self, fe_id: str) -> list[Scenario]:
         """
         Get PLS Regression scenarios for a specific feature extraction scenario
 
@@ -613,7 +616,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
 
-    def get_random_forest_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+    def get_random_forest_scenarios_for_feature_extraction(self, fe_id: str) -> list[Scenario]:
         """
         Get Random Forest Regression scenarios for a specific feature extraction scenario
 
@@ -662,7 +665,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
 
-    def get_causal_effect_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+    def get_causal_effect_scenarios_for_feature_extraction(self, fe_id: str) -> list[Scenario]:
         """
         Get Causal Effect scenarios for a specific feature extraction scenario
 
@@ -711,7 +714,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
 
-    def get_optimization_scenarios_for_feature_extraction(self, fe_id: str) -> List[Scenario]:
+    def get_optimization_scenarios_for_feature_extraction(self, fe_id: str) -> list[Scenario]:
         """
         Get Optimization scenarios for a specific feature extraction scenario
 
@@ -760,7 +763,7 @@ class CellCultureRecipe(ABC):
         # Update the scenarios dict
         self.add_scenarios_by_step("analyses", updated_analyses_scenarios)
 
-    def get_logistic_growth_scenarios_for_quality_check(self, qc_id: str) -> List[Scenario]:
+    def get_logistic_growth_scenarios_for_quality_check(self, qc_id: str) -> list[Scenario]:
         """
         Get Logistic Growth scenarios for a specific quality check
 

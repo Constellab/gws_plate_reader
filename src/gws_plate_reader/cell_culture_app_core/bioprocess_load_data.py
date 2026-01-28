@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Any, Dict, Set, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -32,7 +32,7 @@ MEDIUM_NAME = "Medium"
 TIME_NAME = "Time"
 
 
-def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> go.Figure:
+def create_venn_diagram_3_sets(sample_sets: dict[str, set[tuple[str, str]]]) -> go.Figure:
     """
     Create a Venn diagram with 3 overlapping circles representing data types
     (info, raw_data, follow_up) showing all intersections.
@@ -98,7 +98,7 @@ def create_venn_diagram_3_sets(sample_sets: Dict[str, Set[Tuple[str, str]]]) -> 
             y=y_B,
             fill="toself",
             fillcolor="rgba(76, 175, 80, 0.3)",
-            line=dict(color="rgba(76, 175, 80, 0.8)", width=3),
+            line={"color": "rgba(76, 175, 80, 0.8)", "width": 3},
             name="Raw Data",
             mode="lines",
             hoverinfo="skip",
@@ -650,7 +650,7 @@ class ConstellabBioprocessLoadData(Task):
                             # Pas de fichier de suivi du tout
                             missing_values.append("follow_up")
                             self.log_info_message(
-                                f"  → No follow-up file, added 'follow_up' to missing_values"
+                                "  → No follow-up file, added 'follow_up' to missing_values"
                             )
                         else:
                             # Le fichier existe, vérifier s'il est vide
@@ -658,10 +658,10 @@ class ConstellabBioprocessLoadData(Task):
                             if follow_up_data.empty:
                                 missing_values.append("follow_up_empty")
                                 self.log_info_message(
-                                    f"  → Follow-up file is empty, added 'follow_up_empty' to missing_values"
+                                    "  → Follow-up file is empty, added 'follow_up_empty' to missing_values"
                                 )
                             else:
-                                self.log_info_message(f"  → Follow-up file exists and is not empty")
+                                self.log_info_message("  → Follow-up file exists and is not empty")
 
                         # Ajouter le tag missing_value si des données manquent
                         if missing_values:

@@ -267,7 +267,7 @@ def render_new_recipe_fermentor(cell_culture_state: CellCultureState) -> None:
                 "followup_zip": (followup_zip_file, "Follow-up ZIP"),
             }
 
-            for file_key, (file_obj, file_name) in uploaded_files.items():
+            for _file_key, (file_obj, file_name) in uploaded_files.items():
                 if file_obj is None:
                     missing_fields.append(file_name)
         else:  # select_existing mode
@@ -279,7 +279,7 @@ def render_new_recipe_fermentor(cell_culture_state: CellCultureState) -> None:
                 "followup_zip": (followup_zip_resource, "Follow-up ZIP"),
             }
 
-            for resource_key, (resource_id, resource_name) in selected_resources.items():
+            for _resource_key, (resource_id, resource_name) in selected_resources.items():
                 if resource_id is None:
                     missing_fields.append(resource_name)
 
@@ -881,7 +881,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
                             temp_file.write(plate_data["raw_data_file"].getvalue())
 
                         raw_data_resource = TableImporter.call(File(temp_file_path))
-                        raw_data_resource.name = plate_data['raw_data_file'].name
+                        raw_data_resource.name = plate_data["raw_data_file"].name
 
                         plate_resources["raw_data"] = ResourceModel.save_from_resource(
                             resource=raw_data_resource,
@@ -900,7 +900,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
                             temp_file.write(plate_data["folder_metadata_file"].getvalue())
 
                         folder_resource = FileDecompressTask.call(File(temp_zip_path))
-                        folder_resource.name = plate_data['folder_metadata_file'].name
+                        folder_resource.name = plate_data["folder_metadata_file"].name
 
                         plate_resources["folder_metadata"] = ResourceModel.save_from_resource(
                             resource=folder_resource,
@@ -919,7 +919,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
                             temp_file.write(plate_data["info_table_file"].getvalue())
 
                         info_table_resource = TableImporter.call(File(temp_info_path))
-                        info_table_resource.name = plate_data['info_table_file'].name
+                        info_table_resource.name = plate_data["info_table_file"].name
 
                         plate_resources["info_table"] = ResourceModel.save_from_resource(
                             resource=info_table_resource,
@@ -967,7 +967,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
 
             # Create ResourceStacker for each plate
             plate_stackers = []
-            for plate_idx, plate_info in enumerate(plates_resources):
+            for _plate_idx, plate_info in enumerate(plates_resources):
                 plate_name = plate_info["name"]
                 plate_resources = plate_info["resources"]
 

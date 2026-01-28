@@ -3,7 +3,8 @@ Medium View Step for Cell Culture Dashboard
 Displays culture medium composition for each batch-sample pair
 """
 
-from typing import Any, Optional
+import traceback
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -23,16 +24,18 @@ def get_medium_data_from_resource_set(
     """
     try:
         resources = resource_set.get_resources()
-        medium_table_model = cell_culture_state.get_load_scenario_output_resource_model('medium_table')
+        medium_table_model = cell_culture_state.get_load_scenario_output_resource_model(
+            "medium_table"
+        )
         medium_table: Table = medium_table_model.get_resource()
         medium_df: pd.DataFrame = medium_table.get_data()
-        medium_df_data: dict = medium_df.to_dict(orient='records')
+        medium_df_data: dict = medium_df.to_dict(orient="records")
         medium_dict = {}
         for entry in medium_df_data:
-            medium_dict[entry['Medium']] = {k: v for k, v in entry.items() if k != 'Medium'}
+            medium_dict[entry["Medium"]] = {k: v for k, v in entry.items() if k != "Medium"}
 
         series_medium = []
-        for resource_name, resource in resources.items():
+        for _resource_name, resource in resources.items():
             if isinstance(resource, Table):
                 # Get resource tags
                 resource_tags = resource.tags.get_tags()
@@ -64,8 +67,6 @@ def get_medium_data_from_resource_set(
         return series_medium_data
     except Exception as e:
         st.error(f"Error extracting medium data: {str(e)}")
-        import traceback
-
         st.error(traceback.format_exc())
         return []
 
@@ -73,7 +74,7 @@ def get_medium_data_from_resource_set(
 def render_medium_view_step(
     recipe: CellCultureRecipe,
     cell_culture_state: CellCultureState,
-    scenario: Optional[Scenario] = None,
+    scenario: Scenario | None = None,
     output_name: str = None,
     selected_batches: list = None,
     selected_samples: list = None,
@@ -154,14 +155,15 @@ def render_medium_view_step(
         df = pd.DataFrame(medium_data)
 
         # Filter by selected batches and samples if provided
-        if selected_batches is not None and selected_samples is not None:
-            if len(selected_batches) > 0 and len(selected_samples) > 0:
-                df = df[
-                    (df["Batch"].isin(selected_batches)) & (df["Sample"].isin(selected_samples))
-                ]
-                if df.empty:
-                    st.info(translate_service.translate("no_data_matches_filters"))
-                    return
+        if (
+            selected_batches is not None
+            and selected_samples is not None
+            and (len(selected_batches) > 0 and len(selected_samples) > 0)
+        ):
+            df = df[(df["Batch"].isin(selected_batches)) & (df["Sample"].isin(selected_samples))]
+            if df.empty:
+                st.info(translate_service.translate("no_data_matches_filters"))
+                return
 
         # Sort by Batch and Sample
         df = df.sort_values(["Batch", "Sample"])

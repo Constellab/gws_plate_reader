@@ -1,8 +1,6 @@
-from typing import List
-
 import streamlit as st
-from gws_plate_reader.biolector_xt_analysis.biolector_state import \
-    BiolectorState
+
+from gws_plate_reader.biolector_xt_analysis.biolector_state import BiolectorState
 
 
 def render_select_replicates_input(selected_well_or_replicate: str):
@@ -22,9 +20,12 @@ def render_select_replicates_input(selected_well_or_replicate: str):
         default = init_value
     else:
         default = options[0]
-    selected_replicates: List[str] = st.multiselect(
-        'Select the replicates to be displayed', options, default=default,
-        key="select_replicates_input")
+    selected_replicates: list[str] = st.multiselect(
+        "Select the replicates to be displayed",
+        options,
+        default=default,
+        key="select_replicates_input",
+    )
     if selected_replicates != init_value:
         BiolectorState.color_wells_replicates(dict_replicates, selected_replicates)
         st.rerun()

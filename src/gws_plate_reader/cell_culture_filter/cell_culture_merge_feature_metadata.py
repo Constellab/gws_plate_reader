@@ -1,12 +1,23 @@
+from gws_core import (
+    ConfigParams,
+    ConfigSpecs,
+    InputSpec,
+    InputSpecs,
+    OutputSpec,
+    OutputSpecs,
+    Table,
+    Task,
+    TaskInputs,
+    TaskOutputs,
+    task_decorator,
+)
 
-from gws_core import (ConfigParams, ConfigSpecs, InputSpec, InputSpecs, OutputSpec,
-                      OutputSpecs, Task, TaskInputs, TaskOutputs, task_decorator)
-from gws_core import Table
 
-
-@task_decorator(unique_name="CellCultureMergeFeatureMetadata",
-                human_name="Merge Cell Culture Feature and Metadata Tables",
-                short_description="Merges feature table with metadata table based on 'Series' column")
+@task_decorator(
+    unique_name="CellCultureMergeFeatureMetadata",
+    human_name="Merge Cell Culture Feature and Metadata Tables",
+    short_description="Merges feature table with metadata table based on 'Series' column",
+)
 class CellCultureMergeFeatureMetadata(Task):
     """
     Merges feature extraction results with metadata table.
@@ -25,15 +36,24 @@ class CellCultureMergeFeatureMetadata(Task):
     rows where both feature and metadata data are available.
     """
 
-    input_specs: InputSpecs = InputSpecs({'feature_table': InputSpec(Table, human_name="Feature Table"),
-                                          'metadata_table': InputSpec(Table, human_name="Metadata Table")})
+    input_specs: InputSpecs = InputSpecs(
+        {
+            "feature_table": InputSpec(Table, human_name="Feature Table"),
+            "metadata_table": InputSpec(Table, human_name="Metadata Table"),
+        }
+    )
     output_specs: OutputSpecs = OutputSpecs(
-        {'metadata_feature_table': OutputSpec(Table, human_name="Merged Metadata and Feature Table")})
+        {
+            "metadata_feature_table": OutputSpec(
+                Table, human_name="Merged Metadata and Feature Table"
+            )
+        }
+    )
     config_specs: ConfigSpecs = ConfigSpecs({})
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
-        df_feature = inputs['feature_table'].get_data()
-        df_metadata = inputs['metadata_table'].get_data()
+        df_feature = inputs["feature_table"].get_data()
+        df_metadata = inputs["metadata_table"].get_data()
 
         # Merge on Series column (inner join to keep only matching rows)
         df_merged = df_metadata.merge(df_feature, on="Series", how="inner")
@@ -41,6 +61,4 @@ class CellCultureMergeFeatureMetadata(Task):
         merged_table = Table(df_merged)
         merged_table.name = "metadata_feature_table"
 
-        return {
-            'metadata_feature_table': merged_table
-        }
+        return {"metadata_feature_table": merged_table}

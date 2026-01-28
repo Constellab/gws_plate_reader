@@ -1,12 +1,23 @@
-import os
 from gws_core import (
-    ConfigParams, AppConfig, AppType, OutputSpec, OutputSpecs, StreamlitResource, Task, TaskInputs, TaskOutputs,
-    app_decorator, task_decorator, TypingStyle
+    AppConfig,
+    AppType,
+    ConfigParams,
+    OutputSpec,
+    OutputSpecs,
+    StreamlitResource,
+    Task,
+    TaskInputs,
+    TaskOutputs,
+    app_decorator,
+    task_decorator,
 )
 
 
-@app_decorator("ConstellabBioprocessDashboardAppConfig", app_type=AppType.STREAMLIT,
-               human_name="Generate Constellab Bioprocess Dashboard app")
+@app_decorator(
+    "ConstellabBioprocessDashboardAppConfig",
+    app_type=AppType.STREAMLIT,
+    human_name="Generate Constellab Bioprocess Dashboard app",
+)
 class ConstellabBioprocessDashboardAppConfig(AppConfig):
     """
     Configuration class for the Constellab Bioprocess Dashboard Streamlit application.
@@ -20,9 +31,12 @@ class ConstellabBioprocessDashboardAppConfig(AppConfig):
         return self.get_app_folder_from_relative_path(__file__, "_constellab_bioprocess_dashboard")
 
 
-@task_decorator("GenerateConstellabBioprocessDashboard", human_name="Generate Constellab Bioprocess Dashboard app",
-                short_description="Create a Streamlit dashboard for Constellab Bioprocess data analysis",
-                style=StreamlitResource.copy_style())
+@task_decorator(
+    "GenerateConstellabBioprocessDashboard",
+    human_name="Generate Constellab Bioprocess Dashboard app",
+    short_description="Create a Streamlit dashboard for Constellab Bioprocess data analysis",
+    style=StreamlitResource.copy_style(),
+)
 class GenerateConstellabBioprocessDashboard(Task):
     """
     Task that generates the Constellab Bioprocess Dashboard app.
@@ -51,9 +65,9 @@ class GenerateConstellabBioprocessDashboard(Task):
     of interest for detailed analysis.
     """
 
-    output_specs: OutputSpecs = OutputSpecs({
-        'dashboard': OutputSpec(StreamlitResource, human_name="Constellab Bioprocess Dashboard")
-    })
+    output_specs: OutputSpecs = OutputSpecs(
+        {"dashboard": OutputSpec(StreamlitResource, human_name="Constellab Bioprocess Dashboard")}
+    )
 
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
         """Generate and return the Constellab Bioprocess Dashboard Streamlit application."""

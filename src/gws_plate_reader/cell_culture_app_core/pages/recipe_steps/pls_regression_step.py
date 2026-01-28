@@ -3,8 +3,8 @@ PLS Regression Analysis Step for Cell Culture Dashboard
 Allows users to run PLS regression analysis on combined metadata and feature extraction data
 """
 
+import traceback
 from datetime import datetime
-from typing import List, Optional
 
 import streamlit as st
 from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, Tag
@@ -22,11 +22,11 @@ def launch_pls_regression_scenario(
     quality_check_scenario: Scenario,
     cell_culture_state: CellCultureState,
     feature_extraction_scenario: Scenario,
-    target_columns: List[str],
-    columns_to_exclude: Optional[List[str]],
+    target_columns: list[str],
+    columns_to_exclude: list[str] | None,
     scale_data: bool,
     test_size: float,
-) -> Optional[Scenario]:
+) -> Scenario | None:
     """
     Launch a PLS Regression analysis scenario
 
@@ -232,8 +232,6 @@ def launch_pls_regression_scenario(
         st.error(
             f"{translate_service.translate('error_launching_scenario_analyse').format(analysis_type='PLS Regression')}: {str(e)}"
         )
-        import traceback
-
         st.code(traceback.format_exc())
         return None
 
@@ -311,7 +309,7 @@ def render_pls_regression_step(
             results_df = results_table.get_data()
             # Get all columns from both tables (excluding 'Series' which is the merge key)
             all_merged_columns = sorted(
-                list(set(metadata_df.columns.tolist() + results_df.columns.tolist()))
+                set(metadata_df.columns.tolist() + results_df.columns.tolist())
             )
 
             # Identify feature extraction columns
@@ -320,12 +318,10 @@ def render_pls_regression_step(
             # Separate numeric and non-numeric columns
             metadata_numeric_cols = metadata_df.select_dtypes(include=["number"]).columns.tolist()
             results_numeric_cols = results_df.select_dtypes(include=["number"]).columns.tolist()
-            all_numeric_columns = sorted(list(set(metadata_numeric_cols + results_numeric_cols)))
+            all_numeric_columns = sorted(set(metadata_numeric_cols + results_numeric_cols))
 
             # Calculate non-numeric columns to exclude by default
-            all_non_numeric_columns = sorted(
-                list(set(all_merged_columns) - set(all_numeric_columns))
-            )
+            all_non_numeric_columns = sorted(set(all_merged_columns) - set(all_numeric_columns))
         else:
             # Fallback to metadata columns only
             all_merged_columns = sorted(metadata_df.columns.tolist())
@@ -335,22 +331,15 @@ def render_pls_regression_step(
             feature_extraction_columns = []
 
             # Calculate non-numeric columns to exclude by default
-            all_non_numeric_columns = sorted(
-                list(set(all_merged_columns) - set(all_numeric_columns))
-            )
+            all_non_numeric_columns = sorted(set(all_merged_columns) - set(all_numeric_columns))
 
     except Exception as e:
         st.error(f"Error reading tables: {str(e)}")
-        import traceback
-
         st.code(traceback.format_exc())
         return
 
     # Check existing PLS scenarios for this feature extraction
-    existing_pls_scenarios = recipe.get_pls_regression_scenarios_for_feature_extraction(
-        feature_extraction_scenario.id
-    )
-
+    recipe.get_pls_regression_scenarios_for_feature_extraction(feature_extraction_scenario.id)
 
     # Configuration form for new PLS
     st.markdown("---")
@@ -358,7 +347,7 @@ def render_pls_regression_step(
         f"### ➕ {translate_service.translate('create_new_analysis').format(analysis_type='PLS')}"
     )
 
-    st.markdown(f"**Analysis Configuration**")
+    st.markdown("**Analysis Configuration**")
 
     # Target columns selection (must select at least one)
     target_columns = st.multiselect(
@@ -369,7 +358,7 @@ def render_pls_regression_step(
         help=translate_service.translate("target_variables_help"),
     )
 
-    st.markdown(f"**Model Parameters**")
+    st.markdown("**Model Parameters**")
 
     col1, col2 = st.columns(2)
 
@@ -392,16 +381,14 @@ def render_pls_regression_step(
             help=translate_service.translate("test_size_help"),
         )
 
-    st.markdown(f"**Advanced Options**")
+    st.markdown("**Advanced Options**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns
     # 2. All feature extraction columns (except those selected as targets)
     default_excluded = sorted(
-        list(
-            set(all_non_numeric_columns)
-            | set([col for col in feature_extraction_columns if col not in target_columns])
-        )
+        set(all_non_numeric_columns)
+        | {col for col in feature_extraction_columns if col not in target_columns}
     )
 
     # Columns to exclude

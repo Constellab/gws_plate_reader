@@ -3,12 +3,10 @@ Graph View Step for Cell Culture Dashboard
 Handles graph visualizations with filtering and interactive plots using Plotly
 """
 
-from typing import Optional
-
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from gws_core import Scenario, ScenarioProxy, ScenarioStatus
+from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Table
 
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
@@ -20,15 +18,15 @@ from gws_plate_reader.cell_culture_app_core.pages.recipe_steps.microplate_select
 def render_graph_view_step(
     recipe: CellCultureRecipe,
     cell_culture_state: CellCultureState,
-    scenario: Optional[Scenario] = None,
-    output_name: str = None,
+    scenario: Scenario | None = None,
+    output_name: str | None = None,
     filtered_resource_set=None,
-    target_scenario: Optional[Scenario] = None,
-    visualization_data: list = None,
-    selected_batches: list = None,
-    selected_samples: list = None,
-    selected_index: str = None,
-    selected_columns: list = None,
+    target_scenario: Scenario | None = None,
+    visualization_data: list | None = None,
+    selected_batches: list | None = None,
+    selected_samples: list | None = None,
+    selected_index: str | None = None,
+    selected_columns: list | None = None,
 ) -> None:
     """Render the graph view step with data visualizations using Plotly
 
@@ -115,11 +113,9 @@ def render_graph_view_step(
             or selected_columns is None
         ):
             # Get unique values for filters (excluding empty strings)
-            unique_batches = sorted(
-                list(set(item["Batch"] for item in visualization_data if item["Batch"]))
-            )
+            unique_batches = sorted({item["Batch"] for item in visualization_data if item["Batch"]})
             unique_samples = sorted(
-                list(set(item["Sample"] for item in visualization_data if item["Sample"]))
+                {item["Sample"] for item in visualization_data if item["Sample"]}
             )
 
             # Get available columns for selection using the tagging system
@@ -296,7 +292,6 @@ def render_graph_view_step(
                 )
 
         # Create dataframe from all resources for detailed plotting
-        from gws_core import Table
 
         all_data_rows = []
         resources = filtered_resource_set.get_resources()
@@ -435,9 +430,8 @@ def render_graph_view_step(
                         # Keep only columns that match the selected batch/sample combinations
                         columns_to_keep = [selected_index]  # Always keep the index column
                         for col in column_df.columns:
-                            if col != selected_index:
-                                if col in batch_sample_combinations:
-                                    columns_to_keep.append(col)
+                            if col != selected_index and col in batch_sample_combinations:
+                                columns_to_keep.append(col)
 
                         # Filter the DataFrame
                         filtered_column_df = (
@@ -466,11 +460,11 @@ def render_graph_view_step(
                                                     y=clean_data[col],
                                                     mode="lines+markers",
                                                     name=f"{column_name} - {col}",
-                                                    line=dict(width=2),
-                                                    marker=dict(size=6, symbol=marker_symbol),
+                                                    line={"width": 2},
+                                                    marker={"size": 6, "symbol": marker_symbol},
                                                     hovertemplate=f"<b>{column_name} - {col}</b><br>"
                                                     + f"{selected_index}: %{{x}}<br>"
-                                                    + f"Valeur: %{{y:.4f}}<extra></extra>",
+                                                    + "Valeur: %{{y:.4f}}<extra></extra>",
                                                 )
                                             )
                             # Mean curves mode
@@ -506,8 +500,8 @@ def render_graph_view_step(
                                                 y=clean_data["mean"],
                                                 mode="lines+markers",
                                                 name=f"{column_name} - {translate_service.translate('mean')}",
-                                                line=dict(width=2, shape="spline"),
-                                                marker=dict(size=6, symbol=marker_symbol),
+                                                line={"width": 2, "shape": "spline"},
+                                                marker={"size": 6, "symbol": marker_symbol},
                                                 hovertemplate=f"<b>{column_name} - {translate_service.translate('mean')}</b><br>"
                                                 + f"{selected_index}: %{{x}}<br>"
                                                 + f"{translate_service.translate('mean')}: %{{y:.4f}}<extra></extra>",
@@ -522,7 +516,7 @@ def render_graph_view_step(
                                                     x=clean_data[selected_index],
                                                     y=clean_data["mean"] + clean_data["std"],
                                                     mode="lines",
-                                                    line=dict(width=0),
+                                                    line={"width": 0},
                                                     showlegend=False,
                                                     hoverinfo="skip",
                                                 )
@@ -533,7 +527,7 @@ def render_graph_view_step(
                                                     x=clean_data[selected_index],
                                                     y=clean_data["mean"] - clean_data["std"],
                                                     mode="lines",
-                                                    line=dict(width=0),
+                                                    line={"width": 0},
                                                     fill="tonexty",
                                                     name=f"{column_name} - {translate_service.translate('error_band')} (±1 SD)",
                                                     hoverinfo="skip",
@@ -582,8 +576,8 @@ def render_graph_view_step(
                                                         y=clean_data["mean"],
                                                         mode="lines+markers",
                                                         name=f"{column_name} - {batch}",
-                                                        line=dict(width=2, shape="spline"),
-                                                        marker=dict(size=6, symbol=marker_symbol),
+                                                        line={"width": 2, "shape": "spline"},
+                                                        marker={"size": 6, "symbol": marker_symbol},
                                                         hovertemplate=f"<b>{column_name} - {batch}</b><br>"
                                                         + f"{selected_index}: %{{x}}<br>"
                                                         + f"{translate_service.translate('mean')}: %{{y:.4f}}<extra></extra>",
@@ -597,7 +591,7 @@ def render_graph_view_step(
                                                             y=clean_data["mean"]
                                                             + clean_data["std"],
                                                             mode="lines",
-                                                            line=dict(width=0),
+                                                            line={"width": 0},
                                                             showlegend=False,
                                                             hoverinfo="skip",
                                                         )
@@ -608,7 +602,7 @@ def render_graph_view_step(
                                                             y=clean_data["mean"]
                                                             - clean_data["std"],
                                                             mode="lines",
-                                                            line=dict(width=0),
+                                                            line={"width": 0},
                                                             fill="tonexty",
                                                             name=f"{column_name} - {batch} - {translate_service.translate('error_band')}",
                                                             hoverinfo="skip",
@@ -623,7 +617,7 @@ def render_graph_view_step(
                     xaxis_title=selected_index,
                     yaxis_title=translate_service.translate("combined_y_axis"),
                     showlegend=True,
-                    legend=dict(x=1.02, y=1, xanchor="left", yanchor="top"),
+                    legend={"x": 1.02, "y": 1, "xanchor": "left", "yanchor": "top"},
                     height=600,
                 )
 
@@ -654,9 +648,8 @@ def render_graph_view_step(
                         # Keep only columns that match the selected batch/sample combinations
                         columns_to_keep = [selected_index]  # Always keep the index column
                         for col in column_df.columns:
-                            if col != selected_index:
-                                if col in batch_sample_combinations:
-                                    columns_to_keep.append(col)
+                            if col != selected_index and col in batch_sample_combinations:
+                                columns_to_keep.append(col)
 
                         # Filter the DataFrame
                         filtered_column_df = (
@@ -686,8 +679,8 @@ def render_graph_view_step(
                                                     y=clean_data[col],
                                                     mode="lines+markers",
                                                     name=col,
-                                                    line=dict(width=2),
-                                                    marker=dict(size=4),
+                                                    line={"width": 2},
+                                                    marker={"size": 4},
                                                     hovertemplate=f"<b>{col}</b><br>"
                                                     + f"{selected_index}: %{{x}}<br>"
                                                     + f"{column_name}: %{{y:.4f}}<extra></extra>",
@@ -727,8 +720,8 @@ def render_graph_view_step(
                                                 y=clean_data["mean"],
                                                 mode="lines+markers",
                                                 name=f"{column_name} - {translate_service.translate('mean')}",
-                                                line=dict(width=2, shape="spline"),
-                                                marker=dict(size=6),
+                                                line={"width": 2, "shape": "spline"},
+                                                marker={"size": 6},
                                                 hovertemplate=f"<b>{column_name} - {translate_service.translate('mean')}</b><br>"
                                                 + f"{selected_index}: %{{x}}<br>"
                                                 + f"{translate_service.translate('mean')}: %{{y:.4f}}<extra></extra>",
@@ -743,7 +736,7 @@ def render_graph_view_step(
                                                     x=clean_data[selected_index],
                                                     y=clean_data["mean"] + clean_data["std"],
                                                     mode="lines",
-                                                    line=dict(width=0),
+                                                    line={"width": 0},
                                                     showlegend=False,
                                                     hoverinfo="skip",
                                                 )
@@ -754,7 +747,7 @@ def render_graph_view_step(
                                                     x=clean_data[selected_index],
                                                     y=clean_data["mean"] - clean_data["std"],
                                                     mode="lines",
-                                                    line=dict(width=0),
+                                                    line={"width": 0},
                                                     fill="tonexty",
                                                     name=f"{column_name} - {translate_service.translate('error_band')} (±1 SD)",
                                                     hoverinfo="skip",
@@ -803,8 +796,8 @@ def render_graph_view_step(
                                                         y=clean_data["mean"],
                                                         mode="lines+markers",
                                                         name=f"{column_name} - {batch}",
-                                                        line=dict(width=2, shape="spline"),
-                                                        marker=dict(size=6),
+                                                        line={"width": 2, "shape": "spline"},
+                                                        marker={"size": 6},
                                                         hovertemplate=f"<b>{column_name} - {batch}</b><br>"
                                                         + f"{selected_index}: %{{x}}<br>"
                                                         + f"{translate_service.translate('mean')}: %{{y:.4f}}<extra></extra>",
@@ -818,7 +811,7 @@ def render_graph_view_step(
                                                             y=clean_data["mean"]
                                                             + clean_data["std"],
                                                             mode="lines",
-                                                            line=dict(width=0),
+                                                            line={"width": 0},
                                                             showlegend=False,
                                                             hoverinfo="skip",
                                                         )
@@ -829,7 +822,7 @@ def render_graph_view_step(
                                                             y=clean_data["mean"]
                                                             - clean_data["std"],
                                                             mode="lines",
-                                                            line=dict(width=0),
+                                                            line={"width": 0},
                                                             fill="tonexty",
                                                             name=f"{column_name} - {batch} - {translate_service.translate('error_band')}",
                                                             hoverinfo="skip",

@@ -17,7 +17,6 @@ from gws_core import (
     OutputSpecs,
     PlotlyResource,
     ResourceSet,
-    StrParam,
     Table,
     Task,
     TaskInputs,
@@ -48,89 +47,113 @@ def create_venn_diagram_wells(well_sets: dict[str, set[str]]) -> go.Figure:
     """
 
     # Extraire les ensembles
-    A = well_sets.get('cultivation_labels', set())  # CultivationLabels
-    B = well_sets.get('raw_data', set())  # raw_data
+    A = well_sets.get("cultivation_labels", set())  # CultivationLabels
+    B = well_sets.get("raw_data", set())  # raw_data
 
     # Calculer les régions pour 2-cercles
     only_A = len(A - B)  # Seulement CultivationLabels
     only_B = len(B - A)  # Seulement raw_data
-    both = len(A & B)    # Intersection
+    both = len(A & B)  # Intersection
 
     # Créer la figure
     fig = go.Figure()
 
     # Paramètres des cercles (horizontal)
     radius = 0.28
-    Ax, Ay = 0.35, 0.5   # CultivationLabels (gauche)
-    Bx, By = 0.65, 0.5   # raw_data (droite)
+    Ax, Ay = 0.35, 0.5  # CultivationLabels (gauche)
+    Bx, By = 0.65, 0.5  # raw_data (droite)
 
     theta = np.linspace(0, 2 * np.pi, 100)
 
     # Cercle A - CultivationLabels (Bleu)
     x_A = radius * np.cos(theta) + Ax
     y_A = radius * np.sin(theta) + Ay
-    fig.add_trace(go.Scatter(
-        x=x_A, y=y_A,
-        fill='toself',
-        fillcolor='rgba(33, 150, 243, 0.3)',
-        line=dict(color='rgba(33, 150, 243, 0.8)', width=3),
-        name='CultivationLabels',
-        mode='lines',
-        hoverinfo='skip',
-        showlegend=False
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=x_A,
+            y=y_A,
+            fill="toself",
+            fillcolor="rgba(33, 150, 243, 0.3)",
+            line={"color": "rgba(33, 150, 243, 0.8)", "width": 3},
+            name="CultivationLabels",
+            mode="lines",
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
 
     # Cercle B - raw_data (Orange)
     x_B = radius * np.cos(theta) + Bx
     y_B = radius * np.sin(theta) + By
-    fig.add_trace(go.Scatter(
-        x=x_B, y=y_B,
-        fill='toself',
-        fillcolor='rgba(255, 152, 0, 0.3)',
-        line=dict(color='rgba(255, 152, 0, 0.8)', width=3),
-        name='raw_data',
-        mode='lines',
-        hoverinfo='skip',
-        showlegend=False
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=x_B,
+            y=y_B,
+            fill="toself",
+            fillcolor="rgba(255, 152, 0, 0.3)",
+            line={"color": "rgba(255, 152, 0, 0.8)", "width": 3},
+            name="raw_data",
+            mode="lines",
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
 
     # Titres au-dessus de chaque cercle
-    fig.add_annotation(x=Ax, y=Ay + radius + 0.05, text="<b>CultivationLabels</b>",
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Bx, y=By + radius + 0.05, text="<b>raw_data</b>",
-                       showarrow=False, font=dict(size=14))
+    fig.add_annotation(
+        x=Ax,
+        y=Ay + radius + 0.05,
+        text="<b>CultivationLabels</b>",
+        showarrow=False,
+        font={"size": 14},
+    )
+    fig.add_annotation(
+        x=Bx, y=By + radius + 0.05, text="<b>raw_data</b>", showarrow=False, font={"size": 14}
+    )
 
     # Compteurs de régions
-    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A),
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B),
-                       showarrow=False, font=dict(size=14))
-    fig.add_annotation(x=(Ax + Bx) / 2, y=Ay, text=f"<b>{both}</b>",
-                       showarrow=False, font=dict(size=16, color='darkgreen'),
-                       bgcolor='rgba(255, 255, 255, 0.9)',
-                       borderpad=4,
-                       bordercolor='darkgreen',
-                       borderwidth=2)
+    fig.add_annotation(x=Ax - 0.13, y=Ay, text=str(only_A), showarrow=False, font={"size": 14})
+    fig.add_annotation(x=Bx + 0.13, y=By, text=str(only_B), showarrow=False, font={"size": 14})
+    fig.add_annotation(
+        x=(Ax + Bx) / 2,
+        y=Ay,
+        text=f"<b>{both}</b>",
+        showarrow=False,
+        font={"size": 16, "color": "darkgreen"},
+        bgcolor="rgba(255, 255, 255, 0.9)",
+        borderpad=4,
+        bordercolor="darkgreen",
+        borderwidth=2,
+    )
 
     # Mettre à jour le layout
     fig.update_layout(
         title="Well Data Availability - Venn Diagram (CultivationLabels, raw_data)",
         showlegend=False,
-        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
-        yaxis=dict(
-            showticklabels=False, showgrid=False, zeroline=False, range=[0.2, 0.8],
-            scaleanchor="x", scaleratio=1),
-        height=500, width=600,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
+        xaxis={"showticklabels": False, "showgrid": False, "zeroline": False, "range": [0, 1]},
+        yaxis={
+            "showticklabels": False,
+            "showgrid": False,
+            "zeroline": False,
+            "range": [0.2, 0.8],
+            "scaleanchor": "x",
+            "scaleratio": 1,
+        },
+        height=500,
+        width=600,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
     )
 
     return fig
 
 
-@task_decorator("BiolectorXTLoadData", human_name="BiolectorXT Load Data",
-                short_description="Load and process BiolectorXT data with quality control visualization",
-                style=TypingStyle.community_icon(icon_technical_name="file-upload", background_color="#c3fa7f"))
+@task_decorator(
+    "BiolectorXTLoadData",
+    human_name="BiolectorXT Load Data",
+    short_description="Load and process BiolectorXT data with quality control visualization",
+    style=TypingStyle.community_icon(icon_technical_name="file-upload", background_color="#c3fa7f"),
+)
 class BiolectorXTLoadData(Task):
     """
     [Generated by Task Expert Agent]
@@ -319,55 +342,59 @@ class BiolectorXTLoadData(Task):
 
     input_specs: InputSpecs = DynamicInputs(
         default_specs={
-            'medium_table': InputSpec(
+            "medium_table": InputSpec(
                 Table,
                 human_name="Medium composition table",
                 short_description="Table with medium compositions (Medium, Component1, Component2, ...)",
-                optional=True
+                optional=True,
             )
         },
         additionnal_port_spec=InputSpec(
             ResourceSet,
             human_name="Plate data (raw_data, folder_metadata, info_table)",
-            short_description="ResourceSet containing: raw_data (Table), folder_metadata (Folder), info_table (Table)"
-        )
+            short_description="ResourceSet containing: raw_data (Table), folder_metadata (Folder), info_table (Table)",
+        ),
     )
 
-    config_specs: ConfigSpecs = ConfigSpecs({
-        'plate_names': ListParam(
-            human_name="Plate names",
-            short_description="Custom names for each plate. Leave empty to use default names (plate_0, plate_1, etc.). Must match the number of input plates if provided.",
-            optional=True,
-            default_value=[]
-        )
-    })
+    config_specs: ConfigSpecs = ConfigSpecs(
+        {
+            "plate_names": ListParam(
+                human_name="Plate names",
+                short_description="Custom names for each plate. Leave empty to use default names (plate_0, plate_1, etc.). Must match the number of input plates if provided.",
+                optional=True,
+                default_value=[],
+            )
+        }
+    )
 
-    output_specs: OutputSpecs = OutputSpecs({
-        'resource_set': OutputSpec(
-            ResourceSet,
-            human_name="Parsed data tables resource set",
-            short_description="One table per well with all measurement channels as columns",
-            sub_class=True
-        ),
-        'venn_diagram': OutputSpec(
-            PlotlyResource,
-            human_name="Venn diagram of well data availability",
-            short_description="Visual representation of cultivation, reservoir, and labeled wells",
-            optional=True
-        ),
-        'metadata_table': OutputSpec(
-            Table,
-            human_name="Metadata table for ML",
-            short_description="Table with well metadata for feature extraction",
-            optional=True
-        ),
-        'medium_table': OutputSpec(
-            Table,
-            human_name="Medium composition table",
-            short_description="Table with unique medium compositions (output when medium_table provided as input)",
-            optional=True
-        )
-    })
+    output_specs: OutputSpecs = OutputSpecs(
+        {
+            "resource_set": OutputSpec(
+                ResourceSet,
+                human_name="Parsed data tables resource set",
+                short_description="One table per well with all measurement channels as columns",
+                sub_class=True,
+            ),
+            "venn_diagram": OutputSpec(
+                PlotlyResource,
+                human_name="Venn diagram of well data availability",
+                short_description="Visual representation of cultivation, reservoir, and labeled wells",
+                optional=True,
+            ),
+            "metadata_table": OutputSpec(
+                Table,
+                human_name="Metadata table for ML",
+                short_description="Table with well metadata for feature extraction",
+                optional=True,
+            ),
+            "medium_table": OutputSpec(
+                Table,
+                human_name="Medium composition table",
+                short_description="Table with unique medium compositions (output when medium_table provided as input)",
+                optional=True,
+            ),
+        }
+    )
 
     def is_micro_fluidics(self, data: DataFrame) -> bool:
         """
@@ -376,10 +403,8 @@ class BiolectorXTLoadData(Task):
         :param data: Raw data DataFrame
         :return: True if microfluidics, False otherwise
         """
-        unique_wells = data['Well'].dropna().unique()
-        if "A01" in unique_wells:
-            return False
-        return True
+        unique_wells = data["Well"].dropna().unique()
+        return "A01" not in unique_wells
 
     def get_filters(self, metadata: dict) -> list[str]:
         """
@@ -389,8 +414,8 @@ class BiolectorXTLoadData(Task):
         :return: List of filter names
         """
         filters = []
-        for channel in metadata.get('Channels', []):
-            filters.append(channel['Name'])
+        for channel in metadata.get("Channels", []):
+            filters.append(channel["Name"])
         return filters
 
     def parse_data(self, data: DataFrame, metadata: dict) -> dict[str, DataFrame]:
@@ -413,9 +438,9 @@ class BiolectorXTLoadData(Task):
         self.log_info_message(f"🎨 [PARSE_DATA] Filters detected: {filters}")
 
         # Sort and filter data
-        row_data = data.sort_values(by=['Filterset', 'Well'])
+        row_data = data.sort_values(by=["Filterset", "Well"])
         reduced_data = row_data[["Well", "Filterset", "Time", "Cal"]]
-        unique_values = reduced_data['Filterset'].dropna().unique()
+        unique_values = reduced_data["Filterset"].dropna().unique()
 
         self.log_info_message(f"📦 [PARSE_DATA] Unique filterset values: {list(unique_values)}")
         self.log_info_message(f"📊 [PARSE_DATA] Reduced data shape: {reduced_data.shape}")
@@ -423,44 +448,50 @@ class BiolectorXTLoadData(Task):
         df_filter_dict: dict[str, DataFrame] = {}
 
         for i, value in enumerate(unique_values):
-            self.log_info_message(f"\n🔄 [PARSE_DATA] Processing filter {i+1}/{len(unique_values)}: {value}")
-            df_filter = reduced_data[reduced_data['Filterset'] == value]
-            df_filter = df_filter.sort_values(by=['Well', 'Time'])
+            self.log_info_message(
+                f"\n🔄 [PARSE_DATA] Processing filter {i + 1}/{len(unique_values)}: {value}"
+            )
+            df_filter = reduced_data[reduced_data["Filterset"] == value]
+            df_filter = df_filter.sort_values(by=["Well", "Time"])
             df_filter = df_filter.drop(columns="Filterset")
 
             # Determine well range based on microfluidics mode
             if is_micro_fluidics:
-                columns_to_add = [f"{chr(letter)}{str(num).zfill(2)}"
-                                  for letter in range(ord('C'), ord('F') + 1)
-                                  for num in range(1, 9)]
+                columns_to_add = [
+                    f"{chr(letter)}{str(num).zfill(2)}"
+                    for letter in range(ord("C"), ord("F") + 1)
+                    for num in range(1, 9)
+                ]
             else:
-                columns_to_add = [f"{chr(letter)}{str(num).zfill(2)}"
-                                  for letter in range(ord('A'), ord('F') + 1)
-                                  for num in range(1, 9)]
+                columns_to_add = [
+                    f"{chr(letter)}{str(num).zfill(2)}"
+                    for letter in range(ord("A"), ord("F") + 1)
+                    for num in range(1, 9)
+                ]
 
             # Save original time column before we overwrite it
-            original_time_col = df_filter['Time'].copy()
+            original_time_col = df_filter["Time"].copy()
 
             # Add columns for time and wells
             # Create only 'Time' column in hours (standardized)
-            df_filter = df_filter.assign(Time=NA, **{col: NA for col in columns_to_add})
+            df_filter = df_filter.assign(Time=NA, **dict.fromkeys(columns_to_add, NA))
 
             # Fill Time column in hours
             df_filter["Time"] = original_time_col / 3600
 
             # Populate well columns
             for name_col in columns_to_add:
-                df_filter[name_col] = df_filter.loc[df_filter['Well'] == name_col, 'Cal']
+                df_filter[name_col] = df_filter.loc[df_filter["Well"] == name_col, "Cal"]
 
             # Shift values up to remove NaN rows
-            columns_to_process = df_filter.columns[3:len(df_filter.columns)]
+            columns_to_process = df_filter.columns[3 : len(df_filter.columns)]
             df_filter = df_filter.reset_index(drop=True)
 
             for col in columns_to_process:
                 df_filter[col] = Series(df_filter[col].dropna().values)
 
             # Clean up - keep standardized 'Time' column (in hours)
-            df_filter = df_filter.dropna(subset=['Time'])
+            df_filter = df_filter.dropna(subset=["Time"])
             self.log_info_message(f"📊 [PARSE_DATA] After dropna, shape: {df_filter.shape}")
 
             df_filter = df_filter.drop(columns=["Well", "Cal"])
@@ -471,11 +502,17 @@ class BiolectorXTLoadData(Task):
             if i < len(filters):
                 filter_name = filters[i]
                 df_filter_dict[filter_name] = df_filter
-                self.log_info_message(f"✅ [PARSE_DATA] Added filter '{filter_name}' with shape {df_filter.shape}")
+                self.log_info_message(
+                    f"✅ [PARSE_DATA] Added filter '{filter_name}' with shape {df_filter.shape}"
+                )
             else:
-                self.log_warning_message(f"⚠️ [PARSE_DATA] Filter index {i} >= len(filters) {len(filters)}, skipping")
+                self.log_warning_message(
+                    f"⚠️ [PARSE_DATA] Filter index {i} >= len(filters) {len(filters)}, skipping"
+                )
 
-        self.log_info_message(f"\n✅ [PARSE_DATA] parse_data completed. Generated {len(df_filter_dict)} filter tables")
+        self.log_info_message(
+            f"\n✅ [PARSE_DATA] parse_data completed. Generated {len(df_filter_dict)} filter tables"
+        )
         return df_filter_dict
 
     def get_wells_cultivation(self, metadata: dict) -> list[str]:
@@ -496,7 +533,8 @@ class BiolectorXTLoadData(Task):
         return wells
 
     def get_wells_label_description(
-            self, metadata: dict, existing_plate_layout: dict | None = None) -> dict[str, Any]:
+        self, metadata: dict, existing_plate_layout: dict | None = None
+    ) -> dict[str, Any]:
         """
         Get well labels and descriptions from metadata and optional plate layout.
 
@@ -505,9 +543,11 @@ class BiolectorXTLoadData(Task):
         :return: Dictionary mapping well IDs to their metadata
         """
         # Create all possible wells A01 to F08
-        wells = [f"{chr(letter)}{str(num).zfill(2)}"
-                 for letter in range(ord('A'), ord('F') + 1)
-                 for num in range(1, 9)]
+        wells = [
+            f"{chr(letter)}{str(num).zfill(2)}"
+            for letter in range(ord("A"), ord("F") + 1)
+            for num in range(1, 9)
+        ]
         wells_label = {well: {"label": ""} for well in wells}
 
         # Get labels from metadata
@@ -530,8 +570,11 @@ class BiolectorXTLoadData(Task):
                 if len(well) == 2:
                     well = f"{well[0]}0{well[1]}"
                 if well in wells_label and isinstance(data, dict):
-                    existing_data = wells_label[well] if isinstance(wells_label[well], dict) else {
-                        "label": wells_label[well]}
+                    existing_data = (
+                        wells_label[well]
+                        if isinstance(wells_label[well], dict)
+                        else {"label": wells_label[well]}
+                    )
                     if "label" in data:
                         existing_data["label"] = data["label"]
                     existing_data.update(data)
@@ -540,11 +583,14 @@ class BiolectorXTLoadData(Task):
         return wells_label
 
     def create_parsed_resource_set(
-            self, data: DataFrame, metadata: dict,
-            existing_plate_layout: dict | None = None,
-            medium_table: Table | None = None,
-            info_table: Table | None = None,
-            plate_name: str = "plate_0") -> ResourceSet:
+        self,
+        data: DataFrame,
+        metadata: dict,
+        existing_plate_layout: dict | None = None,
+        medium_table: Table | None = None,
+        info_table: Table | None = None,
+        plate_name: str = "plate_0",
+    ) -> ResourceSet:
         """
         Create a ResourceSet from parsed data with proper tagging.
 
@@ -578,45 +624,60 @@ class BiolectorXTLoadData(Task):
                     return f"{well_id[0]}0{well_id[1]}"
                 return well_id
 
-            info_df['Well'] = info_df['Well'].apply(normalize_well_id)
+            info_df["Well"] = info_df["Well"].apply(normalize_well_id)
 
             # Create well -> medium name mapping
-            well_to_medium = dict(zip(info_df['Well'], info_df['Medium']))
+            well_to_medium = dict(zip(info_df["Well"], info_df["Medium"], strict=False))
 
             # Create medium name -> composition dict mapping
             for _, row in medium_df.iterrows():
-                medium_name = row['Medium']
-                composition = {col: row[col] for col in medium_df.columns if col != 'Medium'}
+                medium_name = row["Medium"]
+                composition = {col: row[col] for col in medium_df.columns if col != "Medium"}
                 medium_compositions[medium_name] = composition
 
             # Medium data prepared for tagging
 
         # Get parsed data (one DataFrame per filter/channel)
         parsed_data: dict[str, DataFrame] = self.parse_data(data=data, metadata=metadata)
-        self.log_info_message(f"📦 [CREATE_RESOURCE_SET] Parsed data contains {len(parsed_data)} filters: {list(parsed_data.keys())}")
+        self.log_info_message(
+            f"📦 [CREATE_RESOURCE_SET] Parsed data contains {len(parsed_data)} filters: {list(parsed_data.keys())}"
+        )
 
-        wells_data = self.get_wells_label_description(metadata=metadata,
-                                                       existing_plate_layout=existing_plate_layout)
+        wells_data = self.get_wells_label_description(
+            metadata=metadata, existing_plate_layout=existing_plate_layout
+        )
 
         # Get expected wells from metadata
         expected_wells = self.get_wells(metadata)  # Cultivation + Reservoir wells
         cultivation_wells = self.get_wells_cultivation(metadata)
-        self.log_info_message(f"🔍 [CREATE_RESOURCE_SET] Expected wells from metadata: {len(expected_wells)} wells")
-        self.log_info_message(f"🧪 [CREATE_RESOURCE_SET] Cultivation wells: {len(cultivation_wells)} wells")
+        self.log_info_message(
+            f"🔍 [CREATE_RESOURCE_SET] Expected wells from metadata: {len(expected_wells)} wells"
+        )
+        self.log_info_message(
+            f"🧪 [CREATE_RESOURCE_SET] Cultivation wells: {len(cultivation_wells)} wells"
+        )
 
         # Get all well columns (excluding time columns)
         first_filter = list(parsed_data.keys())[0] if parsed_data else None
         if not first_filter:
-            self.log_warning_message("⚠️ [CREATE_RESOURCE_SET] No filters in parsed_data, returning empty resource_set")
+            self.log_warning_message(
+                "⚠️ [CREATE_RESOURCE_SET] No filters in parsed_data, returning empty resource_set"
+            )
             return resource_set
 
         first_df = parsed_data[first_filter]
-        self.log_info_message(f"📊 [CREATE_RESOURCE_SET] First filter '{first_filter}' has shape: {first_df.shape}")
-        self.log_info_message(f"📋 [CREATE_RESOURCE_SET] First filter columns: {list(first_df.columns)}")
+        self.log_info_message(
+            f"📊 [CREATE_RESOURCE_SET] First filter '{first_filter}' has shape: {first_df.shape}"
+        )
+        self.log_info_message(
+            f"📋 [CREATE_RESOURCE_SET] First filter columns: {list(first_df.columns)}"
+        )
 
         # Filter out standardized time column 'Time'
-        well_columns = [col for col in first_df.columns if col != 'Time']
-        self.log_info_message(f"🔢 [CREATE_RESOURCE_SET] Well columns detected: {len(well_columns)} wells: {well_columns[:10]}...")
+        well_columns = [col for col in first_df.columns if col != "Time"]
+        self.log_info_message(
+            f"🔢 [CREATE_RESOURCE_SET] Well columns detected: {len(well_columns)} wells: {well_columns[:10]}..."
+        )
 
         # Find missing wells (expected but no data)
         wells_with_data = set(well_columns)
@@ -627,7 +688,9 @@ class BiolectorXTLoadData(Task):
             self.log_info_message(f"⚠️ {len(missing_wells)} missing wells (in metadata but no data)")
 
         # Create one table per well
-        self.log_info_message(f"\n🔄 [CREATE_RESOURCE_SET] Creating tables for {len(well_columns)} wells...")
+        self.log_info_message(
+            f"\n🔄 [CREATE_RESOURCE_SET] Creating tables for {len(well_columns)} wells..."
+        )
         tables_created = 0
 
         for well in well_columns:
@@ -636,7 +699,7 @@ class BiolectorXTLoadData(Task):
             well_clean = f"{well[0]}{int(well[1:])}" if len(well) >= 2 else well
 
             # Start with time column 'Time' (in hours)
-            well_df = first_df[['Time']].copy()
+            well_df = first_df[["Time"]].copy()
 
             # Add measurement columns for this well from each filter
             for filter_name, filter_df in parsed_data.items():
@@ -645,33 +708,47 @@ class BiolectorXTLoadData(Task):
                     well_df[filter_name] = filter_df[well]
 
             # Only create table if we have data (not all NaN)
-            if not well_df.drop(columns=['Time']).isna().all().all():
+            if not well_df.drop(columns=["Time"]).isna().all().all():
                 table = Table(well_df)
                 table.name = well_clean  # Use clean name without leading zero
 
                 # Get user info for tag origins
-                user_id = CurrentUserService.get_current_user().id if CurrentUserService.get_current_user() else None
+                user_id = (
+                    CurrentUserService.get_current_user().id
+                    if CurrentUserService.get_current_user()
+                    else None
+                )
                 origins = TagOrigins(TagOriginType.USER, user_id)
 
                 # Add column tags for proper column identification
                 # Tag Time column as index column (in hours)
-                table.add_column_tag_by_name('Time', 'column_name', 'Time')
-                table.add_column_tag_by_name('Time', 'unit', 'h')
-                table.add_column_tag_by_name('Time', 'is_index_column', 'true')
+                table.add_column_tag_by_name("Time", "column_name", "Time")
+                table.add_column_tag_by_name("Time", "unit", "h")
+                table.add_column_tag_by_name("Time", "is_index_column", "true")
 
                 # Tag measurement columns as data columns
                 for col in table.column_names:
-                    if col != 'Time':
+                    if col != "Time":
                         # This is a measurement column (Biomass, pH, pO2, etc.)
-                        table.add_column_tag_by_name(col, 'column_name', col)
-                        table.add_column_tag_by_name(col, 'is_data_column', 'true')
+                        table.add_column_tag_by_name(col, "column_name", col)
+                        table.add_column_tag_by_name(col, "is_data_column", "true")
 
                 # Add batch and sample tags only
                 # Batch is the plate name, sample is the well identifier
-                batch_tag = Tag(key='batch', value=plate_name, auto_parse=True,
-                                origins=origins, is_propagable=True)
-                sample_tag = Tag(key='sample', value=well_clean, auto_parse=True,  # Use clean name
-                                 origins=origins, is_propagable=True)
+                batch_tag = Tag(
+                    key="batch",
+                    value=plate_name,
+                    auto_parse=True,
+                    origins=origins,
+                    is_propagable=True,
+                )
+                sample_tag = Tag(
+                    key="sample",
+                    value=well_clean,
+                    auto_parse=True,  # Use clean name
+                    origins=origins,
+                    is_propagable=True,
+                )
                 table.tags._tags.extend([batch_tag, sample_tag])
 
                 # Add medium tag if medium data is available for this well
@@ -679,9 +756,14 @@ class BiolectorXTLoadData(Task):
                     medium_name = well_to_medium[well]
                     medium_composition = medium_compositions.get(medium_name, {})
 
-                    medium_tag = Tag(key='medium', value=medium_name, auto_parse=True,
-                                    additional_info={'composed': medium_composition},
-                                    origins=origins, is_propagable=True)
+                    medium_tag = Tag(
+                        key="medium",
+                        value=medium_name,
+                        auto_parse=True,
+                        additional_info={"composed": medium_composition},
+                        origins=origins,
+                        is_propagable=True,
+                    )
                     table.tags._tags.append(medium_tag)
 
                 # Check if well is missing from plate_layout (only if plate_layout is provided)
@@ -690,23 +772,36 @@ class BiolectorXTLoadData(Task):
                     well_normalized = well  # C01 format
                     well_short = well_clean  # C1 format
 
-                    has_plate_layout = (well_normalized in existing_plate_layout or
-                                       well_short in existing_plate_layout)
+                    has_plate_layout = (
+                        well_normalized in existing_plate_layout
+                        or well_short in existing_plate_layout
+                    )
 
                     if not has_plate_layout:
                         # Well is missing from plate_layout - add missing_value tag
-                        missing_tag = Tag(key='missing_value', value='plate_layout', auto_parse=True,
-                                         origins=origins, is_propagable=True)
+                        missing_tag = Tag(
+                            key="missing_value",
+                            value="plate_layout",
+                            auto_parse=True,
+                            origins=origins,
+                            is_propagable=True,
+                        )
                         table.tags._tags.append(missing_tag)
 
                 resource_set.add_resource(table, well_clean)  # Use clean name
                 tables_created += 1
                 if tables_created <= 3 or tables_created % 10 == 0:
-                    self.log_info_message(f"✅ [CREATE_RESOURCE_SET] Created table {tables_created}: {well_clean}")
+                    self.log_info_message(
+                        f"✅ [CREATE_RESOURCE_SET] Created table {tables_created}: {well_clean}"
+                    )
             else:
-                self.log_info_message(f"⏭️ [CREATE_RESOURCE_SET] Skipped well {well_clean} (all NaN)")
+                self.log_info_message(
+                    f"⏭️ [CREATE_RESOURCE_SET] Skipped well {well_clean} (all NaN)"
+                )
 
-        self.log_info_message(f"\n✅ [CREATE_RESOURCE_SET] Completed. Created {tables_created} tables in resource_set")
+        self.log_info_message(
+            f"\n✅ [CREATE_RESOURCE_SET] Completed. Created {tables_created} tables in resource_set"
+        )
 
         # Create tables for missing wells (expected in metadata but no data in raw_data)
         wells_with_data = set(well_columns)
@@ -715,7 +810,11 @@ class BiolectorXTLoadData(Task):
 
         if missing_wells:
             self.log_info_message(f"\nCreating {len(missing_wells)} empty tables for missing wells")
-            user_id = CurrentUserService.get_current_user().id if CurrentUserService.get_current_user() else None
+            user_id = (
+                CurrentUserService.get_current_user().id
+                if CurrentUserService.get_current_user()
+                else None
+            )
             origins = TagOrigins(TagOriginType.USER, user_id)
 
             for well in sorted(missing_wells):
@@ -723,20 +822,30 @@ class BiolectorXTLoadData(Task):
                 well_clean = f"{well[0]}{int(well[1:])}" if len(well) >= 2 else well
 
                 # Create empty table with just time column
-                empty_df = DataFrame({'Temps_en_h': []})
+                empty_df = DataFrame({"Temps_en_h": []})
                 table = Table(empty_df)
                 table.name = well_clean
 
                 # Add column tags
-                table.add_column_tag_by_name('Temps_en_h', 'column_name', 'Temps')
-                table.add_column_tag_by_name('Temps_en_h', 'unit', 'h')
-                table.add_column_tag_by_name('Temps_en_h', 'is_index_column', 'true')
+                table.add_column_tag_by_name("Temps_en_h", "column_name", "Temps")
+                table.add_column_tag_by_name("Temps_en_h", "unit", "h")
+                table.add_column_tag_by_name("Temps_en_h", "is_index_column", "true")
 
                 # Add batch and sample tags
-                batch_tag = Tag(key='batch', value='plate_0', auto_parse=True,
-                                origins=origins, is_propagable=True)
-                sample_tag = Tag(key='sample', value=well_clean, auto_parse=True,
-                                 origins=origins, is_propagable=True)
+                batch_tag = Tag(
+                    key="batch",
+                    value="plate_0",
+                    auto_parse=True,
+                    origins=origins,
+                    is_propagable=True,
+                )
+                sample_tag = Tag(
+                    key="sample",
+                    value=well_clean,
+                    auto_parse=True,
+                    origins=origins,
+                    is_propagable=True,
+                )
                 table.tags._tags.extend([batch_tag, sample_tag])
 
                 # Add medium tag if medium data is available for this well
@@ -744,14 +853,24 @@ class BiolectorXTLoadData(Task):
                     medium_name = well_to_medium[well]
                     medium_composition = medium_compositions.get(medium_name, {})
 
-                    medium_tag = Tag(key='medium', value=medium_name, auto_parse=True,
-                                    additional_info={'composed': medium_composition},
-                                    origins=origins, is_propagable=True)
+                    medium_tag = Tag(
+                        key="medium",
+                        value=medium_name,
+                        auto_parse=True,
+                        additional_info={"composed": medium_composition},
+                        origins=origins,
+                        is_propagable=True,
+                    )
                     table.tags._tags.append(medium_tag)
 
                 # Add missing_value tag for raw_data
-                missing_tag = Tag(key='missing_value', value='raw_data', auto_parse=True,
-                                 origins=origins, is_propagable=True)
+                missing_tag = Tag(
+                    key="missing_value",
+                    value="raw_data",
+                    auto_parse=True,
+                    origins=origins,
+                    is_propagable=True,
+                )
                 table.tags._tags.append(missing_tag)
 
                 # Also check plate_layout for this missing well
@@ -759,24 +878,36 @@ class BiolectorXTLoadData(Task):
                     well_normalized = well  # C01 format
                     well_short = well_clean  # C1 format
 
-                    has_plate_layout = (well_normalized in existing_plate_layout or
-                                       well_short in existing_plate_layout)
+                    has_plate_layout = (
+                        well_normalized in existing_plate_layout
+                        or well_short in existing_plate_layout
+                    )
 
                     if not has_plate_layout:
                         # Well is also missing from plate_layout - update tag
-                        table.tags._tags = [tag for tag in table.tags._tags if tag.key != 'missing_value']
-                        combined_missing_tag = Tag(key='missing_value', value='raw_data, plate_layout',
-                                                   auto_parse=True, origins=origins, is_propagable=True)
+                        table.tags._tags = [
+                            tag for tag in table.tags._tags if tag.key != "missing_value"
+                        ]
+                        combined_missing_tag = Tag(
+                            key="missing_value",
+                            value="raw_data, plate_layout",
+                            auto_parse=True,
+                            origins=origins,
+                            is_propagable=True,
+                        )
                         table.tags._tags.append(combined_missing_tag)
 
                 resource_set.add_resource(table, well_clean)
 
         return resource_set
 
-    def create_metadata_table(self, resource_set: ResourceSet,
-                              existing_plate_layout: dict | None = None,
-                              medium_table: Table | None = None,
-                              info_table: Table | None = None) -> Table:
+    def create_metadata_table(
+        self,
+        resource_set: ResourceSet,
+        existing_plate_layout: dict | None = None,
+        medium_table: Table | None = None,
+        info_table: Table | None = None,
+    ) -> Table:
         """
         Create a metadata table for machine learning purposes.
 
@@ -789,7 +920,6 @@ class BiolectorXTLoadData(Task):
         :param info_table: Optional table mapping wells to medium names
         :return: Table with metadata for ML feature extraction
         """
-        import pandas as pd
 
         metadata_rows = []
 
@@ -815,49 +945,51 @@ class BiolectorXTLoadData(Task):
 
             # Create a copy to avoid modifying the original
             info_df_normalized = info_df.copy()
-            info_df_normalized['Well'] = info_df_normalized['Well'].apply(normalize_well_id)
+            info_df_normalized["Well"] = info_df_normalized["Well"].apply(normalize_well_id)
 
             # Create a mapping from well to medium name
-            well_to_medium = dict(zip(info_df_normalized['Well'], info_df_normalized['Medium']))
+            well_to_medium = dict(
+                zip(info_df_normalized["Well"], info_df_normalized["Medium"], strict=False)
+            )
 
             # Identify info columns (all columns except Well and Medium)
             # Keep all info columns including string columns (compound, label, etc.)
-            info_columns = [col for col in info_df_normalized.columns if col not in ['Well', 'Medium']]
+            info_columns = [
+                col for col in info_df_normalized.columns if col not in ["Well", "Medium"]
+            ]
 
             for well_name, table in resource_set.get_resources().items():
                 if not isinstance(table, Table):
                     continue
 
                 # Extract plate_name from batch tag
-                batch_tags = table.tags.get_by_key('batch')
-                plate_name = batch_tags[0].value if batch_tags else 'plate_0'
+                batch_tags = table.tags.get_by_key("batch")
+                plate_name = batch_tags[0].value if batch_tags else "plate_0"
 
                 # Initialize row with Series identifier
-                metadata_row = {
-                    'Series': f"{plate_name}_{well_name}"
-                }
+                metadata_row = {"Series": f"{plate_name}_{well_name}"}
 
                 # Get medium name for this well
                 medium_name = well_to_medium.get(well_name)
 
                 if medium_name:
                     # Get medium composition from medium_table
-                    medium_row = medium_df[medium_df['Medium'] == medium_name]
+                    medium_row = medium_df[medium_df["Medium"] == medium_name]
 
                     if not medium_row.empty:
                         # Add all medium composition columns (except 'Medium' column)
                         for col in medium_df.columns:
-                            if col != 'Medium':
+                            if col != "Medium":
                                 value = medium_row.iloc[0][col]
                                 metadata_row[col] = value
 
                 # Add info columns from info_table
-                info_row = info_df_normalized[info_df_normalized['Well'] == well_name]
+                info_row = info_df_normalized[info_df_normalized["Well"] == well_name]
                 for col in info_columns:
                     if not info_row.empty:
                         value = info_row.iloc[0][col]
                         # Fill missing values: 0 for numeric, NaN for non-numeric
-                        if pd.isna(value) or value == '':
+                        if pd.isna(value) or value == "":
                             # Try to infer if column is numeric
                             try:
                                 float_val = float(value)
@@ -895,13 +1027,11 @@ class BiolectorXTLoadData(Task):
                     continue
 
                 # Extract plate_name from batch tag
-                batch_tags = table.tags.get_by_key('batch')
-                plate_name = batch_tags[0].value if batch_tags else 'plate_0'
+                batch_tags = table.tags.get_by_key("batch")
+                plate_name = batch_tags[0].value if batch_tags else "plate_0"
 
                 # Initialize row with Series identifier
-                metadata_row = {
-                    'Series': f"{plate_name}_{well_name}"
-                }
+                metadata_row = {"Series": f"{plate_name}_{well_name}"}
 
                 # Add plate_layout metadata if available
                 if existing_plate_layout:
@@ -935,19 +1065,19 @@ class BiolectorXTLoadData(Task):
             if medium_table is not None:
                 medium_df = medium_table.get_data()
                 # Always use 'Medium' as standardized column name
-                medium_columns = set(medium_df.columns) - {'Medium'}
+                medium_columns = set(medium_df.columns) - {"Medium"}
 
             # Get list of info columns (from info_table if provided)
             # These should be preserved even if they contain string values
             info_columns_set = set()
             if info_table is not None:
                 info_df = info_table.get_data()
-                info_columns_set = set(info_df.columns) - {'Well', 'Medium'}
+                info_columns_set = set(info_df.columns) - {"Well", "Medium"}
 
             # Remove columns that only contain NaN (but keep medium and info columns)
             cols_to_remove = []
             for col in metadata_df.columns:
-                if col == 'Series':
+                if col == "Series":
                     continue
 
                 # Keep medium composition columns even if all NaN or all 0
@@ -965,7 +1095,7 @@ class BiolectorXTLoadData(Task):
 
                 # For other columns (legacy plate_layout), check if all non-NaN values are 0
                 try:
-                    numeric_col = pd.to_numeric(metadata_df[col], errors='coerce')
+                    numeric_col = pd.to_numeric(metadata_df[col], errors="coerce")
                     non_nan_values = numeric_col.dropna()
                     if len(non_nan_values) > 0 and (non_nan_values == 0).all():
                         cols_to_remove.append(col)
@@ -992,15 +1122,21 @@ class BiolectorXTLoadData(Task):
         """
 
         # Get medium table (unique across all plates)
-        medium_table: Table = inputs.get('medium_table')
-        self.log_info_message(f"🔍 [DEBUG] medium_table from named port: {medium_table is not None} (type: {type(medium_table).__name__ if medium_table else 'None'})")
+        medium_table: Table = inputs.get("medium_table")
+        self.log_info_message(
+            f"🔍 [DEBUG] medium_table from named port: {medium_table is not None} (type: {type(medium_table).__name__ if medium_table else 'None'})"
+        )
 
         # Get all dynamic inputs (plates as ResourceList)
-        plates_resource_list: ResourceList = inputs.get('source')
-        self.log_info_message(f"🔍 [DEBUG] plates_resource_list type: {type(plates_resource_list).__name__}")
+        plates_resource_list: ResourceList = inputs.get("source")
+        self.log_info_message(
+            f"🔍 [DEBUG] plates_resource_list type: {type(plates_resource_list).__name__}"
+        )
 
         if not isinstance(plates_resource_list, ResourceList):
-            raise Exception(f"Expected ResourceList for 'source' input, got {type(plates_resource_list)}")
+            raise Exception(
+                f"Expected ResourceList for 'source' input, got {type(plates_resource_list)}"
+            )
 
         # Get the actual list of resources from ResourceList
         plates_list = plates_resource_list.get_resources()
@@ -1009,7 +1145,9 @@ class BiolectorXTLoadData(Task):
         plates_list = [plate for plate in plates_list if plate is not None]
 
         num_plates = len(plates_list)
-        self.log_info_message(f"🔍 [DEBUG] Total items in plates_list (after filtering None): {num_plates}")
+        self.log_info_message(
+            f"🔍 [DEBUG] Total items in plates_list (after filtering None): {num_plates}"
+        )
 
         # Log each item in plates_list
         for i, item in enumerate(plates_list):
@@ -1022,9 +1160,13 @@ class BiolectorXTLoadData(Task):
             # Legacy mode: medium_table passed as first dynamic input
             medium_table = plates_list[0]
             start_idx = 1
-            self.log_info_message(f"✅ [DEBUG] Found medium_table as first dynamic input, start_idx = {start_idx}")
+            self.log_info_message(
+                f"✅ [DEBUG] Found medium_table as first dynamic input, start_idx = {start_idx}"
+            )
         elif medium_table is not None:
-            self.log_info_message(f"✅ [DEBUG] Using medium_table from named input port, start_idx = {start_idx}")
+            self.log_info_message(
+                f"✅ [DEBUG] Using medium_table from named input port, start_idx = {start_idx}"
+            )
 
         actual_plates = plates_list[start_idx:]
         num_actual_plates = len(actual_plates)
@@ -1035,13 +1177,15 @@ class BiolectorXTLoadData(Task):
         self.log_info_message(f"Processing {num_actual_plates} plate(s)")
 
         # Get plate names from config
-        plate_names: list[str] = params.get_value('plate_names')
+        plate_names: list[str] = params.get_value("plate_names")
         self.log_info_message(f"🏷️ [DEBUG] plate_names from config: {plate_names}")
 
         # Validate plate names
         if plate_names and len(plate_names) > 0:
             # User provided plate names - validate count
-            self.log_info_message(f"🔍 [DEBUG] Validating: {len(plate_names)} names vs {num_actual_plates} plates")
+            self.log_info_message(
+                f"🔍 [DEBUG] Validating: {len(plate_names)} names vs {num_actual_plates} plates"
+            )
             if len(plate_names) != num_actual_plates:
                 raise Exception(
                     f"Number of plate names ({len(plate_names)}) does not match number of input plates ({num_actual_plates}). "
@@ -1077,13 +1221,13 @@ class BiolectorXTLoadData(Task):
                 )
 
             # Get inputs for this plate from the ResourceSet
-            raw_data: Table = plate_resource_set.get_resource('raw_data')
-            folder_metadata: Folder = plate_resource_set.get_resource('folder_metadata')
+            raw_data: Table = plate_resource_set.get_resource("raw_data")
+            folder_metadata: Folder = plate_resource_set.get_resource("folder_metadata")
 
             # info_table is optional
             info_table: Table = None
-            if plate_resource_set.resource_exists('info_table'):
-                info_table = plate_resource_set.get_resource('info_table')
+            if plate_resource_set.resource_exists("info_table"):
+                info_table = plate_resource_set.get_resource("info_table")
 
             if raw_data is None or folder_metadata is None:
                 raise Exception(
@@ -1095,16 +1239,18 @@ class BiolectorXTLoadData(Task):
             # Load metadata file
 
             # Load metadata
-            metadata: dict = None
+            metadata: dict | None = None
             for file_name in os.listdir(folder_metadata.path):
-                if file_name.endswith('BXT.json'):
+                if file_name.endswith("BXT.json"):
                     file_path = os.path.join(folder_metadata.path, file_name)
                     try:
-                        with open(file_path, 'r', encoding='UTF-8') as json_file:
+                        with open(file_path, encoding="UTF-8") as json_file:
                             metadata = json.load(json_file)
 
                     except Exception as e:
-                        raise Exception(f"Error while reading the metadata file {file_name}: {e}")
+                        raise Exception(
+                            f"Error while reading the metadata file {file_name}: {e}"
+                        ) from e
 
             if metadata is None:
                 raise Exception(
@@ -1122,13 +1268,15 @@ class BiolectorXTLoadData(Task):
                 existing_plate_layout=None,
                 medium_table=medium_table,
                 info_table=info_table,
-                plate_name=plate_name
+                plate_name=plate_name,
             )
 
             # Copy download tags from raw data
             resource_set.tags.add_tags(raw_data.tags.get_by_key(DOWNLOAD_TAG_KEY))
 
-            self.log_success_message(f"Created {len(resource_set.get_resources())} parsed tables for {plate_name}")
+            self.log_success_message(
+                f"Created {len(resource_set.get_resources())} parsed tables for {plate_name}"
+            )
 
             # Collect for combined outputs
             all_resource_sets.append(resource_set)
@@ -1144,6 +1292,7 @@ class BiolectorXTLoadData(Task):
             medium_info_wells = set()
             if info_table is not None:
                 info_df = info_table.get_data()
+
                 # Normalize well IDs to C1 format (remove leading zeros)
                 def normalize_well_id(well_id):
                     """Convert to C1 format: C01 → C1, C10 → C10, A1 → A1"""
@@ -1152,9 +1301,10 @@ class BiolectorXTLoadData(Task):
                         number_str = well_id[1:]
                         return f"{letter}{int(number_str)}"
                     return well_id
+
                 info_df_normalized = info_df.copy()
-                info_df_normalized['Well'] = info_df_normalized['Well'].apply(normalize_well_id)
-                medium_info_wells = set(info_df_normalized['Well'].unique())
+                info_df_normalized["Well"] = info_df_normalized["Well"].apply(normalize_well_id)
+                medium_info_wells = set(info_df_normalized["Well"].unique())
             # Add plate prefix to medium info wells (convert C01 to C1 format)
             for well in medium_info_wells:
                 well_c1 = f"{well[0]}{int(well[1:])}" if len(well) > 1 else well
@@ -1168,10 +1318,7 @@ class BiolectorXTLoadData(Task):
 
             # Create metadata table for this plate and collect it
             plate_metadata_table = self.create_metadata_table(
-                resource_set,
-                None,
-                medium_table,
-                info_table
+                resource_set, None, medium_table, info_table
             )
             all_metadata_dfs.append(plate_metadata_table.get_data())
 
@@ -1188,23 +1335,27 @@ class BiolectorXTLoadData(Task):
                 table.name = combined_well_name
                 combined_resource_set.add_resource(table, combined_well_name)
 
-        self.log_success_message(f"Combined total: {len(combined_resource_set.get_resources())} parsed tables from {num_actual_plates} plate(s)")
+        self.log_success_message(
+            f"Combined total: {len(combined_resource_set.get_resources())} parsed tables from {num_actual_plates} plate(s)"
+        )
 
         # Combine all metadata DataFrames
         if all_metadata_dfs:
             combined_metadata_df = pd.concat(all_metadata_dfs, ignore_index=True)
             metadata_table = Table(combined_metadata_df)
             metadata_table.name = "Metadata table"
-            self.log_success_message(f"Combined metadata table created with {len(combined_metadata_df)} wells")
+            self.log_success_message(
+                f"Combined metadata table created with {len(combined_metadata_df)} wells"
+            )
         else:
-            metadata_table = Table(pd.DataFrame({'Series': []}))
+            metadata_table = Table(pd.DataFrame({"Series": []}))
             metadata_table.name = "Metadata table"
 
         # Create Venn diagram for well data availability using combined data
         well_sets = {
-            'cultivation_labels': all_cultivation_labels,
-            'medium_info': all_medium_info_wells,
-            'raw_data': all_raw_data_wells
+            "cultivation_labels": all_cultivation_labels,
+            "medium_info": all_medium_info_wells,
+            "raw_data": all_raw_data_wells,
         }
 
         # Create Venn diagram
@@ -1220,7 +1371,7 @@ class BiolectorXTLoadData(Task):
         # Try to convert columns to numeric only if they are actually numeric
         # Skip identifier columns and columns that are primarily string values
         for col in metadata_df.columns:
-            if col == 'Series':
+            if col == "Series":
                 continue
 
             # Skip columns that are already numeric
@@ -1228,10 +1379,12 @@ class BiolectorXTLoadData(Task):
                 continue
 
             # Try converting to numeric
-            converted_col = pd.to_numeric(metadata_df[col], errors='coerce')
+            converted_col = pd.to_numeric(metadata_df[col], errors="coerce")
             # Only keep the conversion if at least 50% of values are valid numbers
             # This preserves string columns (compound, label, etc.) which would have 0% valid numbers
-            valid_ratio = converted_col.notna().sum() / len(converted_col) if len(converted_col) > 0 else 0
+            valid_ratio = (
+                converted_col.notna().sum() / len(converted_col) if len(converted_col) > 0 else 0
+            )
             if valid_ratio >= 0.5:
                 metadata_df[col] = converted_col
 
@@ -1250,9 +1403,9 @@ class BiolectorXTLoadData(Task):
 
         # Prepare outputs
         outputs = {
-            'resource_set': combined_resource_set,
-            'venn_diagram': venn_diagram,
-            'metadata_table': metadata_table
+            "resource_set": combined_resource_set,
+            "venn_diagram": venn_diagram,
+            "metadata_table": metadata_table,
         }
 
         # Add medium_table to outputs if provided as input
@@ -1263,7 +1416,7 @@ class BiolectorXTLoadData(Task):
             # Try to convert columns to numeric only if they are actually numeric
             # Skip identifier columns and columns that are primarily string values
             for col in medium_df.columns:
-                if col == 'Medium':
+                if col == "Medium":
                     continue
 
                 # Skip columns that are already numeric
@@ -1271,10 +1424,14 @@ class BiolectorXTLoadData(Task):
                     continue
 
                 # Try converting to numeric
-                converted_col = pd.to_numeric(medium_df[col], errors='coerce')
+                converted_col = pd.to_numeric(medium_df[col], errors="coerce")
                 # Only keep the conversion if at least 50% of values are valid numbers
                 # This preserves string columns which would have 0% valid numbers
-                valid_ratio = converted_col.notna().sum() / len(converted_col) if len(converted_col) > 0 else 0
+                valid_ratio = (
+                    converted_col.notna().sum() / len(converted_col)
+                    if len(converted_col) > 0
+                    else 0
+                )
                 if valid_ratio >= 0.5:
                     medium_df[col] = converted_col
 
@@ -1291,7 +1448,7 @@ class BiolectorXTLoadData(Task):
                     medium_table = Table(medium_df)
                     medium_table.name = "Medium table"
 
-            outputs['medium_table'] = medium_table
+            outputs["medium_table"] = medium_table
 
         # Return outputs
         return outputs

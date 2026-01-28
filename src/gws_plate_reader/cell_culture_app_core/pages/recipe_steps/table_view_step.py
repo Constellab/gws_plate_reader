@@ -3,7 +3,7 @@ Table View Step for Cell Culture Dashboard
 Handles table visualization with filtering and column selection
 """
 
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -12,9 +12,6 @@ from gws_core.resource.resource_set.resource_set import ResourceSet
 
 from gws_plate_reader.cell_culture_app_core.cell_culture_recipe import CellCultureRecipe
 from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
-from gws_plate_reader.cell_culture_app_core.pages.recipe_steps.microplate_selector import (
-    render_microplate_selector,
-)
 
 
 def get_available_columns_from_resource_set(resource_set: ResourceSet) -> dict[str, dict[str, str]]:
@@ -23,7 +20,7 @@ def get_available_columns_from_resource_set(resource_set: ResourceSet) -> dict[s
         resources = resource_set.get_resources()
         available_columns = {}
 
-        for resource_name, resource in resources.items():
+        for _resource_name, resource in resources.items():
             if isinstance(resource, Table):
                 for col_name in resource.get_column_names():
                     if col_name in available_columns:
@@ -43,8 +40,12 @@ def get_available_columns_from_resource_set(resource_set: ResourceSet) -> dict[s
         return {}
 
 
-def prepare_extended_data_for_visualization(resource_set: ResourceSet, cell_culture_state: CellCultureState,
-                                            selected_columns: list[str] = None, include_medium: bool = True) -> list[dict[str, Any]]:
+def prepare_extended_data_for_visualization(
+    resource_set: ResourceSet,
+    cell_culture_state: CellCultureState,
+    selected_columns: list[str] | None = None,
+    include_medium: bool = True,
+) -> list[dict[str, Any]]:
     """Prepare extended data from ResourceSet including selected columns
 
     :param resource_set: The resource set to extract data from
@@ -74,15 +75,11 @@ def prepare_extended_data_for_visualization(resource_set: ResourceSet, cell_cult
                             medium = tag.value
 
                 # Prepare row data
-                row_data = {
-                    'Batch': batch,
-                    'Sample': sample,
-                    'Resource_Name': resource_name
-                }
+                row_data = {"Batch": batch, "Sample": sample, "Resource_Name": resource_name}
 
                 # Only add Medium column if include_medium is True
                 if include_medium:
-                    row_data['Medium'] = medium
+                    row_data["Medium"] = medium
 
                 # Add selected columns data if specified
                 if selected_columns:
@@ -123,15 +120,15 @@ def get_col_tag_list_from_available_columns(
 def render_table_view_step(
     recipe: CellCultureRecipe,
     cell_culture_state: CellCultureState,
-    scenario: Optional[Scenario] = None,
-    output_name: str = None,
-    filtered_resource_set = None,
-    target_scenario: Optional[Scenario] = None,
-    visualization_data: list = None,
-    selected_batches: list = None,
-    selected_samples: list = None,
-    selected_index: str = None,
-    selected_columns: list = None,
+    scenario: Scenario | None = None,
+    output_name: str | None = None,
+    filtered_resource_set=None,
+    target_scenario: Scenario | None = None,
+    visualization_data: list | None = None,
+    selected_batches: list | None = None,
+    selected_samples: list | None = None,
+    selected_index: str | None = None,
+    selected_columns: list | None = None,
 ) -> None:
     """Render the table view step with filtered data visualization
 
@@ -177,7 +174,9 @@ def render_table_view_step(
                         return
 
                 except Exception as e:
-                    st.error(translate_service.translate("error_retrieving_data").format(error=str(e)))
+                    st.error(
+                        translate_service.translate("error_retrieving_data").format(error=str(e))
+                    )
                     return
 
             # Backward compatibility: if no scenario provided, try to get latest selection
@@ -211,7 +210,10 @@ def render_table_view_step(
 
         # Prepare extended data with selected columns
         extended_data = prepare_extended_data_for_visualization(
-            filtered_resource_set, cell_culture_state, selected_columns, include_medium=recipe.has_medium_info
+            filtered_resource_set,
+            cell_culture_state,
+            selected_columns,
+            include_medium=recipe.has_medium_info,
         )
 
         # Filter data based on batch and sample selection
@@ -273,9 +275,8 @@ def render_table_view_step(
                     # Keep only columns that match the selected batch/sample combinations
                     columns_to_keep = [selected_index]  # Always keep the index column
                     for col in column_df.columns:
-                        if col != selected_index:
-                            if col in batch_sample_combinations:
-                                columns_to_keep.append(col)
+                        if col != selected_index and col in batch_sample_combinations:
+                            columns_to_keep.append(col)
 
                     # Filter the DataFrame
                     filtered_column_df = (

@@ -57,18 +57,18 @@ class CellCultureState(ABC):
     PIPELINE_ID_KEY = "pipeline_id"
 
     # Common tags (can be overridden by subclasses)
-    TAG_FERMENTOR = "fermentor"
-    TAG_FERMENTOR_RECIPE_NAME = "fermentor_recipe_name"
-    TAG_FERMENTOR_PIPELINE_ID = "fermentor_pipeline_id"
+    TAG_BIOPROCESS = "bioprocess"
+    TAG_BIOPROCESS_RECIPE_NAME = "bioprocess_recipe_name"
+    TAG_BIOPROCESS_PIPELINE_ID = "bioprocess_pipeline_id"
     TAG_DATA_PROCESSING = "data_processing"
     TAG_SELECTION_PROCESSING = "selection_processing"
     TAG_QUALITY_CHECK_PROCESSING = "quality_check_processing"
     TAG_ANALYSES_PROCESSING = "analyses_processing"
     TAG_MICROPLATE_ANALYSIS = "microplate_analysis"
-    TAG_FERMENTOR_SELECTION_STEP = "fermentor_selection_step"
-    TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION = "fermentor_quality_check_parent_selection"
-    TAG_FERMENTOR_ANALYSES_PARENT_SELECTION = "fermentor_analyses_parent_selection"
-    TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK = "fermentor_analyses_parent_quality_check"
+    TAG_SELECTION_STEP = "selection_step"
+    TAG_QUALITY_CHECK_PARENT_SELECTION = "quality_check_parent_selection"
+    TAG_ANALYSES_PARENT_SELECTION = "analyses_parent_selection"
+    TAG_ANALYSES_PARENT_QUALITY_CHECK = "analyses_parent_quality_check"
 
     # Common tags for data
     TAG_BATCH = "batch"
@@ -485,14 +485,14 @@ class CellCultureState(ABC):
 
         tags: list[Tag] = []
 
-        if self.TAG_FERMENTOR in tags_dict:
-            tags.append(Tag(key=self.TAG_FERMENTOR, value=tags_dict[self.TAG_FERMENTOR]))
+        if self.TAG_BIOPROCESS in tags_dict:
+            tags.append(Tag(key=self.TAG_BIOPROCESS, value=tags_dict[self.TAG_BIOPROCESS]))
 
-        if self.TAG_FERMENTOR_RECIPE_NAME in tags_dict:
+        if self.TAG_BIOPROCESS_RECIPE_NAME in tags_dict:
             tags.append(
                 Tag(
-                    key=self.TAG_FERMENTOR_RECIPE_NAME,
-                    value=tags_dict[self.TAG_FERMENTOR_RECIPE_NAME],
+                    key=self.TAG_BIOPROCESS_RECIPE_NAME,
+                    value=tags_dict[self.TAG_BIOPROCESS_RECIPE_NAME],
                 )
             )
 

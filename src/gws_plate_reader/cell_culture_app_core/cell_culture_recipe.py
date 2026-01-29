@@ -12,9 +12,11 @@ from gws_core import Scenario, User
 from gws_core.tag.entity_tag_list import EntityTagList, TagEntityType
 
 # Tag constants (matching CellCultureState)
-_TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION = "fermentor_quality_check_parent_selection"
-_TAG_FERMENTOR_ANALYSES_PARENT_SELECTION = "fermentor_analyses_parent_selection"
-_TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK = "fermentor_analyses_parent_quality_check"
+_TAG_BIOPROCESS_RECIPE_NAME = "bioprocess_recipe_name"
+_TAG_BIOPROCESS_PIPELINE_ID = "bioprocess_pipeline_id"
+_TAG_QUALITY_CHECK_PARENT_SELECTION = "quality_check_parent_selection"
+_TAG_ANALYSES_PARENT_SELECTION = "analyses_parent_selection"
+_TAG_ANALYSES_PARENT_QUALITY_CHECK = "analyses_parent_quality_check"
 
 
 @dataclass
@@ -58,14 +60,15 @@ class CellCultureRecipe(ABC):
         entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
 
         # Extract recipe name using specific tag
-        name = cls._extract_tag_value(entity_tag_list, "fermentor_recipe_name", scenario.title)
+        name = cls._extract_tag_value(entity_tag_list, _TAG_BIOPROCESS_RECIPE_NAME, scenario.title)
 
         # Extract pipeline ID using specific tag
-        pipeline_id = cls._extract_tag_value(entity_tag_list, "fermentor_pipeline_id", scenario.id)
+        pipeline_id = cls._extract_tag_value(
+            entity_tag_list, _TAG_BIOPROCESS_PIPELINE_ID, scenario.id
+        )
 
-        # Extract analysis type (microplate or standard)
-        microplate_value = cls._extract_tag_value(entity_tag_list, "microplate_analysis", "false")
-        analysis_type = "microplate" if microplate_value == "true" else "standard"
+        # Set analysis type (standard)
+        analysis_type = "standard"
 
         # Extract specific file information
         file_tags = [
@@ -183,9 +186,7 @@ class CellCultureRecipe(ABC):
         filtered_scenarios = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_selection_tags = entity_tag_list.get_tags_by_key(
-                _TAG_FERMENTOR_ANALYSES_PARENT_SELECTION
-            )
+            parent_selection_tags = entity_tag_list.get_tags_by_key(_TAG_ANALYSES_PARENT_SELECTION)
 
             if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
                 filtered_scenarios.append(scenario)
@@ -338,7 +339,7 @@ class CellCultureRecipe(ABC):
         for scenario in all_qc_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
             parent_selection_tags = entity_tag_list.get_tags_by_key(
-                _TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION
+                _TAG_QUALITY_CHECK_PARENT_SELECTION
             )
 
             if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
@@ -381,9 +382,7 @@ class CellCultureRecipe(ABC):
         filtered = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_qc_tags = entity_tag_list.get_tags_by_key(
-                _TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK
-            )
+            parent_qc_tags = entity_tag_list.get_tags_by_key(_TAG_ANALYSES_PARENT_QUALITY_CHECK)
             analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
 
             # Check if this is a medium_pca analysis for the specified quality check
@@ -430,9 +429,7 @@ class CellCultureRecipe(ABC):
         filtered = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_qc_tags = entity_tag_list.get_tags_by_key(
-                _TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK
-            )
+            parent_qc_tags = entity_tag_list.get_tags_by_key(_TAG_ANALYSES_PARENT_QUALITY_CHECK)
             analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
 
             # Check if this is a medium_umap analysis for the specified quality check
@@ -479,9 +476,7 @@ class CellCultureRecipe(ABC):
         filtered = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_qc_tags = entity_tag_list.get_tags_by_key(
-                _TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK
-            )
+            parent_qc_tags = entity_tag_list.get_tags_by_key(_TAG_ANALYSES_PARENT_QUALITY_CHECK)
             analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
 
             # Check if this is a feature_extraction analysis for the specified quality check
@@ -777,9 +772,7 @@ class CellCultureRecipe(ABC):
         filtered = []
         for scenario in all_analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_qc_tags = entity_tag_list.get_tags_by_key(
-                _TAG_FERMENTOR_ANALYSES_PARENT_QUALITY_CHECK
-            )
+            parent_qc_tags = entity_tag_list.get_tags_by_key(_TAG_ANALYSES_PARENT_QUALITY_CHECK)
             analysis_type_tags = entity_tag_list.get_tags_by_key("analysis_type")
 
             # Check if this is a logistic_growth analysis for the specified quality check

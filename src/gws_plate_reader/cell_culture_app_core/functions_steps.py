@@ -79,7 +79,7 @@ def create_recipe_table_data(
             # Extract recipe name
             recipe_name = translate_service.translate("recipe_unnamed")
             recipe_name_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME
+                cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
             )
             if recipe_name_tags:
                 recipe_name = recipe_name_tags[0].tag_value
@@ -92,20 +92,20 @@ def create_recipe_table_data(
                 )
 
             # Check if this is a load scenario (data processing)
-            fermentor_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR)
+            fermentor_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_BIOPROCESS)
             is_load_scenario = any(
                 tag.tag_value == cell_culture_state.TAG_DATA_PROCESSING for tag in fermentor_tags
             )
 
             # Check if this is a selection scenario
-            selection_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR)
+            selection_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_BIOPROCESS)
             is_selection_scenario = any(
                 tag.tag_value == cell_culture_state.TAG_SELECTION_PROCESSING
                 for tag in selection_tags
             )
 
             # Check if this is a quality check scenario
-            quality_check_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_FERMENTOR)
+            quality_check_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_BIOPROCESS)
             is_quality_check_scenario = any(
                 tag.tag_value == cell_culture_state.TAG_QUALITY_CHECK_PROCESSING
                 for tag in quality_check_tags
@@ -113,7 +113,7 @@ def create_recipe_table_data(
 
             # Get pipeline_id to create unique key
             pipeline_id_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
             )
             pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else scenario.id
 

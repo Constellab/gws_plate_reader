@@ -757,7 +757,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         TagEntityType.SCENARIO, fe_scenario_id
                     )
                     parent_qc_tags = entity_tag_list.get_tags_by_key(
-                        "fermentor_analyses_parent_quality_check"
+                        cell_culture_state.TAG_ANALYSES_PARENT_QUALITY_CHECK
                     )
 
                     target_qc_scenario = None
@@ -821,7 +821,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         TagEntityType.SCENARIO, fe_scenario_id
                     )
                     parent_qc_tags = entity_tag_list.get_tags_by_key(
-                        "fermentor_analyses_parent_quality_check"
+                        cell_culture_state.TAG_ANALYSES_PARENT_QUALITY_CHECK
                     )
 
                     target_qc_scenario = None
@@ -883,7 +883,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         TagEntityType.SCENARIO, fe_scenario_id
                     )
                     parent_qc_tags = entity_tag_list.get_tags_by_key(
-                        "fermentor_analyses_parent_quality_check"
+                        cell_culture_state.TAG_ANALYSES_PARENT_QUALITY_CHECK
                     )
 
                     target_qc_scenario = None
@@ -943,7 +943,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         TagEntityType.SCENARIO, fe_scenario_id
                     )
                     parent_qc_tags = entity_tag_list.get_tags_by_key(
-                        "fermentor_analyses_parent_quality_check"
+                        cell_culture_state.TAG_ANALYSES_PARENT_QUALITY_CHECK
                     )
 
                     target_qc_scenario = None
@@ -1005,7 +1005,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         TagEntityType.SCENARIO, fe_scenario_id
                     )
                     parent_qc_tags = entity_tag_list.get_tags_by_key(
-                        "fermentor_analyses_parent_quality_check"
+                        cell_culture_state.TAG_ANALYSES_PARENT_QUALITY_CHECK
                     )
 
                     target_qc_scenario = None

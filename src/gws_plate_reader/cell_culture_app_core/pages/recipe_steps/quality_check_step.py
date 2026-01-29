@@ -342,7 +342,7 @@ def launch_quality_check_scenario(
 
             # Get recipe name from parent
             parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME
+                cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
             )
             original_recipe_name = (
                 parent_recipe_name_tags[0].tag_value
@@ -352,7 +352,7 @@ def launch_quality_check_scenario(
 
             # Get pipeline ID from parent
             parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
             )
             pipeline_id = (
                 parent_pipeline_id_tags[0].tag_value
@@ -371,7 +371,7 @@ def launch_quality_check_scenario(
             # Classification tag - indicate this is a quality check step
             scenario_proxy.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR,
+                    cell_culture_state.TAG_BIOPROCESS,
                     cell_culture_state.TAG_QUALITY_CHECK_PROCESSING,
                     is_propagable=False,
                 )
@@ -380,13 +380,13 @@ def launch_quality_check_scenario(
             # Inherit core identification tags
             scenario_proxy.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
+                    cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME,
                     original_recipe_name,
                     is_propagable=False,
                 )
             )
             scenario_proxy.add_tag(
-                Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID, pipeline_id, is_propagable=False)
+                Tag(cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID, pipeline_id, is_propagable=False)
             )
             scenario_proxy.add_tag(
                 Tag(
@@ -399,7 +399,7 @@ def launch_quality_check_scenario(
             # Link to parent selection scenario
             scenario_proxy.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR_QUALITY_CHECK_PARENT_SELECTION,
+                    cell_culture_state.TAG_QUALITY_CHECK_PARENT_SELECTION,
                     selection_scenario.id,
                     is_propagable=False,
                 )

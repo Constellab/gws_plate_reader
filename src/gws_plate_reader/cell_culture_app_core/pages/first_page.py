@@ -51,7 +51,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             ScenarioSearchBuilder()
             .add_tag_filter(
                 Tag(
-                    key=cell_culture_state.TAG_FERMENTOR,
+                    key=cell_culture_state.TAG_BIOPROCESS,
                     value=cell_culture_state.TAG_DATA_PROCESSING,
                 )
             )
@@ -64,7 +64,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             ScenarioSearchBuilder()
             .add_tag_filter(
                 Tag(
-                    key=cell_culture_state.TAG_FERMENTOR,
+                    key=cell_culture_state.TAG_BIOPROCESS,
                     value=cell_culture_state.TAG_SELECTION_PROCESSING,
                 )
             )
@@ -77,7 +77,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             ScenarioSearchBuilder()
             .add_tag_filter(
                 Tag(
-                    key=cell_culture_state.TAG_FERMENTOR,
+                    key=cell_culture_state.TAG_BIOPROCESS,
                     value=cell_culture_state.TAG_QUALITY_CHECK_PROCESSING,
                 )
             )
@@ -90,7 +90,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
             ScenarioSearchBuilder()
             .add_tag_filter(
                 Tag(
-                    key=cell_culture_state.TAG_FERMENTOR,
+                    key=cell_culture_state.TAG_BIOPROCESS,
                     value=cell_culture_state.TAG_ANALYSES_PROCESSING,
                 )
             )
@@ -112,7 +112,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         for scenario in load_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
             recipe_name_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME
+                cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
             )
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
@@ -131,13 +131,13 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         for scenario in selection_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
             recipe_name_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME
+                cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
             )
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
             # Get pipeline_id to match with the correct load scenario
             pipeline_id_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
             )
             pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else None
 
@@ -148,7 +148,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                     TagEntityType.SCENARIO, load_scenario.id
                 )
                 load_pipeline_id_tags = load_entity_tags.get_tags_by_key(
-                    cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                    cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
                 )
                 load_pipeline_id = (
                     load_pipeline_id_tags[0].tag_value if load_pipeline_id_tags else None
@@ -162,13 +162,13 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         for scenario in quality_check_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
             recipe_name_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME
+                cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
             )
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
             # Get pipeline_id to match with the correct load scenario
             pipeline_id_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
             )
             pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else None
 
@@ -179,7 +179,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                     TagEntityType.SCENARIO, load_scenario.id
                 )
                 load_pipeline_id_tags = load_entity_tags.get_tags_by_key(
-                    cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                    cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
                 )
                 load_pipeline_id = (
                     load_pipeline_id_tags[0].tag_value if load_pipeline_id_tags else None
@@ -193,13 +193,13 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         for scenario in analyses_scenarios:
             entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
             recipe_name_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME
+                cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
             )
             recipe_name = recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
 
             # Get pipeline_id to match with the correct load scenario
             pipeline_id_tags = entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
             )
             pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else None
 
@@ -210,7 +210,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                     TagEntityType.SCENARIO, load_scenario.id
                 )
                 load_pipeline_id_tags = load_entity_tags.get_tags_by_key(
-                    cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                    cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
                 )
                 load_pipeline_id = (
                     load_pipeline_id_tags[0].tag_value if load_pipeline_id_tags else None
@@ -240,7 +240,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                         TagEntityType.SCENARIO, scenario.id
                     )
                     recipe_name_tags = entity_tag_list.get_tags_by_key(
-                        cell_culture_state.TAG_FERMENTOR_RECIPE_NAME
+                        cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
                     )
                     selected_recipe_name = (
                         recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title

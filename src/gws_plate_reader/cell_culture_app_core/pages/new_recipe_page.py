@@ -450,21 +450,21 @@ def render_new_recipe_fermentor(cell_culture_state: CellCultureState) -> None:
             # Core tags
             scenario.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR,
+                    cell_culture_state.TAG_BIOPROCESS,
                     cell_culture_state.TAG_DATA_PROCESSING,
                     is_propagable=False,
                 )
             )
             scenario.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
+                    cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME,
                     analysis_name_parsed,
                     is_propagable=False,
                 )
             )
             scenario.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR_PIPELINE_ID,
+                    cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID,
                     pipeline_id,
                     is_propagable=False,
                 )
@@ -1068,20 +1068,20 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
 
             scenario.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR,
+                    cell_culture_state.TAG_BIOPROCESS,
                     cell_culture_state.TAG_DATA_PROCESSING,
                     is_propagable=False,
                 )
             )
             scenario.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
+                    cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME,
                     analysis_name_parsed,
                     is_propagable=False,
                 )
             )
             scenario.add_tag(
-                Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID, pipeline_id, is_propagable=False)
+                Tag(cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID, pipeline_id, is_propagable=False)
             )
             scenario.add_tag(
                 Tag(cell_culture_state.TAG_MICROPLATE_ANALYSIS, "true", is_propagable=False)

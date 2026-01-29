@@ -142,7 +142,7 @@ def launch_selection_scenario(
 
             # Get original recipe name from parent scenario
             parent_recipe_name_tags = parent_entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_RECIPE_NAME
+                cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
             )
             original_recipe_name = (
                 parent_recipe_name_tags[0].tag_value
@@ -152,7 +152,7 @@ def launch_selection_scenario(
 
             # Get pipeline ID from parent scenario
             parent_pipeline_id_tags = parent_entity_tag_list.get_tags_by_key(
-                cell_culture_state.TAG_FERMENTOR_PIPELINE_ID
+                cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
             )
             pipeline_id = (
                 parent_pipeline_id_tags[0].tag_value
@@ -171,7 +171,7 @@ def launch_selection_scenario(
             # Classification tag - indicate this is a selection processing step
             scenario_proxy.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR,
+                    cell_culture_state.TAG_BIOPROCESS,
                     cell_culture_state.TAG_SELECTION_PROCESSING,
                     is_propagable=False,
                 )
@@ -180,13 +180,13 @@ def launch_selection_scenario(
             # Inherit core identification tags from parent scenario
             scenario_proxy.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR_RECIPE_NAME,
+                    cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME,
                     original_recipe_name,
                     is_propagable=False,
                 )
             )
             scenario_proxy.add_tag(
-                Tag(cell_culture_state.TAG_FERMENTOR_PIPELINE_ID, pipeline_id, is_propagable=False)
+                Tag(cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID, pipeline_id, is_propagable=False)
             )
             scenario_proxy.add_tag(
                 Tag(
@@ -199,7 +199,7 @@ def launch_selection_scenario(
             # Add specific selection step tag
             scenario_proxy.add_tag(
                 Tag(
-                    cell_culture_state.TAG_FERMENTOR_SELECTION_STEP,
+                    cell_culture_state.TAG_SELECTION_STEP,
                     load_scenario.id,
                     is_propagable=False,
                 )

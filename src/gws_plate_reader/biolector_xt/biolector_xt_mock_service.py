@@ -1,6 +1,5 @@
 import json
 import os
-from typing import List
 
 from gws_core import FileDownloader, Settings
 
@@ -23,7 +22,7 @@ class BiolectorXTMockService(BiolectorXTServiceI):
     EXPERIMENT_LIST = "experiment_list.json"
     EXPERIMENT_ZIP_LOCATION = "https://storage.gra.cloud.ovh.net/v1/AUTH_a0286631d7b24afba3f3cdebed2992aa/opendata/gws_plate_reader/Biolector_xt_example_data.zip"
 
-    def get_protocols(self) -> List[ProtocolInfo]:
+    def get_protocols(self) -> list[ProtocolInfo]:
         protocol_infos = self._read_json_file(
             os.path.join(self._get_data_folder(), self.PROTOCOL_LIST)
         )
@@ -39,7 +38,7 @@ class BiolectorXTMockService(BiolectorXTServiceI):
 
         return protocol_infos_list
 
-    def get_experiments(self) -> List[ExperimentInfo]:
+    def get_experiments(self) -> list[ExperimentInfo]:
         experiment_infos = self._read_json_file(
             os.path.join(self._get_data_folder(), self.EXPERIMENT_LIST)
         )
@@ -84,7 +83,7 @@ class BiolectorXTMockService(BiolectorXTServiceI):
         pass
 
     def _read_json_file(self, file_path: str) -> dict:
-        with open(file_path, "r", encoding="utf-8") as file:
+        with open(file_path, encoding="utf-8") as file:
             return json.load(file)
 
     def _get_data_folder(self) -> str:

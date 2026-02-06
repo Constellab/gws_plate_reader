@@ -1,28 +1,26 @@
-
 import os
 import shutil
 import tempfile
 from datetime import datetime
 from io import StringIO
 from json import dump, load, loads
-from typing import Dict, List
 
 import streamlit as st
-from gws_core import Compress, FileHelper, Settings
-from gws_core.config.config_params import ConfigParams
-from gws_core.impl.file.file import File
-from gws_core.impl.file.folder import Folder
-from gws_core.impl.table.table import Table
-from gws_core.impl.table.tasks.table_importer import TableImporter
-from gws_core.resource.resource_set.resource_set import ResourceSet
-from gws_core.task.task_runner import TaskRunner
-from gws_plate_reader.biolector_xt.biolector_xt_mock_service import \
-    BiolectorXTMockService
-from gws_plate_reader.biolector_xt_analysis.biolectorxt_analysis_dashboard import \
-    run
-from gws_plate_reader.biolector_xt_data_parser.biolector_xt_data_parser import \
-    BiolectorXTDataParser
-from pandas import DataFrame, read_csv
+from gws_core import (
+    Compress,
+    File,
+    FileHelper,
+    Folder,
+    ResourceSet,
+    Settings,
+    Table,
+    TableImporter,
+    TaskRunner,
+)
+
+from gws_plate_reader.biolector_xt.biolector_xt_mock_service import BiolectorXTMockService
+from gws_plate_reader.biolector_xt_analysis.biolectorxt_analysis_dashboard import run
+from gws_plate_reader.biolector_xt_data_parser.biolector_xt_data_parser import BiolectorXTDataParser
 
 # thoses variable will be set by the streamlit app
 # don't initialize them, there are create to avoid errors in the IDE
@@ -36,16 +34,16 @@ and get the analysis of the data.
 """
 
 stats_folder: Folder = sources[0]
-stats_file = os.path.join(stats_folder.path, 'stats.json')
+stats_file = os.path.join(stats_folder.path, "stats.json")
 
 
 def import_table(table_file_path: str):
     table_file = File(table_file_path)
     table: Table = TableImporter.call(table_file)
-    table.name = 'table'
-    st.session_state['table'] = table
-    if 'parsed_data_tables_tables' in st.session_state:
-        del st.session_state['parsed_data_tables_tables']
+    table.name = "table"
+    st.session_state["table"] = table
+    if "parsed_data_tables_tables" in st.session_state:
+        del st.session_state["parsed_data_tables_tables"]
 
 
 def find_file(file_end: str, folder_path: str):
@@ -57,21 +55,18 @@ def find_file(file_end: str, folder_path: str):
 
 def save_new_stats(mock_data: bool):
     try:
-        new_stat = {
-            "mock_data": mock_data,
-            "timestamps": datetime.now().isoformat()
-        }
+        new_stat = {"mock_data": mock_data, "timestamps": datetime.now().isoformat()}
 
         stats = []
         if os.path.exists(stats_file):
             try:
-                with open(stats_file, 'r', encoding='UTF-8') as f:
+                with open(stats_file, encoding="UTF-8") as f:
                     stats = load(f)
             except Exception as e:
                 print(f"Error while loading the stats file: {e}")
 
         stats.append(new_stat)
-        with open(stats_file, 'w', encoding='UTF-8') as f:
+        with open(stats_file, "w", encoding="UTF-8") as f:
             dump(stats, f)
     except Exception as e:
         print(f"Error while saving the new stats: {e}")
@@ -79,8 +74,7 @@ def save_new_stats(mock_data: bool):
 
 table_file = None
 json_file = None
-if 'table' not in st.session_state or 'metadata' not in st.session_state:
-
+if "table" not in st.session_state or "metadata" not in st.session_state:
     st.title("Biolector XT data parser app")
     st.text("""This app allows you to upload a Biolector XT data file and visualize the data.
 The uploaded data are not stored and are only used to generate the dashboard.
@@ -91,27 +85,32 @@ Refresh the page to upload new data.""")
     table_file = st.file_uploader("Upload the Biolector XT data csv file", type=["csv"])
 
     if table_file:
-        extension = FileHelper.get_extension(table_file.name)
+        extension = FileHelper.get_normalized_extension(table_file.name)
 
         if extension not in ["csv"]:
-            raise Exception(f"The data file must be a csv file, but the provided file has the extension {extension}")
+            raise Exception(
+                f"The data file must be a csv file, but the provided file has the extension {extension}"
+            )
 
         temp_dir = tempfile.mkdtemp(dir=stats_folder.path)
         path = os.path.join(temp_dir, table_file.name)
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             f.write(table_file.getvalue())
         import_table(path)
         os.remove(path)
         shutil.rmtree(temp_dir)
 
-    json_file = st.file_uploader("Upload the BiolectorXT json metadata file (*BXT.json)", type=["json"])
+    json_file = st.file_uploader(
+        "Upload the BiolectorXT json metadata file (*BXT.json)", type=["json"]
+    )
 
     if json_file:
-
-        extension = FileHelper.get_extension(json_file.name)
+        extension = FileHelper.get_normalized_extension(json_file.name)
 
         if extension not in ["json"]:
-            raise Exception(f"The data file must be a json file, but the provided file has the extension {extension}")
+            raise Exception(
+                f"The data file must be a json file, but the provided file has the extension {extension}"
+            )
 
         # read the json file
         stringio = StringIO(json_file.getvalue().decode("utf-8"))
@@ -119,9 +118,9 @@ Refresh the page to upload new data.""")
 
         try:
             metadata = loads(string_data)
-            st.session_state['metadata'] = metadata
+            st.session_state["metadata"] = metadata
         except Exception as e:
-            raise Exception(f"Error while loading the json file: {e}")
+            raise Exception(f"Error while loading the json file: {e}") from e
 
     st.header("Or")
     # Button to use mock data
@@ -129,7 +128,7 @@ Refresh the page to upload new data.""")
         save_new_stats(True)
         with st.spinner("Importing test data..."):
             mock_service = BiolectorXTMockService()
-            experiment_zip = mock_service.download_experiment('Test')
+            experiment_zip = mock_service.download_experiment("Test")
 
             tmp_dir = Settings.make_temp_dir()
 
@@ -137,52 +136,54 @@ Refresh the page to upload new data.""")
             Compress.smart_decompress(experiment_zip, tmp_dir)
 
             # import the table
-            file_path = find_file('.csv', tmp_dir)
+            file_path = find_file(".csv", tmp_dir)
             if not file_path:
                 raise Exception("No csv file found in the test data, please upload your own data.")
             import_table(file_path)
 
             # import the metadata
-            file_path = find_file('BXT.json', tmp_dir)
+            file_path = find_file("BXT.json", tmp_dir)
             if not file_path:
-                raise Exception("No metadata file found in the test data, please upload your own metadata.")
-            with open(file_path, 'r', encoding='UTF-8') as json_file:
+                raise Exception(
+                    "No metadata file found in the test data, please upload your own metadata."
+                )
+            with open(file_path, encoding="UTF-8") as json_file:
                 metadata = loads(json_file.read())
-                st.session_state['metadata'] = metadata
+                st.session_state["metadata"] = metadata
 
             st.rerun()
 
 
 # after the selection of the second file, we rerun all the app to display only the dashboard
 # and not the file uploader
-if (table_file or json_file) and 'table' in st.session_state and 'metadata' in st.session_state:
+if (table_file or json_file) and "table" in st.session_state and "metadata" in st.session_state:
     save_new_stats(False)
     st.rerun()
 
 
-if 'table' in st.session_state and 'metadata' in st.session_state:
-    table: Table = st.session_state['table']
+if "table" in st.session_state and "metadata" in st.session_state:
+    table: Table = st.session_state["table"]
 
-    metadata = st.session_state['metadata']
+    metadata = st.session_state["metadata"]
 
-    if 'parsed_data_tables_tables' not in st.session_state:
-
+    if "parsed_data_tables_tables" not in st.session_state:
         # save metadata in a file named metadataBXT.json in the stats folder
-        file_path = os.path.join(stats_folder.path, 'metadataBXT.json')
-        with open(file_path, 'w', encoding='UTF-8') as f:
+        file_path = os.path.join(stats_folder.path, "metadataBXT.json")
+        with open(file_path, "w", encoding="UTF-8") as f:
             dump(metadata, f)
 
-        task_runner = TaskRunner(BiolectorXTDataParser, inputs={
-            'raw_data': table, 'folder_metadata': stats_folder})
+        task_runner = TaskRunner(
+            BiolectorXTDataParser, inputs={"raw_data": table, "folder_metadata": stats_folder}
+        )
 
         output: dict = task_runner.run()
-        if 'parsed_data_tables' not in output:
+        if "parsed_data_tables" not in output:
             st.error("No parsed data tables found in the resource set")
             st.stop()
 
-        parsed_data_tables: ResourceSet = output['parsed_data_tables']
-        parsed_data_tables_tables: Dict[str, Table] = parsed_data_tables.get_resources()
-        st.session_state['parsed_data_tables_tables'] = parsed_data_tables_tables
+        parsed_data_tables: ResourceSet = output["parsed_data_tables"]
+        parsed_data_tables_tables: dict[str, Table] = parsed_data_tables.get_resources()
+        st.session_state["parsed_data_tables_tables"] = parsed_data_tables_tables
 
     # run the dashboard
-    run(st.session_state['parsed_data_tables_tables'], True, None)
+    run(st.session_state["parsed_data_tables_tables"], True, None)

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
-from gws_plate_reader.biolector_xt_analysis.biolector_state import BiolectorState
+from gws_plate_reader.biolector_xt_analysis._dashboard_core.biolector_state import BiolectorState
 from scipy.interpolate import UnivariateSpline
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score

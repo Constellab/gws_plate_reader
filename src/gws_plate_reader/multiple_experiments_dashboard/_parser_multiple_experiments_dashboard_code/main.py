@@ -1,13 +1,22 @@
 import streamlit as st
-from gws_plate_reader.biolector_xt_analysis import (analysis_tab, plot_tab,
-                                                    table_tab, stats_tab)
-from gws_plate_reader.biolector_xt_analysis.biolector_state import (
-    BiolectorState, BiolectorStateMode)
-from gws_plate_reader.multiple_experiments_dashboard._parser_multiple_experiments_dashboard_code.pages import \
-    find_experiments
+from gws_streamlit_main import StreamlitMainState
 
-sources: list
-params: dict
+# Initialize GWS - MUST be at the top
+StreamlitMainState.initialize()
+
+from gws_plate_reader.biolector_xt_analysis._dashboard_core import (
+    analysis_tab,
+    plot_tab,
+    stats_tab,
+    table_tab,
+)
+from gws_plate_reader.biolector_xt_analysis._dashboard_core.biolector_state import (
+    BiolectorState,
+    BiolectorStateMode,
+)
+from gws_plate_reader.multiple_experiments_dashboard._parser_multiple_experiments_dashboard_code.app_pages import (
+    find_experiments,
+)
 
 WELLS_NUMBER = 48  # 96
 ROWS = 6  # 8
@@ -15,16 +24,54 @@ COLS = 8  # 12
 
 # 48 distinct colors
 COLOR_PALETTE = [
-    "#f4c2c2", "#7fbde3", "#85c985", "#fce79b", "#c58fd3",
-    "#b9e9eb", "#ffbb7b", "#f5a8f6", "#c79a6c", "#88c7cc",
-    "#9585d1", "#f08080", "#6da38a", "#dfb6a4", "#d4ecb4",
-    "#c76887", "#87e7a6", "#8a8082", "#F9D9A1", "#baa6ec",
-    "#F1E1F1", "#B2F3A1", "#FF5733", "#33FF57", "#D2F0A1",
-    "#3357FF", "#F3FF33", "#A1E5D4", "#C8C8FF", "#E3D5C0",
-    "#FF33A8", "#33FFF3", "#A833FF", "#FFA833", "#8D33FF",
-    "#FF338D", "#33FF8D", "#8DFF33", "#338DFF", "#F033FF",
-    "#FF8333", "#8333FF", "#33A8FF", "#E2D6F3", "#D1DFF5",
-    "#FF33F0", "#33F0FF", "#57FF33",
+    "#f4c2c2",
+    "#7fbde3",
+    "#85c985",
+    "#fce79b",
+    "#c58fd3",
+    "#b9e9eb",
+    "#ffbb7b",
+    "#f5a8f6",
+    "#c79a6c",
+    "#88c7cc",
+    "#9585d1",
+    "#f08080",
+    "#6da38a",
+    "#dfb6a4",
+    "#d4ecb4",
+    "#c76887",
+    "#87e7a6",
+    "#8a8082",
+    "#F9D9A1",
+    "#baa6ec",
+    "#F1E1F1",
+    "#B2F3A1",
+    "#FF5733",
+    "#33FF57",
+    "#D2F0A1",
+    "#3357FF",
+    "#F3FF33",
+    "#A1E5D4",
+    "#C8C8FF",
+    "#E3D5C0",
+    "#FF33A8",
+    "#33FFF3",
+    "#A833FF",
+    "#FFA833",
+    "#8D33FF",
+    "#FF338D",
+    "#33FF8D",
+    "#8DFF33",
+    "#338DFF",
+    "#F033FF",
+    "#FF8333",
+    "#8333FF",
+    "#33A8FF",
+    "#E2D6F3",
+    "#D1DFF5",
+    "#FF33F0",
+    "#33F0FF",
+    "#57FF33",
 ]
 
 
@@ -40,8 +87,8 @@ def get_complete_wells_data(wells_data_list: dict) -> dict:
         # 2 digit number
         well_number = well % COLS + 1
         if well_number < 10:
-            well_number = f'0{well_number}'
-        well_name = f'{well_letter}{well_number}'
+            well_number = f"0{well_number}"
+        well_name = f"{well_letter}{well_number}"
         complete_wells_data_list[well_name] = {}
         for plate, wells_data in wells_data_list.items():
             if well_name in wells_data:
@@ -58,28 +105,45 @@ def get_well_data_help_tab(w_data: dict) -> str:
     if not w_data or w_data == {}:
         return "No data available"
     plates = list(w_data.keys())
-    res = '| Property |' + "".join(f' {plate} |' for plate in plates) + "\n"
+    res = "| Property |" + "".join(f" {plate} |" for plate in plates) + "\n"
     all_metadata = set()
-    res += '|----------|' + "".join(f"{''.join('-' for i in range(len(plate)+2))}|" for plate in plates) + "\n"
+    res += (
+        "|----------|"
+        + "".join(f"{''.join('-' for i in range(len(plate) + 2))}|" for plate in plates)
+        + "\n"
+    )
     for plate in plates:
         all_metadata.update(w for w in w_data[plate].keys())
     for metadata in all_metadata:
-        res += f'| **{metadata}** |' + "".join(
-            f" {w_data[plate].get(metadata, '')} |" for plate in plates) + "\n"
+        res += (
+            f"| **{metadata}** |"
+            + "".join(f" {w_data[plate].get(metadata, '')} |" for plate in plates)
+            + "\n"
+        )
     return res
 
 
-_find_experiments_page = st.Page(find_experiments.render_find_experiments_page,
-                                 title='Experiments', url_path='find_experiments', icon='🔍')
-_tables_page = st.Page(table_tab.render_table_tab, title='Tables', url_path='tables', icon='📄')
-_plots_page = st.Page(plot_tab.render_plot_tab, title='Plots', url_path='plots', icon='📈')
-_analysis_page = st.Page(analysis_tab.render_analysis_tab, title='Growth rate analysis', url_path='protocols', icon='🔍')
-_stats_page = st.Page(stats_tab.render_stats_tab, title='Statistics', url_path='statistics', icon='📊')
+_find_experiments_page = st.Page(
+    find_experiments.render_find_experiments_page,
+    title="Experiments",
+    url_path="find_experiments",
+    icon="🔍",
+)
+_tables_page = st.Page(table_tab.render_table_tab, title="Tables", url_path="tables", icon="📄")
+_plots_page = st.Page(plot_tab.render_plot_tab, title="Plots", url_path="plots", icon="📈")
+_analysis_page = st.Page(
+    analysis_tab.render_analysis_tab, title="Growth rate analysis", url_path="protocols", icon="🔍"
+)
+_stats_page = st.Page(
+    stats_tab.render_stats_tab, title="Statistics", url_path="statistics", icon="📊"
+)
 
-pages = {'Experiments': [_find_experiments_page]}
+pages = {"Experiments": [_find_experiments_page]}
 
-if 'selected_experiments' in st.session_state:
-    BiolectorState.init(st.session_state['selected_experiments'], BiolectorStateMode.MULTIPLE_PLATES)
+if "selected_experiments" in st.session_state:
+    BiolectorState.init(
+        st.session_state["selected_experiments"], BiolectorStateMode.MULTIPLE_PLATES
+    )
 
 if BiolectorState.is_init():
     st.markdown(
@@ -98,10 +162,10 @@ if BiolectorState.is_init():
         analysis_pages = [_tables_page, _plots_page]
     else:
         analysis_pages = [_tables_page, _plots_page, _analysis_page, _stats_page]
-    pages['Analysis'] = analysis_pages
+    pages["Analysis"] = analysis_pages
 
     well_data = BiolectorState.get_well_data_description()
-    if 'A01' not in well_data:
+    if "A01" not in well_data:
         # Add {} for A01 to B0 + COLS
         for letter in "AB":
             for col in range(1, COLS + 1):
@@ -132,7 +196,9 @@ if BiolectorState.is_init():
             }}
 
             """
-        css_code = "".join(css_template.format(label=label, color=color) for label, color in label_colors.items())
+        css_code = "".join(
+            css_template.format(label=label, color=color) for label, color in label_colors.items()
+        )
         active = """ button:active {
                     position:relative;
                     top:1px;
@@ -141,7 +207,7 @@ if BiolectorState.is_init():
 
         wells = [[f"{chr(65 + row)}{col + 1:02d}" for col in range(COLS)] for row in range(ROWS)]
 
-        cols_header = st.columns([4] * (COLS +1) + [1])
+        cols_header = st.columns([4] * (COLS + 1) + [1])
         for col in range(COLS):
             if cols_header[col + 1].button(str(col + 1), key=f"wellbt-col_{col + 1}"):
                 if col + 1 in BiolectorState.get_selected_cols():
@@ -162,11 +228,11 @@ if BiolectorState.is_init():
 
         replicated_wells_show = set()
         for well in BiolectorState.get_replicated_wells_show():
-            replicated_wells_show.add(well.split('_')[0])
+            replicated_wells_show.add(well.split("_")[0])
         replicated_wells_show = list(replicated_wells_show)
 
         for row in range(ROWS):
-            cols_object = st.columns([4] * (COLS +1) + [1])
+            cols_object = st.columns([4] * (COLS + 1) + [1])
             # Row header button
             if cols_object[0].button(chr(65 + row), key=f"wellbt-row_{chr(65 + row)}"):
                 if chr(65 + row) in BiolectorState.get_selected_rows():
@@ -187,17 +253,26 @@ if BiolectorState.is_init():
 
             for col in range(COLS):
                 well = wells[row][col]
-                key = f"wellbt-{well}-button" if well_data[well] != {} else f"wellbt-disabled-{well}-button"
+                key = (
+                    f"wellbt-{well}-button"
+                    if well_data[well] != {}
+                    else f"wellbt-disabled-{well}-button"
+                )
                 if well_data[well] == {}:
-                    cols_object[col+1].button(f":gray[{well}]", key=key, help="No data available", disabled=True)
+                    cols_object[col + 1].button(
+                        f":gray[{well}]", key=key, help="No data available", disabled=True
+                    )
                 elif well in BiolectorState.get_wells_clicked():
-                    if cols_object[col + 1].button(f"**{well}**", key=key,
-                                                   help=get_well_data_help_tab(well_data[well])):
+                    if cols_object[col + 1].button(
+                        f"**{well}**", key=key, help=get_well_data_help_tab(well_data[well])
+                    ):
                         if well in BiolectorState.get_wells_clicked():
                             BiolectorState.remove_well_clicked(well)
                             st.rerun(scope="app")
                 else:
-                    if cols_object[col+1].button(well, key=key, help=get_well_data_help_tab(well_data[well])):
+                    if cols_object[col + 1].button(
+                        well, key=key, help=get_well_data_help_tab(well_data[well])
+                    ):
                         BiolectorState.append_well_clicked(well)
                         st.rerun(scope="app")
 
@@ -205,7 +280,6 @@ if BiolectorState.is_init():
 
         # Add the reset button
         st.button("Reset wells selection", on_click=BiolectorState.clear_wells_clicked)
-
 
 
 pg = st.navigation(pages)

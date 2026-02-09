@@ -2,16 +2,17 @@ import os
 import json
 import pytz
 import streamlit as st
+from gws_streamlit_main import StreamlitMainState
+
+# Initialize GWS - MUST be at the top
+StreamlitMainState.initialize()
+
 import pandas as pd
 import numpy as np
 from datetime import datetime
 from gws_core import Table
 from gws_plate_reader.tecan.tecan_parser import TecanParser
 from streamlit_extras.stylable_container import stylable_container
-# thoses variable will be set by the streamlit app
-# don't initialize them, there are create to avoid errors in the IDE
-sources: list
-params: dict
 
 
 def show_content(microplate: TecanParser):
@@ -107,6 +108,8 @@ def show_content(microplate: TecanParser):
 
 
 # -------------------------------------------------------------------------------------------#
+sources = StreamlitMainState.get_sources()
+
 if not sources:
     raise Exception("Source paths are not provided.")
 

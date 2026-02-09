@@ -1,23 +1,29 @@
 import os
 
-from gws_core.streamlit import StreamlitRouter
+from gws_streamlit_main import StreamlitMainState
 
-from gws_plate_reader.cell_culture_app_core.cell_culture_state import CellCultureState
-from gws_plate_reader.cell_culture_app_core.pages import (
+# Initialize GWS - MUST be at the top
+StreamlitMainState.initialize()
+
+from gws_streamlit_main import StreamlitRouter
+
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.app_pages import (
     first_page,
     new_recipe_page,
     recipe_page,
     settings,
 )
-
-sources: list
-params: dict
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
+    CellCultureState,
+)
 
 # Get the directory of this file
 current_dir = os.path.dirname(__file__)
 
 # Path to gws_plate_reader translation files
-lang_translation_folder_path_gws_plate_reader = os.path.join(current_dir, "..")
+lang_translation_folder_path_gws_plate_reader = os.path.join(
+    current_dir, "..", "_constellab_bioprocess_core"
+)
 
 # Initialize Fermentor state
 cell_culture_state = CellCultureState(lang_translation_folder_path_gws_plate_reader)

@@ -1,4 +1,4 @@
-from gws_plate_reader.biolector_xt_analysis.biolector_state import BiolectorState
+from gws_plate_reader.biolector_xt_analysis._dashboard_core.biolector_state import BiolectorState
 
 
 def render_select_biolector_experiment_inputs():

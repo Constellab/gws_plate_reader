@@ -1,18 +1,23 @@
 from typing import Dict, List
 
 import streamlit as st
-from gws_core.impl.table.table import Table
-from gws_plate_reader.biolector_xt.tasks._streamlit_dashboard.app.download_exp import \
-    DOWNLOAD_TAG_KEY
-from gws_plate_reader.biolector_xt_analysis.biolectorxt_analysis_dashboard import \
-    run
+from gws_streamlit_main import StreamlitMainState
 
-# thoses variable will be set by the streamlit app
-# don't initialize them, there are create to avoid errors in the IDE
-sources: list
-params: dict
+# Initialize GWS - MUST be at the top
+StreamlitMainState.initialize()
+
+from gws_core.impl.table.table import Table
+
+from gws_plate_reader.biolector_xt.tasks._streamlit_dashboard.app.download_exp import (
+    DOWNLOAD_TAG_KEY,
+)
+from gws_plate_reader.biolector_xt_analysis._dashboard_core.biolectorxt_analysis_dashboard import (
+    run,
+)
 
 # -------------------------------------------------------------------------------------------#
+sources = StreamlitMainState.get_sources()
+
 if not sources:
     raise Exception("Source paths are not provided.")
 
@@ -22,24 +27,42 @@ if len(parsed_data) == 0:
     st.error("No parsed data found.")
     st.stop()
 
-comment_tag = parsed_data[0].tags.get_by_key('comment')[0] if len(
-    parsed_data[0].tags.get_by_key('comment')) > 0 else None
+comment_tag = (
+    parsed_data[0].tags.get_by_key("comment")[0]
+    if len(parsed_data[0].tags.get_by_key("comment")) > 0
+    else None
+)
 st.session_state["comment_tag"] = comment_tag.value if comment_tag else None
-name_tag = parsed_data[0].tags.get_by_key('name')[0] if len(
-    parsed_data[0].tags.get_by_key('name')) > 0 else None
+name_tag = (
+    parsed_data[0].tags.get_by_key("name")[0]
+    if len(parsed_data[0].tags.get_by_key("name")) > 0
+    else None
+)
 st.session_state["name_tag"] = name_tag.value if name_tag else None
-user_name_tag = parsed_data[0].tags.get_by_key('user_name')[0] if len(
-    parsed_data[0].tags.get_by_key('user_name')) > 0 else None
+user_name_tag = (
+    parsed_data[0].tags.get_by_key("user_name")[0]
+    if len(parsed_data[0].tags.get_by_key("user_name")) > 0
+    else None
+)
 st.session_state["user_name_tag"] = user_name_tag.value if user_name_tag else None
-date_tag = parsed_data[0].tags.get_by_key('date')[0] if len(
-    parsed_data[0].tags.get_by_key('date')) > 0 else None
+date_tag = (
+    parsed_data[0].tags.get_by_key("date")[0]
+    if len(parsed_data[0].tags.get_by_key("date")) > 0
+    else None
+)
 st.session_state["date_tag"] = date_tag.value if date_tag else None
-experiment_id = parsed_data[0].tags.get_by_key('raw_data')[0] if len(
-    parsed_data[0].tags.get_by_key('raw_data')) > 0 else None
+experiment_id = (
+    parsed_data[0].tags.get_by_key("raw_data")[0]
+    if len(parsed_data[0].tags.get_by_key("raw_data")) > 0
+    else None
+)
 st.session_state["raw_data"] = experiment_id.value if experiment_id else None
 
-input_tag = parsed_data[0].tags.get_by_key(DOWNLOAD_TAG_KEY)[0] if len(
-    parsed_data[0].tags.get_by_key(DOWNLOAD_TAG_KEY)) > 0 else None
+input_tag = (
+    parsed_data[0].tags.get_by_key(DOWNLOAD_TAG_KEY)[0]
+    if len(parsed_data[0].tags.get_by_key(DOWNLOAD_TAG_KEY)) > 0
+    else None
+)
 
 data: Dict[str, Table] = {}
 for table in parsed_data:

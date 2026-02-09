@@ -6,6 +6,11 @@ from io import StringIO
 from json import dump, load, loads
 
 import streamlit as st
+from gws_streamlit_main import StreamlitMainState
+
+# Initialize GWS - MUST be at the top
+StreamlitMainState.initialize()
+
 from gws_core import (
     Compress,
     File,
@@ -19,20 +24,17 @@ from gws_core import (
 )
 
 from gws_plate_reader.biolector_xt.biolector_xt_mock_service import BiolectorXTMockService
-from gws_plate_reader.biolector_xt_analysis.biolectorxt_analysis_dashboard import run
+from gws_plate_reader.biolector_xt_analysis._dashboard_core.biolectorxt_analysis_dashboard import (
+    run,
+)
 from gws_plate_reader.biolector_xt_data_parser.biolector_xt_data_parser import BiolectorXTDataParser
 
-# thoses variable will be set by the streamlit app
-# don't initialize them, there are create to avoid errors in the IDE
-sources: list
-params: dict
+# This dashboard is a micro-Saas that allows users to analyze Biolector data.
+# It is a standalone dashboard where user can upload their zip biolector XT data
+# and get the analysis of the data.
 
-"""
-This dashboard is a micro-Saas that allows users to analyze Biolector data.
-It is a standalone dashboard where user can upload their zip biolector XT data
-and get the analysis of the data.
-"""
 
+sources = StreamlitMainState.get_sources()
 stats_folder: Folder = sources[0]
 stats_file = os.path.join(stats_folder.path, "stats.json")
 

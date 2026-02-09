@@ -10,11 +10,11 @@
         "bricks": [
             {
                 "name": "gws_core",
-                "version": "0.19.5"
+                "version": "0.20.0"
             },
             {
                 "name": "gws_design_of_experiments",
-                "version": "0.1.6"
+                "version": "0.1.7"
             }
         ],
         "pip": [

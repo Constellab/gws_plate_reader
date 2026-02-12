@@ -22,10 +22,6 @@
                 "source": "https://pypi.python.org/simple",
                 "packages": [
                     {
-                        "name": "grpcio",
-                        "version": ">=1.64.1,<2.0.0"
-                    },
-                    {
                         "name": "streamlit-extras",
                         "version": "0.4.7"
                     },

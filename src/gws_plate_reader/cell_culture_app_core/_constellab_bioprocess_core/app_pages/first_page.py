@@ -27,25 +27,44 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
     with StreamlitContainers.container_full_min_height(
         "container-center_first_page", additional_style=style
     ):
-        # Header with title and create new analysis button
-        col_title, col_button_new = StreamlitContainers.columns_with_fit_content(
-            key="button_new", cols=[1, "fit-content"], vertical_align_items="center"
+        # Header with title, refresh button and create new analysis button
+        cols_config = [1, "fit-content"]
+        if not cell_culture_state.get_is_standalone():
+            cols_config = [1, "fit-content", "fit-content"]
+
+        header_cols = StreamlitContainers.columns_with_fit_content(
+            key="button_new", cols=cols_config, vertical_align_items="center"
         )
 
-        with col_title:
+        with header_cols[0]:
             st.markdown(f"## {translate_service.translate('recipes_list_title')}")
 
-        with col_button_new:
-            if not cell_culture_state.get_is_standalone():
+        if not cell_culture_state.get_is_standalone():
+            with header_cols[1]:
+                if st.button(
+                    translate_service.translate("refresh"),
+                    icon=":material/refresh:",
+                    width="content",
+                ):
+                    st.rerun()
+
+            with header_cols[2]:
                 if st.button(
                     translate_service.translate("create_new_recipe"),
                     icon=":material/add:",
                     width="content",
                     type="primary",
                 ):
-                    # Navigate to new recipe page
                     router = StreamlitRouter.load_from_session()
                     router.navigate("new-analysis")
+        else:
+            with header_cols[1]:
+                if st.button(
+                    translate_service.translate("refresh"),
+                    icon=":material/refresh:",
+                    width="content",
+                ):
+                    st.rerun()
 
         # Search for existing cell culture analyses (both load and selection scenarios)
         # Get load scenarios

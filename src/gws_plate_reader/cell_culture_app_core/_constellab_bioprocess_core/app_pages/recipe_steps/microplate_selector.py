@@ -10,82 +10,27 @@ import streamlit as st
 
 
 @st.fragment
-def render_microplate_selector(
+def _render_microplate_grid(
     well_data: dict,
-    unique_samples: list,
+    wells_key: str,
+    plate_names: list | None,
+    is_multiplate_structure: bool,
+    base_wells: list,
+    label_colors: dict,
+    selected_color_well: str | None,
     translate_service,
-    session_key_prefix: str = "graph_view",
-    include_medium: bool = True,
-) -> list[str]:
-    """Render an interactive microplate selector for well selection
+    session_key_prefix: str,
+    include_medium: bool,
+) -> None:
+    """Internal fragment function to render the interactive microplate grid
 
-    :param well_data: Dictionary with well information.
-                      For multi-plate: {well: {plate: data_dict, ...}, ...}
-                      For single-plate: {well: data_dict, ...}
-    :param unique_samples: List of unique sample identifiers (wells with plate prefix for compatibility)
-    :param translate_service: Translation service
-    :param session_key_prefix: Prefix for session state keys
-    :param include_medium: Whether to include Medium data in tooltips (default: True)
-    :return: List of selected wells (with plate prefix for multi-plate)
+    This is a fragment to enable fast local updates when clicking wells.
     """
 
-    # Initialize session state for selected wells
-    wells_key = f"{session_key_prefix}_selected_wells"
-    if wells_key not in st.session_state:
-        st.session_state[wells_key] = []
+    # Determine if we have multi-plate
+    is_multiplate = is_multiplate_structure and plate_names and len(plate_names) > 1
 
-    # Auto-detect plates and structure from well_data
-    detected_plates = set()
-    base_wells = set()
-    is_multiplate_structure = False
-
-    # Analyze well_data structure
-    for well, data in well_data.items():
-        base_wells.add(well)
-        if isinstance(data, dict):
-            # Check if this is multi-plate structure (nested dict with plate names)
-            for key, value in data.items():
-                if isinstance(value, dict) and "plate" not in value:
-                    # This looks like a plate name key with nested data
-                    detected_plates.add(key)
-                    is_multiplate_structure = True
-                elif key == "plate" and isinstance(data.get("plate"), str):
-                    # Single plate mode with 'plate' field
-                    detected_plates.add(value)
-
-    # Determine plate names
-    if is_multiplate_structure:
-        plate_names = sorted(detected_plates)
-        is_multiplate = len(plate_names) > 1
-    else:
-        # Not multi-plate structure, single plate mode
-        is_multiplate = False
-        plate_names = None
-
-    base_wells = sorted(base_wells)
-
-    # Extract all available keys from well_data for the "color by" selector
-    available_color_keys = set()
-    for _well, data in well_data.items():
-        if is_multiplate_structure:
-            # Check in nested structure
-            for plate_data in data.values():
-                if isinstance(plate_data, dict):
-                    available_color_keys.update(plate_data.keys())
-        # Check in flat structure
-        elif isinstance(data, dict):
-            available_color_keys.update(data.keys())
-
-    # Sort keys with 'Medium' first if present, then alphabetically
-    available_color_keys = sorted(available_color_keys)
-    if "Medium" in available_color_keys:
-        available_color_keys.remove("Medium")
-        available_color_keys = ["Medium"] + available_color_keys
-
-    # Add "None" option at the beginning
-    color_options = [translate_service.translate("no_coloring")] + available_color_keys
-
-    st.write(f"**{translate_service.translate('microplate_selection')}**")
+    # Microplate grid rendering info text
     if is_multiplate:
         unified_text = translate_service.translate("unified_view_plates").format(
             num_plates=len(plate_names), plate_names=", ".join(plate_names)
@@ -95,126 +40,6 @@ def render_microplate_selector(
             f"<p style='font-size: 0.9em;'>ℹ️ {translate_service.translate('selecting_well_info')}</p>",
             unsafe_allow_html=True,
         )
-
-    # Color by selector
-    color_by_key = f"{session_key_prefix}_color_by"
-    default_index = 1 if len(color_options) > 1 and "Medium" in available_color_keys else 0
-
-    selected_color_option = st.selectbox(
-        translate_service.translate("color_by"),
-        options=color_options,
-        index=default_index,
-        key=color_by_key,
-        help=translate_service.translate("color_by_help"),
-    )
-
-    # Determine the actual key to use for coloring
-    if selected_color_option == translate_service.translate("no_coloring"):
-        selected_color_well = None
-    else:
-        selected_color_well = selected_color_option
-
-    # Color palette
-    color_palette = [
-        "#f4c2c2",
-        "#7fbde3",
-        "#85c985",
-        "#fce79b",
-        "#c58fd3",
-        "#b9e9eb",
-        "#ffbb7b",
-        "#f5a8f6",
-        "#c79a6c",
-        "#88c7cc",
-        "#9585d1",
-        "#f08080",
-        "#6da38a",
-        "#dfb6a4",
-        "#d4ecb4",
-        "#c76887",
-        "#87e7a6",
-        "#8a8082",
-        "#F9D9A1",
-        "#baa6ec",
-        "#F1E1F1",
-        "#B2F3A1",
-        "#FF5733",
-        "#33FF57",
-        "#D2F0A1",
-        "#3357FF",
-        "#F3FF33",
-        "#A1E5D4",
-        "#C8C8FF",
-        "#E3D5C0",
-        "#FF33A8",
-        "#33FFF3",
-        "#A833FF",
-        "#FFA833",
-        "#8D33FF",
-        "#FF338D",
-        "#33FF8D",
-        "#8DFF33",
-        "#338DFF",
-        "#F033FF",
-        "#FF8333",
-        "#8333FF",
-        "#33A8FF",
-        "#E2D6F3",
-        "#D1DFF5",
-        "#FF33F0",
-        "#33F0FF",
-        "#57FF33",
-    ]
-
-    # Assign colors to labels based on Medium values
-    if selected_color_well:
-        # Extract unique medium values and normalize them
-        unique_labels = set()
-        for _well, data in well_data.items():
-            if is_multiplate_structure:
-                # Check all plates for this well
-                for plate_data in data.values():
-                    if isinstance(plate_data, dict):
-                        medium_value = plate_data.get(selected_color_well, "")
-                        if medium_value:
-                            label_normalized = re.sub(
-                                r"[%\./]",
-                                "",
-                                unicodedata.normalize(
-                                    "NFKD", str(medium_value).strip().replace(" ", "_")
-                                )
-                                .encode("ascii", "ignore")
-                                .decode("utf-8"),
-                            )
-                            unique_labels.add(label_normalized)
-            # Single plate mode
-            elif isinstance(data, dict):
-                medium_value = data.get(selected_color_well, "")
-                if medium_value:
-                    label_normalized = re.sub(
-                        r"[%\./]",
-                        "",
-                        unicodedata.normalize("NFKD", str(medium_value).strip().replace(" ", "_"))
-                        .encode("ascii", "ignore")
-                        .decode("utf-8"),
-                    )
-                    unique_labels.add(label_normalized)
-
-        unique_labels = sorted(unique_labels)
-
-        # Add empty label for wells without medium
-        if "" not in unique_labels:
-            unique_labels.append("")
-    else:
-        # No coloring, use default for all
-        unique_labels = [""]
-
-    label_colors = {}
-    for i, label in enumerate(unique_labels):
-        if label == "":
-            label_colors[label] = "#F991C3"
-        else:
-            label_colors[label] = color_palette[i % len(color_palette)]
 
     # CSS for well buttons ONLY within microplate container
     # Use the container key to target the Streamlit-generated container
@@ -404,7 +229,7 @@ def render_microplate_selector(
                             st.session_state[wells_key].remove(base_well)
                         else:
                             st.session_state[wells_key].append(base_well)
-                st.rerun()
+                st.rerun(scope="fragment")
 
         # Row buttons and well grid
         for row in range(ROWS):
@@ -433,7 +258,7 @@ def render_microplate_selector(
                             st.session_state[wells_key].remove(base_well)
                         else:
                             st.session_state[wells_key].append(base_well)
-                st.rerun()
+                st.rerun(scope="fragment")
 
             for col in range(COLS):
                 base_well = wells[row][col]
@@ -573,7 +398,7 @@ def render_microplate_selector(
                                     st.session_state[wells_key].remove(full_well)
                         elif base_well in st.session_state[wells_key]:
                             st.session_state[wells_key].remove(base_well)
-                        st.rerun()
+                        st.rerun(scope="fragment")
                 elif cols_object[col + 1].button(base_well, key=key, help=help_tab):
                     # Select for all plates
                     if is_multiplate_structure and plate_names:
@@ -583,7 +408,7 @@ def render_microplate_selector(
                                 st.session_state[wells_key].append(full_well)
                     elif base_well not in st.session_state[wells_key]:
                         st.session_state[wells_key].append(base_well)
-                    st.rerun()
+                    st.rerun(scope="fragment")
 
         # Display selected wells
         if is_multiplate:
@@ -620,5 +445,215 @@ def render_microplate_selector(
                 else none_text
             )
             st.write(f"**{selected_label}** {wells_text}")
+
+
+def render_microplate_selector(
+    well_data: dict,
+    unique_samples: list,
+    translate_service,
+    session_key_prefix: str = "graph_view",
+    include_medium: bool = True,
+) -> list[str]:
+    """Render an interactive microplate selector for well selection
+
+    :param well_data: Dictionary with well information.
+                      For multi-plate: {well: {plate: data_dict, ...}, ...}
+                      For single-plate: {well: data_dict, ...}
+    :param unique_samples: List of unique sample identifiers (wells with plate prefix for compatibility)
+    :param translate_service: Translation service
+    :param session_key_prefix: Prefix for session state keys
+    :param include_medium: Whether to include Medium data in tooltips (default: True)
+    :return: List of selected wells (with plate prefix for multi-plate)
+    """
+
+    # Initialize session state for selected wells
+    wells_key = f"{session_key_prefix}_selected_wells"
+    if wells_key not in st.session_state:
+        st.session_state[wells_key] = []
+
+    # Auto-detect plates and structure from well_data
+    detected_plates = set()
+    base_wells = set()
+    is_multiplate_structure = False
+
+    # Analyze well_data structure
+    for well, data in well_data.items():
+        base_wells.add(well)
+        if isinstance(data, dict):
+            # Check if this is multi-plate structure (nested dict with plate names)
+            for key, value in data.items():
+                if isinstance(value, dict) and "plate" not in value:
+                    # This looks like a plate name key with nested data
+                    detected_plates.add(key)
+                    is_multiplate_structure = True
+                elif key == "plate" and isinstance(data.get("plate"), str):
+                    # Single plate mode with 'plate' field
+                    detected_plates.add(value)
+
+    # Determine plate names
+    if is_multiplate_structure:
+        plate_names = sorted(detected_plates)
+    else:
+        # Not multi-plate structure, single plate mode
+        plate_names = None
+
+    base_wells = sorted(base_wells)
+
+    # Extract all available keys from well_data for the "color by" selector
+    available_color_keys = set()
+    for _well, data in well_data.items():
+        if is_multiplate_structure:
+            # Check in nested structure
+            for plate_data in data.values():
+                if isinstance(plate_data, dict):
+                    available_color_keys.update(plate_data.keys())
+        # Check in flat structure
+        elif isinstance(data, dict):
+            available_color_keys.update(data.keys())
+
+    # Sort keys with 'Medium' first if present, then alphabetically
+    available_color_keys = sorted(available_color_keys)
+    if "Medium" in available_color_keys:
+        available_color_keys.remove("Medium")
+        available_color_keys = ["Medium"] + available_color_keys
+
+    # Add "None" option at the beginning
+    color_options = [translate_service.translate("no_coloring")] + available_color_keys
+
+    st.write(f"**{translate_service.translate('microplate_selection')}**")
+
+    # Color by selector
+    color_by_key = f"{session_key_prefix}_color_by"
+    default_index = 1 if len(color_options) > 1 and "Medium" in available_color_keys else 0
+
+    selected_color_option = st.selectbox(
+        translate_service.translate("color_by"),
+        options=color_options,
+        index=default_index,
+        key=color_by_key,
+        help=translate_service.translate("color_by_help"),
+    )
+
+    # Determine the actual key to use for coloring
+    if selected_color_option == translate_service.translate("no_coloring"):
+        selected_color_well = None
+    else:
+        selected_color_well = selected_color_option
+
+    # Color palette
+    color_palette = [
+        "#f4c2c2",
+        "#7fbde3",
+        "#85c985",
+        "#fce79b",
+        "#c58fd3",
+        "#b9e9eb",
+        "#ffbb7b",
+        "#f5a8f6",
+        "#c79a6c",
+        "#88c7cc",
+        "#9585d1",
+        "#f08080",
+        "#6da38a",
+        "#dfb6a4",
+        "#d4ecb4",
+        "#c76887",
+        "#87e7a6",
+        "#8a8082",
+        "#F9D9A1",
+        "#baa6ec",
+        "#F1E1F1",
+        "#B2F3A1",
+        "#FF5733",
+        "#33FF57",
+        "#D2F0A1",
+        "#3357FF",
+        "#F3FF33",
+        "#A1E5D4",
+        "#C8C8FF",
+        "#E3D5C0",
+        "#FF33A8",
+        "#33FFF3",
+        "#A833FF",
+        "#FFA833",
+        "#8D33FF",
+        "#FF338D",
+        "#33FF8D",
+        "#8DFF33",
+        "#338DFF",
+        "#F033FF",
+        "#FF8333",
+        "#8333FF",
+        "#33A8FF",
+        "#E2D6F3",
+        "#D1DFF5",
+        "#FF33F0",
+        "#33F0FF",
+        "#57FF33",
+    ]
+
+    # Assign colors to labels based on Medium values
+    if selected_color_well:
+        # Extract unique medium values and normalize them
+        unique_labels = set()
+        for _well, data in well_data.items():
+            if is_multiplate_structure:
+                # Check all plates for this well
+                for plate_data in data.values():
+                    if isinstance(plate_data, dict):
+                        medium_value = plate_data.get(selected_color_well, "")
+                        if medium_value:
+                            label_normalized = re.sub(
+                                r"[%\./]",
+                                "",
+                                unicodedata.normalize(
+                                    "NFKD", str(medium_value).strip().replace(" ", "_")
+                                )
+                                .encode("ascii", "ignore")
+                                .decode("utf-8"),
+                            )
+                            unique_labels.add(label_normalized)
+            # Single plate mode
+            elif isinstance(data, dict):
+                medium_value = data.get(selected_color_well, "")
+                if medium_value:
+                    label_normalized = re.sub(
+                        r"[%\./]",
+                        "",
+                        unicodedata.normalize("NFKD", str(medium_value).strip().replace(" ", "_"))
+                        .encode("ascii", "ignore")
+                        .decode("utf-8"),
+                    )
+                    unique_labels.add(label_normalized)
+
+        unique_labels = sorted(unique_labels)
+
+        # Add empty label for wells without medium
+        if "" not in unique_labels:
+            unique_labels.append("")
+    else:
+        # No coloring, use default for all
+        unique_labels = [""]
+
+    label_colors = {}
+    for i, label in enumerate(unique_labels):
+        if label == "":
+            label_colors[label] = "#F991C3"
+        else:
+            label_colors[label] = color_palette[i % len(color_palette)]
+
+    # Call the fragment to render the grid
+    _render_microplate_grid(
+        well_data=well_data,
+        wells_key=wells_key,
+        plate_names=plate_names,
+        is_multiplate_structure=is_multiplate_structure,
+        base_wells=base_wells,
+        label_colors=label_colors,
+        selected_color_well=selected_color_well,
+        translate_service=translate_service,
+        session_key_prefix=session_key_prefix,
+        include_medium=include_medium,
+    )
 
     return st.session_state[wells_key]

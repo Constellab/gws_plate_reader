@@ -1,8 +1,11 @@
+import pandas as pd
 import streamlit as st
 from gws_core import (
     Scenario,
+    ScenarioProxy,
     ScenarioStatus,
 )
+from gws_core.protocol.protocol_model import ProtocolModel
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
@@ -195,11 +198,13 @@ def create_recipe_table_data(
                 "id": recipe_id,  # Use load scenario ID
                 "Recipe Name": recipe_data["recipe_name"],
                 "Type": f"{get_biolector_emoji(recipe_data['is_microplate'])} {translate_service.translate('type_biolector') if recipe_data['is_microplate'] else translate_service.translate('type_fermentor')}",
+                "Status": f"{get_status_emoji(load_scenario.status)} {get_status_prettify(load_scenario.status, translate_service)}",
                 "Folder": recipe_data["folder_name"],
                 "Created": recipe_data["created_at"].strftime("%d/%m/%Y %H:%M")
                 if recipe_data["created_at"]
                 else "",
                 "Created By": recipe_data["created_by"],
+                "_status_raw": load_scenario.status.value,
             }
 
             table_data.append(row_data)
@@ -232,6 +237,15 @@ def create_slickgrid_columns(translate_service: StreamlitTranslateService) -> li
             "id": "Type",
             "name": translate_service.translate("column_type"),
             "field": "Type",
+            "sortable": True,
+            "type": "string",
+            "filterable": True,
+            "width": 150,
+        },
+        {
+            "id": "Status",
+            "name": translate_service.translate("column_status"),
+            "field": "Status",
             "sortable": True,
             "type": "string",
             "filterable": True,
@@ -305,7 +319,67 @@ def render_recipe_table(
     # Handle row selection like in ubiome
     if grid_response is not None:
         row_id, _ = grid_response  # _ is column, not needed for analysis selection
+
+        # Check if the load scenario finished successfully before allowing navigation
+        selected_row = next((row for row in table_data if row.get("id") == row_id), None)
+        if selected_row and selected_row.get("_status_raw") != ScenarioStatus.SUCCESS.value:
+            st.warning(translate_service.translate("recipe_not_ready"))
+            return None
+
         # Return the selected scenario ID
         return row_id
 
     return None
+
+
+def display_scenario_task_configs(
+    scenario: Scenario, translate_service: StreamlitTranslateService
+) -> None:
+    """Display configuration parameters of all Task processes in a scenario expander."""
+    try:
+        scenario_proxy = ScenarioProxy.from_existing_scenario(scenario.id)
+        protocol_proxy = scenario_proxy.get_protocol()
+        all_processes = protocol_proxy.get_all_processes()
+
+        # Collect configs only for Task-type processes
+        task_configs = []
+        for instance_name, process_proxy in all_processes.items():
+            process_model = process_proxy.get_model()
+
+            # Skip sub-protocols, inputs (Source) and outputs (Sink)
+            if isinstance(process_model, ProtocolModel):
+                continue
+            if process_model.is_input_task() or process_model.is_output_task():
+                continue
+
+            config_dto = process_model.config.to_simple_dto()
+            config_params = config_dto.values if config_dto else {}
+            task_name = process_model.name or instance_name
+
+            if config_params:
+                task_configs.append({
+                    "name": task_name,
+                    "params": config_params,
+                })
+
+        if task_configs:
+            with st.expander(
+                f"⚙️ {translate_service.translate('scenario_configurations')}"
+            ):
+                for i, task_info in enumerate(task_configs):
+                    if i > 0:
+                        st.markdown("---")
+                    st.markdown(f"**{task_info['name']}**")
+                    param_data = []
+                    for key, value in task_info["params"].items():
+                        readable_key = key.replace("_", " ").replace("-", " ").title()
+                        param_data.append({
+                            translate_service.translate("parameter"): readable_key,
+                            translate_service.translate("value"): str(value),
+                        })
+                    if param_data:
+                        param_df = pd.DataFrame(param_data)
+                        st.dataframe(param_df, use_container_width=True, hide_index=True)
+
+    except Exception:
+        pass

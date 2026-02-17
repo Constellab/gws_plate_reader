@@ -59,7 +59,7 @@ def launch_selection_scenario(
         scenario_proxy = ScenarioProxy(
             None,
             folder=load_scenario.folder,
-            title=f"Sélection - {timestamp}",
+            title=f"{translate_service.translate('selection')} - {timestamp}",
             creation_type=ScenarioCreationType.MANUAL,
         )
 
@@ -207,6 +207,7 @@ def launch_selection_scenario(
 
         # Add the scenario to the queue (following form page pattern)
         scenario_proxy.add_to_queue()
+        st.toast(translate_service.translate("toast_scenario_launched"))
 
         # Add the new selection scenario to the state and update the analyse instance
         new_scenario = scenario_proxy.get_model()

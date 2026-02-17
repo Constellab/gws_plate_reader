@@ -4,21 +4,21 @@ Coordinates the different analysis steps and sub-pages
 """
 
 import streamlit as st
-from gws_core import Scenario, ScenarioStatus
+from gws_core import FrontService, Scenario, ScenarioStatus
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
+    CellCultureState,
+)
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    display_scenario_task_configs,
+    get_status_emoji,
+)
 from gws_streamlit_main import (
     StreamlitContainers,
     StreamlitRouter,
     StreamlitTreeMenu,
     StreamlitTreeMenuItem,
-)
-
-from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
-    CellCultureState,
-)
-from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
-    get_status_emoji,
 )
 
 from .recipe_steps import (
@@ -68,13 +68,30 @@ def get_step_icon(
     return "check_circle"
 
 
-def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> tuple[StreamlitTreeMenu, str]:
+def has_running_scenarios(recipe) -> bool:
+    """Check if recipe has scenarios that are not in a terminal state (SUCCESS, ERROR, PARTIALLY_RUN)"""
+    terminal_statuses = {ScenarioStatus.SUCCESS, ScenarioStatus.ERROR, ScenarioStatus.PARTIALLY_RUN}
+
+    # Check all scenarios in all steps
+    for step_scenarios in recipe.scenarios.values():
+        for scenario in step_scenarios:
+            if scenario.status not in terminal_statuses:
+                return True
+
+    # Also check main scenario if it exists
+    if recipe.main_scenario and recipe.main_scenario.status not in terminal_statuses:
+        return True
+
+    return False
+
+
+def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> StreamlitTreeMenu:
     """Build tree menu for analysis navigation"""
 
     translate_service = cell_culture_state.get_translate_service()
 
-    # Create tree menu
-    button_menu = StreamlitTreeMenu()
+    # Create tree menu with unique key to preserve selection across reruns
+    button_menu = StreamlitTreeMenu(key="recipe_navigation_menu")
 
     # Get Recipe instance to check if selection has been done
     recipe = cell_culture_state.get_selected_recipe_instance()
@@ -105,6 +122,10 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> tuple[Stre
                 label=selection_label, key=f"selection_folder_{scenario.id}"
             )
 
+            if scenario.status != ScenarioStatus.SUCCESS:
+                button_menu.add_item(selection_folder)
+                continue  # Only show analysis sub-items for successful QC scenarios
+
             # Add visualization sub-item (combines Table, Graph and Medium views)
             visualization_sub_item = StreamlitTreeMenuItem(
                 label=translate_service.translate("visualization"),
@@ -133,6 +154,10 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> tuple[Stre
                     qc_folder = StreamlitTreeMenuItem(
                         label=qc_label, key=f"qc_folder_{qc_scenario.id}"
                     )
+
+                    if qc_scenario.status != ScenarioStatus.SUCCESS:
+                        quality_check_folder.add_child(qc_folder)
+                        continue  # Only show analysis sub-items for successful QC scenarios
 
                     # Add Visualization view for QC results (combines Table, Graph and Medium views)
                     qc_visualization_item = StreamlitTreeMenuItem(
@@ -274,6 +299,10 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> tuple[Stre
                                     fe_result_item = StreamlitTreeMenuItem(
                                         label=fe_label, key=f"fe_result_{fe_scenario.id}"
                                     )
+
+                                    if fe_scenario.status != ScenarioStatus.SUCCESS:
+                                        analysis_item.add_child(fe_result_item)
+                                        continue  # Only show post-feature extraction analyses for successful FE scenarios
 
                                     for (
                                         post_feature_extraction_analysis_type,
@@ -503,7 +532,7 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> tuple[Stre
 
             button_menu.add_item(selection_folder)
 
-    return button_menu, "apercu"
+    return button_menu
 
 
 def render_recipe_page(cell_culture_state: CellCultureState) -> None:
@@ -540,8 +569,15 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 router.navigate("first-page")
                 st.rerun()
 
-            # Add refresh button
-            if not cell_culture_state.get_is_standalone():
+            # ALWAYS preserve current menu selection in session state (even before button click)
+            # This ensures it persists across reruns
+            if "recipe_navigation_menu" in st.session_state:
+                current_menu_key = st.session_state["recipe_navigation_menu"].get("item_key")
+                if current_menu_key:
+                    st.session_state["last_known_menu_selection"] = current_menu_key
+
+            # Add refresh button (only if not standalone and there are running scenarios)
+            if not cell_culture_state.get_is_standalone() and has_running_scenarios(recipe):
                 if st.button(
                     translate_service.translate("refresh"),
                     icon=":material/refresh:",
@@ -549,16 +585,26 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 ):
                     # Reload all scenarios from database to get updated status
                     recipe.reload_scenarios()
+                    # The selection is already saved in last_known_menu_selection
                     st.rerun()
 
-            st.markdown("---")  # Separator line
+            st.markdown("---")  # Separator line before menu
 
             # Build and display navigation menu
-            button_menu, key_default_item = build_analysis_tree_menu(cell_culture_state)
+            button_menu = build_analysis_tree_menu(cell_culture_state)
+
+            # Restore last known selection if menu is not initialized
+            if "recipe_navigation_menu" not in st.session_state or not st.session_state["recipe_navigation_menu"].get("item_key"):
+                if "last_known_menu_selection" in st.session_state:
+                    last_selection = st.session_state["last_known_menu_selection"]
+                    try:
+                        button_menu.set_selected_item(last_selection)
+                    except Exception:
+                        pass  # Silently handle if item no longer exists
 
             # Display menu and get selected item
             selected_item = button_menu.render()
-            selected_key = selected_item.key if selected_item else key_default_item
+            selected_key = selected_item.key if selected_item else "apercu"
 
         with right_col:
             # Render the selected step
@@ -566,7 +612,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 st.title(f"{recipe.name} - Overview")
                 render_overview_step(recipe, cell_culture_state)
             elif selected_key == "selection":
-                st.title(f"{recipe.name} - Selection")
+                st.title(f"{recipe.name} - {translate_service.translate('selection')}")
                 render_selection_step(recipe, cell_culture_state)
             elif selected_key.startswith("quality_check_"):
                 # Extract selection scenario ID from key (quality_check_{selection_id})
@@ -593,7 +639,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 )
                 if target_scenario:
                     st.title(
-                        f"{recipe.name} - {translate_service.translate('visualization')} - {target_scenario.title}"
+                        f"{recipe.name} - {translate_service.translate('visualization')}\n{target_scenario.title}"
                     )
                     render_visualization_step(
                         recipe,
@@ -613,7 +659,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 )
                 if target_qc_scenario:
                     st.title(
-                        f"{recipe.name} - {translate_service.translate('visualization')} - {target_qc_scenario.title}"
+                        f"{recipe.name} - {translate_service.translate('visualization')}\n{target_qc_scenario.title}"
                     )
                     # Display quality check results in visualization view (use interpolated output)
                     render_visualization_step(
@@ -680,9 +726,23 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == lg_scenario_id), None
                 )
                 if target_lg_scenario:
-                    st.title(
-                        f"{recipe.name} - {translate_service.translate('logistic_growth_analysis')} - {target_lg_scenario.title}"
-                    )
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(
+                            f"{recipe.name} - {translate_service.translate('logistic_growth_analysis')}\n{target_lg_scenario.title}"
+                        )
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_lg_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
+                    display_scenario_task_configs(target_lg_scenario, translate_service)
                     render_logistic_growth_results(recipe, cell_culture_state, target_lg_scenario)
                 else:
                     st.error("Logistic Growth scenario not found")
@@ -710,8 +770,22 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == pca_scenario_id), None
                 )
                 if target_pca_scenario:
-                    st.title(f"{recipe.name} - Medium PCA Results - {target_pca_scenario.title}")
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(f"{recipe.name} - Medium PCA Results\n{target_pca_scenario.title}")
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_pca_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
                     # Use the render function from medium_pca_results.py
+                    display_scenario_task_configs(target_pca_scenario, translate_service)
                     render_medium_pca_results(recipe, cell_culture_state, target_pca_scenario)
                 else:
                     st.error("PCA scenario not found")
@@ -724,8 +798,22 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == umap_scenario_id), None
                 )
                 if target_umap_scenario:
-                    st.title(f"{recipe.name} - Medium UMAP Results - {target_umap_scenario.title}")
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(f"{recipe.name} - Medium UMAP Results\n{target_umap_scenario.title}")
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_umap_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
                     # Use the render function from medium_umap_results.py
+                    display_scenario_task_configs(target_umap_scenario, translate_service)
                     render_medium_umap_results(recipe, cell_culture_state, target_umap_scenario)
                 else:
                     st.error("UMAP scenario not found")
@@ -738,10 +826,24 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == fe_scenario_id), None
                 )
                 if target_fe_scenario:
-                    st.title(
-                        f"{recipe.name} - Feature Extraction Results - {target_fe_scenario.title}"
-                    )
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(
+                            f"{recipe.name} - Feature Extraction Results\n{target_fe_scenario.title}"
+                        )
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_fe_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
                     # Use the render function from feature_extraction_results.py
+                    display_scenario_task_configs(target_fe_scenario, translate_service)
                     render_feature_extraction_results(
                         recipe, cell_culture_state, target_fe_scenario
                     )
@@ -780,7 +882,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
 
                     if target_qc_scenario:
                         st.title(
-                            f"{recipe.name} - Metadata Feature UMAP Analysis - {target_fe_scenario.title}"
+                            f"{recipe.name} - Metadata Feature UMAP Analysis\n{target_fe_scenario.title}"
                         )
                         # Render the step page to launch new analyses or view existing ones
                         render_metadata_feature_umap_step(
@@ -802,10 +904,24 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == umap_scenario_id), None
                 )
                 if target_umap_scenario:
-                    st.title(
-                        f"{recipe.name} - Metadata Feature UMAP Results - {target_umap_scenario.title}"
-                    )
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(
+                            f"{recipe.name} - Metadata Feature UMAP Results\n{target_umap_scenario.title}"
+                        )
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_umap_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
                     # Use the render function from metadata_feature_umap_results.py
+                    display_scenario_task_configs(target_umap_scenario, translate_service)
                     render_metadata_feature_umap_results(
                         recipe, cell_culture_state, target_umap_scenario
                     )
@@ -844,7 +960,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
 
                     if target_qc_scenario:
                         st.title(
-                            f"{recipe.name} - PLS Regression Analysis - {target_fe_scenario.title}"
+                            f"{recipe.name} - PLS Regression Analysis\n{target_fe_scenario.title}"
                         )
                         # Render the step page to launch new analyses or view existing ones
                         render_pls_regression_step(
@@ -866,10 +982,24 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == pls_scenario_id), None
                 )
                 if target_pls_scenario:
-                    st.title(
-                        f"{recipe.name} - PLS Regression Results - {target_pls_scenario.title}"
-                    )
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(
+                            f"{recipe.name} - PLS Regression Results\n{target_pls_scenario.title}"
+                        )
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_pls_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
                     # Use the render function from pls_regression_results.py
+                    display_scenario_task_configs(target_pls_scenario, translate_service)
                     render_pls_regression_results(recipe, cell_culture_state, target_pls_scenario)
                 else:
                     st.error("PLS Regression scenario not found")
@@ -906,7 +1036,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
 
                     if target_qc_scenario:
                         st.title(
-                            f"{recipe.name} - Random Forest Regression Analysis - {target_fe_scenario.title}"
+                            f"{recipe.name} - Random Forest Regression Analysis\n{target_fe_scenario.title}"
                         )
                         # Render the step page to launch new analyses or view existing ones
                         render_random_forest_step(
@@ -928,8 +1058,22 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == rf_scenario_id), None
                 )
                 if target_rf_scenario:
-                    st.title(f"{recipe.name} - Random Forest Results - {target_rf_scenario.title}")
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(f"{recipe.name} - Random Forest Results\n{target_rf_scenario.title}")
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_rf_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
                     # Use the render function from random_forest_results.py
+                    display_scenario_task_configs(target_rf_scenario, translate_service)
                     render_random_forest_results(recipe, cell_culture_state, target_rf_scenario)
                 else:
                     st.error("Random Forest Regression scenario not found")
@@ -966,7 +1110,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
 
                     if target_qc_scenario:
                         st.title(
-                            f"{recipe.name} - Causal Effect Analysis - {target_fe_scenario.title}"
+                            f"{recipe.name} - Causal Effect Analysis\n{target_fe_scenario.title}"
                         )
                         # Render the step page to launch new analyses or view existing ones
                         render_causal_effect_step(
@@ -988,10 +1132,24 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == causal_scenario_id), None
                 )
                 if target_causal_scenario:
-                    st.title(
-                        f"{recipe.name} - Causal Effect Results - {target_causal_scenario.title}"
-                    )
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(
+                            f"{recipe.name} - Causal Effect Results\n{target_causal_scenario.title}"
+                        )
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_causal_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
                     # Use the render function from causal_effect_results.py
+                    display_scenario_task_configs(target_causal_scenario, translate_service)
                     render_causal_effect_results(recipe, cell_culture_state, target_causal_scenario)
                 else:
                     st.error("Causal Effect scenario not found")
@@ -1028,7 +1186,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
 
                     if target_qc_scenario:
                         st.title(
-                            f"{recipe.name} - Optimization Analysis - {target_fe_scenario.title}"
+                            f"{recipe.name} - Optimization Analysis\n{target_fe_scenario.title}"
                         )
                         # Render the step page to launch new analyses or view existing ones
                         render_optimization_step(
@@ -1050,8 +1208,22 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_analyses_scenarios if s.id == opt_scenario_id), None
                 )
                 if target_opt_scenario:
-                    st.title(f"{recipe.name} - Optimization Results - {target_opt_scenario.title}")
+                    # Display title with view scenario button
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(f"{recipe.name} - Optimization Results\n{target_opt_scenario.title}")
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            # Add vertical centering with padding
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_opt_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
                     # Use the render function from optimization_results.py
+                    display_scenario_task_configs(target_opt_scenario, translate_service)
                     render_optimization_results(cell_culture_state, target_opt_scenario)
                 else:
                     st.error("Optimization scenario not found")

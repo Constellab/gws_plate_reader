@@ -7,9 +7,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Table
-from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.app_pages.recipe_steps.microplate_selector import (
-    render_microplate_selector,
-)
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -30,6 +27,8 @@ def render_graph_view_step(
     selected_samples: list | None = None,
     selected_index: str | None = None,
     selected_columns: list | None = None,
+    all_data_rows: list | None = None,
+    well_data: dict | None = None,
 ) -> None:
     """Render the graph view step with data visualizations using Plotly
 
@@ -44,6 +43,8 @@ def render_graph_view_step(
     :param selected_samples: Pre-selected samples (optional, from parent)
     :param selected_index: Pre-selected index column (optional, from parent)
     :param selected_columns: Pre-selected data columns (optional, from parent)
+    :param all_data_rows: Pre-built all_data_rows (optional, from parent)
+    :param well_data: Well metadata for microplate mode (optional)
     """
 
     translate_service = cell_culture_state.get_translate_service()
@@ -108,226 +109,42 @@ def render_graph_view_step(
                 st.warning(translate_service.translate("no_data_for_visualization"))
                 return
 
-        # If selections not provided, show backward compatibility UI
-        if (
-            selected_batches is None
-            or selected_samples is None
-            or selected_index is None
-            or selected_columns is None
-        ):
-            # Get unique values for filters (excluding empty strings)
-            unique_batches = sorted({item["Batch"] for item in visualization_data if item["Batch"]})
-            unique_samples = sorted(
-                {item["Sample"] for item in visualization_data if item["Sample"]}
-            )
+        # Build all_data_rows if not provided
+        if all_data_rows is None:
+            all_data_rows = []
+            resources = filtered_resource_set.get_resources()
 
-            # Get available columns for selection using the tagging system
-            index_columns = cell_culture_state.get_index_columns_from_resource_set(
-                filtered_resource_set
-            )
-            data_columns = cell_culture_state.get_data_columns_from_resource_set(
-                filtered_resource_set
-            )
+            for resource_name, resource in resources.items():
+                if isinstance(resource, Table):
+                    # Extract metadata from tags
+                    batch = ""
+                    sample = ""
+                    medium = ""
 
-            # === Section 1: Filters ===
-            st.markdown(f"### {translate_service.translate('filters_and_selection')}")
+                    if hasattr(resource, "tags") and resource.tags:
+                        for tag in resource.tags.get_tags():
+                            if tag.key == cell_culture_state.TAG_BATCH:
+                                batch = tag.value
+                            elif tag.key == cell_culture_state.TAG_SAMPLE:
+                                sample = tag.value
+                            elif tag.key == cell_culture_state.TAG_MEDIUM:
+                                medium = tag.value
 
-            # Check if this is a microplate recipe
-            is_microplate = recipe.analysis_type == "microplate"
+                    # Get DataFrame
+                    df = resource.get_data()
 
-            if is_microplate:
-                # Microplate mode: Display interactive plate selector
-                st.info("🧫 **Microplate Mode**: Select wells from the interactive plate below")
+                    # Add rows to the list
+                    for _, row in df.iterrows():
+                        row_dict = row.to_dict()
+                        row_dict["Batch"] = batch
+                        row_dict["Sample"] = sample
+                        # Only add Medium if recipe has medium info
+                        if recipe.has_medium_info:
+                            row_dict["Medium"] = medium
+                        row_dict["Resource_Name"] = resource_name
+                        all_data_rows.append(row_dict)
 
-                # Build well data with structure: {well: {plate: data, ...}, ...}
-                well_data = {}
-                for item in visualization_data:
-                    sample = item.get("Sample", "")
-                    batch = item.get("Batch", "")
-
-                    # Use Sample as well name and Batch as plate name
-                    if sample and batch:
-                        # Initialize well entry if needed
-                        if sample not in well_data:
-                            well_data[sample] = {}
-
-                        # Add plate data (excluding Resource_Name, Sample, and Batch)
-                        well_data[sample][batch] = {
-                            k: v
-                            for k, v in item.items()
-                            if k not in ["Resource_Name", "Sample", "Batch"]
-                        }
-                    elif sample:
-                        # Single plate mode - well is the sample name, no batch
-                        if sample not in well_data:
-                            well_data[sample] = {
-                                k: v
-                                for k, v in item.items()
-                                if k not in ["Resource_Name", "Sample", "Batch"]
-                            }
-
-                # Render microplate selector
-                selected_wells = render_microplate_selector(
-                    well_data=well_data,
-                    unique_samples=unique_samples,
-                    translate_service=translate_service,
-                    session_key_prefix="graph_view",
-                    include_medium=recipe.has_medium_info,
-                )
-
-                # For compatibility with existing code, map selected wells to batch/sample
-                # In microplate mode, selected_wells contains plate_name_well format (e.g., "plate_A_C1")
-                # Extract unique plate names (batches) and base wells (samples) from selected wells
-                selected_batches = []
-                selected_samples = []
-                for well in selected_wells:
-                    # Extract plate name and base well from "plate_name_well" format
-                    if "_" in well:
-                        parts = well.rsplit("_", 1)
-                        if len(parts) == 2:
-                            plate_name = parts[0]
-                            base_well = parts[1]
-                            if plate_name not in selected_batches:
-                                selected_batches.append(plate_name)
-                            if base_well not in selected_samples:
-                                selected_samples.append(base_well)
-
-            else:
-                # Standard mode: Display batch and sample multiselect
-                # Create 2x2 grid for filters
-                col1, col2 = st.columns(2)
-
-                with col1:
-                    col1_select, col1_button = st.columns([3, 1])
-                    # Reset selection if batches changed
-                    if (
-                        "graph_view_batches" not in st.session_state
-                        or len(
-                            [
-                                batch
-                                for batch in st.session_state.graph_view_batches
-                                if batch not in unique_batches
-                            ]
-                        )
-                        > 0
-                    ):
-                        st.session_state.graph_view_batches = []
-                    with col1_button:
-                        if st.button(
-                            translate_service.translate("select_all_batches"),
-                            key="select_all_batches_graph",
-                            width="stretch",
-                        ):
-                            st.session_state.graph_view_batches = unique_batches
-                            st.rerun()
-                    with col1_select:
-                        selected_batches = st.multiselect(
-                            translate_service.translate("choose_batches"),
-                            options=unique_batches,
-                            key="graph_view_batches",
-                        )
-
-                with col2:
-                    col2_select, col2_button = st.columns([3, 1])
-                    # Reset selection if samples changed
-                    if (
-                        "graph_view_samples" not in st.session_state
-                        or len(
-                            [
-                                sample
-                                for sample in st.session_state.graph_view_samples
-                                if sample not in unique_samples
-                            ]
-                        )
-                        > 0
-                    ):
-                        st.session_state.graph_view_samples = []
-                    with col2_button:
-                        if st.button(
-                            translate_service.translate("select_all_samples"),
-                            key="select_all_samples_graph",
-                            width="stretch",
-                        ):
-                            st.session_state.graph_view_samples = unique_samples
-                            st.rerun()
-                    with col2_select:
-                        selected_samples = st.multiselect(
-                            translate_service.translate("choose_samples"),
-                            options=unique_samples,
-                            key="graph_view_samples",
-                        )
-
-            # Second row of the 2x2 grid (same for both modes)
-            col3, col4 = st.columns(2)
-
-            with col3:
-                # Check if index columns are available
-                if index_columns:
-                    selected_index = st.selectbox(
-                        translate_service.translate("choose_index_column"),
-                        options=index_columns,
-                        index=0,
-                        key="graph_view_index",
-                        help=translate_service.translate("choose_index_column_help"),
-                    )
-                else:
-                    st.warning(translate_service.translate("no_index_column"))
-                    selected_index = None
-
-            # Filter data columns to exclude the selected index
-            # Always exclude the selected index from selectable columns
-            if selected_index:
-                filtered_data_columns = [col for col in data_columns if col != selected_index]
-            else:
-                filtered_data_columns = data_columns
-
-            with col4:
-                help_text = translate_service.translate("available_data_columns")
-                if selected_index:
-                    help_text += " " + translate_service.translate("excluding_index").format(
-                        index=selected_index
-                    )
-                selected_columns = st.multiselect(
-                    translate_service.translate("choose_columns"),
-                    options=filtered_data_columns,
-                    key="graph_view_columns",
-                    help=help_text,
-                )
-
-        # Create dataframe from all resources for detailed plotting
-
-        all_data_rows = []
-        resources = filtered_resource_set.get_resources()
-
-        for resource_name, resource in resources.items():
-            if isinstance(resource, Table):
-                # Extract metadata from tags
-                batch = ""
-                sample = ""
-                medium = ""
-
-                if hasattr(resource, "tags") and resource.tags:
-                    for tag in resource.tags.get_tags():
-                        if tag.key == cell_culture_state.TAG_BATCH:
-                            batch = tag.value
-                        elif tag.key == cell_culture_state.TAG_SAMPLE:
-                            sample = tag.value
-                        elif tag.key == cell_culture_state.TAG_MEDIUM:
-                            medium = tag.value
-
-                # Get DataFrame
-                df = resource.get_data()
-
-                # Add rows to the list
-                for _, row in df.iterrows():
-                    row_dict = row.to_dict()
-                    row_dict["Batch"] = batch
-                    row_dict["Sample"] = sample
-                    # Only add Medium if recipe has medium info
-                    if recipe.has_medium_info:
-                        row_dict["Medium"] = medium
-                    row_dict["Resource_Name"] = resource_name
-                    all_data_rows.append(row_dict)
+        # Create dataframe from all_data_rows for detailed plotting
 
         df_all = pd.DataFrame(all_data_rows)
 
@@ -348,13 +165,18 @@ def render_graph_view_step(
         displayed_couples = len(filtered_df_all[["Batch", "Sample"]].drop_duplicates())
 
         # Option to plot mean curves with error bands
+        is_microplate = recipe.analysis_type == "microplate"
+
+        options_mode = [
+            translate_service.translate("individual_curves"),
+            translate_service.translate("mean_selected_batches"),
+            translate_service.translate("plot_by_batch"),
+        ]
+        if is_microplate and well_data:
+            options_mode.append(translate_service.translate("plot_by_replicate"))
+
         cols_mean = st.columns(2)
         with cols_mean[0]:
-            options_mode = [
-                translate_service.translate("individual_curves"),
-                translate_service.translate("mean_selected_batches"),
-                translate_service.translate("plot_by_batch"),
-            ]
             display_mode_selected = st.selectbox(
                 translate_service.translate("select_display_mode"),
                 options_mode,
@@ -368,6 +190,57 @@ def render_graph_view_step(
                 error_band = st.checkbox(
                     translate_service.translate("error_band"), value=False, key="error_band"
                 )
+
+        # Replicate selectors (only for "Plot by replicate" mode)
+        replicate_type = None
+        selected_replicate_values = []
+        replicate_well_mapping = {}  # maps "batch_sample" -> replicate_value
+
+        if display_mode_selected == translate_service.translate("plot_by_replicate") and well_data:
+            # Extract available replicate keys from well_data (same logic as microplate "Color by")
+            available_replicate_keys = set()
+            for _well, data in well_data.items():
+                if isinstance(data, dict):
+                    for plate_or_value in data.values():
+                        if isinstance(plate_or_value, dict):
+                            available_replicate_keys.update(plate_or_value.keys())
+
+            available_replicate_keys = sorted(available_replicate_keys)
+            if "Medium" in available_replicate_keys:
+                available_replicate_keys.remove("Medium")
+                available_replicate_keys = ["Medium"] + available_replicate_keys
+
+            cols_replicate = st.columns(2)
+            with cols_replicate[0]:
+                replicate_type = st.selectbox(
+                    translate_service.translate("replicate_type"),
+                    options=available_replicate_keys,
+                    index=0,
+                    key="replicate_type_selector",
+                )
+
+            if replicate_type:
+                # Extract unique values for the selected replicate type
+                unique_replicate_values = set()
+                for base_well, data in well_data.items():
+                    if isinstance(data, dict):
+                        for plate_name, plate_data in data.items():
+                            if isinstance(plate_data, dict):
+                                value = plate_data.get(replicate_type, "")
+                                if value != "":
+                                    unique_replicate_values.add(str(value))
+                                    # Build mapping: "plate_sample" -> replicate_value
+                                    replicate_well_mapping[f"{plate_name}_{base_well}"] = str(value)
+
+                unique_replicate_values = sorted(unique_replicate_values)
+
+                with cols_replicate[1]:
+                    selected_replicate_values = st.multiselect(
+                        translate_service.translate("replicate_values"),
+                        options=unique_replicate_values,
+                        default=unique_replicate_values,
+                        key="replicate_values_selector",
+                    )
 
         # Display summary metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -397,7 +270,8 @@ def render_graph_view_step(
             if combine_columns:
                 st.markdown(f"##### 📈 {translate_service.translate('all_columns_combined')}")
 
-                # Create one combined plot with all columns
+                # Create a single figure with multiple overlaid y-axes
+                num_columns = len(selected_columns)
                 fig = go.Figure()
 
                 # Define marker symbols to differentiate columns
@@ -412,13 +286,22 @@ def render_graph_view_step(
                     "star",
                 ]
 
-                # For each selected column, add traces for all batch/sample combinations
+                # Axis colors to visually associate traces with their y-axis
+                axis_colors = [
+                    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+                    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+                ]
+
+                # For each selected column, add traces assigned to its own y-axis
                 for column_idx, column_name in enumerate(selected_columns):
                     # Assign a unique marker symbol for this column
                     marker_symbol = marker_symbols[column_idx % len(marker_symbols)]
+                    axis_color = axis_colors[column_idx % len(axis_colors)]
+
+                    # First column uses "y", subsequent use "y2", "y3", etc.
+                    yaxis_ref = "y" if column_idx == 0 else f"y{column_idx + 1}"
 
                     # Use the optimized function to build the DataFrame for this column
-                    # The subsampling task already combined real and interpolated data
                     column_df = cell_culture_state.build_selected_column_df_from_resource_set(
                         filtered_resource_set, selected_index, column_name
                     )
@@ -431,7 +314,7 @@ def render_graph_view_step(
                                 batch_sample_combinations.add(f"{batch}_{sample}")
 
                         # Keep only columns that match the selected batch/sample combinations
-                        columns_to_keep = [selected_index]  # Always keep the index column
+                        columns_to_keep = [selected_index]
                         for col in column_df.columns:
                             if col != selected_index and col in batch_sample_combinations:
                                 columns_to_keep.append(col)
@@ -448,10 +331,8 @@ def render_graph_view_step(
                             if display_mode_selected == translate_service.translate(
                                 "individual_curves"
                             ):
-                                # Add traces for each batch_sample combination for this column
                                 for col in filtered_column_df.columns:
                                     if col != selected_index:
-                                        # Clean the data by removing NaN values
                                         clean_data = filtered_column_df[
                                             [selected_index, col]
                                         ].dropna()
@@ -465,16 +346,18 @@ def render_graph_view_step(
                                                     name=f"{column_name} - {col}",
                                                     line={"width": 2},
                                                     marker={"size": 6, "symbol": marker_symbol},
+                                                    legendgroup=column_name,
+                                                    legendgrouptitle_text=column_name,
+                                                    yaxis=yaxis_ref,
                                                     hovertemplate=f"<b>{column_name} - {col}</b><br>"
                                                     + f"{selected_index}: %{{x}}<br>"
-                                                    + "Valeur: %{{y:.4f}}<extra></extra>",
-                                                )
+                                                    + f"{column_name}: %{{y:.4f}}<extra></extra>",
+                                                ),
                                             )
                             # Mean curves mode
                             elif display_mode_selected == translate_service.translate(
                                 "mean_selected_batches"
                             ):
-                                # Get data columns (exclude index)
                                 data_cols = [
                                     col
                                     for col in filtered_column_df.columns
@@ -482,11 +365,9 @@ def render_graph_view_step(
                                 ]
 
                                 if data_cols:
-                                    # Calculate mean and std across all batch_sample combinations
                                     df_mean = filtered_column_df[data_cols].mean(axis=1)
                                     df_std = filtered_column_df[data_cols].std(axis=1)
 
-                                    # Clean data by removing NaN values
                                     clean_data = pd.DataFrame(
                                         {
                                             selected_index: filtered_column_df[selected_index],
@@ -496,7 +377,6 @@ def render_graph_view_step(
                                     ).dropna()
 
                                     if not clean_data.empty:
-                                        # Add mean trace
                                         fig.add_trace(
                                             go.Scatter(
                                                 x=clean_data[selected_index],
@@ -505,15 +385,16 @@ def render_graph_view_step(
                                                 name=f"{column_name} - {translate_service.translate('mean')}",
                                                 line={"width": 2, "shape": "spline"},
                                                 marker={"size": 6, "symbol": marker_symbol},
+                                                legendgroup=column_name,
+                                                legendgrouptitle_text=column_name,
+                                                yaxis=yaxis_ref,
                                                 hovertemplate=f"<b>{column_name} - {translate_service.translate('mean')}</b><br>"
                                                 + f"{selected_index}: %{{x}}<br>"
                                                 + f"{translate_service.translate('mean')}: %{{y:.4f}}<extra></extra>",
-                                            )
+                                            ),
                                         )
 
-                                        # Add error band if requested
                                         if error_band:
-                                            # Upper bound
                                             fig.add_trace(
                                                 go.Scatter(
                                                     x=clean_data[selected_index],
@@ -522,9 +403,9 @@ def render_graph_view_step(
                                                     line={"width": 0},
                                                     showlegend=False,
                                                     hoverinfo="skip",
-                                                )
+                                                    yaxis=yaxis_ref,
+                                                ),
                                             )
-                                            # Lower bound with fill
                                             fig.add_trace(
                                                 go.Scatter(
                                                     x=clean_data[selected_index],
@@ -533,14 +414,15 @@ def render_graph_view_step(
                                                     line={"width": 0},
                                                     fill="tonexty",
                                                     name=f"{column_name} - {translate_service.translate('error_band')} (±1 SD)",
+                                                    legendgroup=column_name,
                                                     hoverinfo="skip",
-                                                )
+                                                    yaxis=yaxis_ref,
+                                                ),
                                             )
                             # Plot by batch mode
                             elif display_mode_selected == translate_service.translate(
                                 "plot_by_batch"
                             ):
-                                # Get data columns (exclude index)
                                 data_cols = [
                                     col
                                     for col in filtered_column_df.columns
@@ -548,15 +430,12 @@ def render_graph_view_step(
                                 ]
 
                                 if data_cols:
-                                    # Calculate mean and std for each batch
                                     for batch in selected_batches:
-                                        # Get columns that belong to this batch
                                         batch_cols = [
                                             col for col in data_cols if col.startswith(f"{batch}_")
                                         ]
 
                                         if batch_cols:
-                                            # Calculate mean and std for this batch
                                             batch_mean = filtered_column_df[batch_cols].mean(axis=1)
                                             batch_std = (
                                                 filtered_column_df[batch_cols].std(axis=1).fillna(0)
@@ -581,10 +460,13 @@ def render_graph_view_step(
                                                         name=f"{column_name} - {batch}",
                                                         line={"width": 2, "shape": "spline"},
                                                         marker={"size": 6, "symbol": marker_symbol},
+                                                        legendgroup=column_name,
+                                                        legendgrouptitle_text=column_name,
+                                                        yaxis=yaxis_ref,
                                                         hovertemplate=f"<b>{column_name} - {batch}</b><br>"
                                                         + f"{selected_index}: %{{x}}<br>"
                                                         + f"{translate_service.translate('mean')}: %{{y:.4f}}<extra></extra>",
-                                                    )
+                                                    ),
                                                 )
 
                                                 if error_band:
@@ -597,7 +479,8 @@ def render_graph_view_step(
                                                             line={"width": 0},
                                                             showlegend=False,
                                                             hoverinfo="skip",
-                                                        )
+                                                            yaxis=yaxis_ref,
+                                                        ),
                                                     )
                                                     fig.add_trace(
                                                         go.Scatter(
@@ -608,20 +491,139 @@ def render_graph_view_step(
                                                             line={"width": 0},
                                                             fill="tonexty",
                                                             name=f"{column_name} - {batch} - {translate_service.translate('error_band')}",
+                                                            legendgroup=column_name,
                                                             hoverinfo="skip",
-                                                        )
+                                                            yaxis=yaxis_ref,
+                                                        ),
+                                                    )
+                            # Plot by replicate mode
+                            elif display_mode_selected == translate_service.translate(
+                                "plot_by_replicate"
+                            ):
+                                data_cols = [
+                                    col
+                                    for col in filtered_column_df.columns
+                                    if col != selected_index
+                                ]
+
+                                if data_cols and selected_replicate_values:
+                                    for rep_value in selected_replicate_values:
+                                        # Get columns that belong to this replicate value
+                                        rep_cols = [
+                                            col for col in data_cols
+                                            if replicate_well_mapping.get(col) == rep_value
+                                        ]
+
+                                        if rep_cols:
+                                            rep_mean = filtered_column_df[rep_cols].mean(axis=1)
+                                            rep_std = (
+                                                filtered_column_df[rep_cols].std(axis=1).fillna(0)
+                                            )
+
+                                            clean_data = pd.DataFrame(
+                                                {
+                                                    selected_index: filtered_column_df[
+                                                        selected_index
+                                                    ],
+                                                    "mean": rep_mean,
+                                                    "std": rep_std,
+                                                }
+                                            ).dropna(subset=["mean"])
+
+                                            if not clean_data.empty:
+                                                fig.add_trace(
+                                                    go.Scatter(
+                                                        x=clean_data[selected_index],
+                                                        y=clean_data["mean"],
+                                                        mode="lines+markers",
+                                                        name=f"{column_name} - {rep_value}",
+                                                        line={"width": 2, "shape": "spline"},
+                                                        marker={"size": 6, "symbol": marker_symbol},
+                                                        legendgroup=column_name,
+                                                        legendgrouptitle_text=column_name,
+                                                        yaxis=yaxis_ref,
+                                                        hovertemplate=f"<b>{column_name} - {rep_value}</b><br>"
+                                                        + f"{selected_index}: %{{x}}<br>"
+                                                        + f"{translate_service.translate('mean')}: %{{y:.4f}}<extra></extra>",
+                                                    ),
+                                                )
+
+                                                if error_band:
+                                                    fig.add_trace(
+                                                        go.Scatter(
+                                                            x=clean_data[selected_index],
+                                                            y=clean_data["mean"]
+                                                            + clean_data["std"],
+                                                            mode="lines",
+                                                            line={"width": 0},
+                                                            showlegend=False,
+                                                            hoverinfo="skip",
+                                                            yaxis=yaxis_ref,
+                                                        ),
+                                                    )
+                                                    fig.add_trace(
+                                                        go.Scatter(
+                                                            x=clean_data[selected_index],
+                                                            y=clean_data["mean"]
+                                                            - clean_data["std"],
+                                                            mode="lines",
+                                                            line={"width": 0},
+                                                            fill="tonexty",
+                                                            name=f"{column_name} - {rep_value} - {translate_service.translate('error_band')}",
+                                                            legendgroup=column_name,
+                                                            hoverinfo="skip",
+                                                            yaxis=yaxis_ref,
+                                                        ),
                                                     )
 
-                # Update layout
+                # Build y-axis layout: first axis on the left, others on the right with offset
+                # Reserve space on the right for each additional axis beyond the first
+                right_margin_per_axis = 0.07
+                plot_domain_right = 1.0 - max(0, (num_columns - 1)) * right_margin_per_axis
+
+                yaxis_layouts = {}
+                for column_idx, column_name in enumerate(selected_columns):
+                    axis_color = axis_colors[column_idx % len(axis_colors)]
+                    if column_idx == 0:
+                        # First y-axis on the left
+                        yaxis_layouts["yaxis"] = {
+                            "title": {"text": column_name, "font": {"color": axis_color}},
+                            "tickfont": {"color": axis_color},
+                        }
+                    elif column_idx == 1:
+                        # Second y-axis on the right side
+                        yaxis_layouts["yaxis2"] = {
+                            "title": {"text": column_name, "font": {"color": axis_color}},
+                            "tickfont": {"color": axis_color},
+                            "overlaying": "y",
+                            "side": "right",
+                        }
+                    else:
+                        # Additional y-axes offset further to the right
+                        position = 1.0 - (column_idx - 2) * right_margin_per_axis
+                        yaxis_layouts[f"yaxis{column_idx + 1}"] = {
+                            "title": {"text": column_name, "font": {"color": axis_color}},
+                            "tickfont": {"color": axis_color},
+                            "overlaying": "y",
+                            "side": "right",
+                            "position": position,
+                            "anchor": "free",
+                        }
+
+                # Update layout with all y-axes
                 fig.update_layout(
+                    **yaxis_layouts,
                     title=translate_service.translate("combined_graph_title").format(
                         index=selected_index
                     ),
-                    xaxis_title=selected_index,
-                    yaxis_title=translate_service.translate("combined_y_axis"),
+                    xaxis={
+                        "title": selected_index,
+                        "domain": [0, plot_domain_right],
+                    },
                     showlegend=True,
-                    legend={"x": 1.02, "y": 1, "xanchor": "left", "yanchor": "top"},
-                    height=600,
+                    legend={"orientation": "h", "x": 0.5, "y": -0.15,
+                            "xanchor": "center", "yanchor": "top"},
+                    height=650,
                 )
 
                 # Display the combined plot
@@ -831,6 +833,78 @@ def render_graph_view_step(
                                                             hoverinfo="skip",
                                                         )
                                                     )
+                            # Plot by replicate mode
+                            elif display_mode_selected == translate_service.translate(
+                                "plot_by_replicate"
+                            ):
+                                data_cols = [
+                                    col
+                                    for col in filtered_column_df.columns
+                                    if col != selected_index
+                                ]
+
+                                if data_cols and selected_replicate_values:
+                                    for rep_value in selected_replicate_values:
+                                        rep_cols = [
+                                            col for col in data_cols
+                                            if replicate_well_mapping.get(col) == rep_value
+                                        ]
+
+                                        if rep_cols:
+                                            rep_mean = filtered_column_df[rep_cols].mean(axis=1)
+                                            rep_std = (
+                                                filtered_column_df[rep_cols].std(axis=1).fillna(0)
+                                            )
+
+                                            clean_data = pd.DataFrame(
+                                                {
+                                                    selected_index: filtered_column_df[
+                                                        selected_index
+                                                    ],
+                                                    "mean": rep_mean,
+                                                    "std": rep_std,
+                                                }
+                                            ).dropna(subset=["mean"])
+
+                                            if not clean_data.empty:
+                                                fig.add_trace(
+                                                    go.Scatter(
+                                                        x=clean_data[selected_index],
+                                                        y=clean_data["mean"],
+                                                        mode="lines+markers",
+                                                        name=f"{column_name} - {rep_value}",
+                                                        line={"width": 2, "shape": "spline"},
+                                                        marker={"size": 6},
+                                                        hovertemplate=f"<b>{column_name} - {rep_value}</b><br>"
+                                                        + f"{selected_index}: %{{x}}<br>"
+                                                        + f"{translate_service.translate('mean')}: %{{y:.4f}}<extra></extra>",
+                                                    )
+                                                )
+
+                                                if error_band:
+                                                    fig.add_trace(
+                                                        go.Scatter(
+                                                            x=clean_data[selected_index],
+                                                            y=clean_data["mean"]
+                                                            + clean_data["std"],
+                                                            mode="lines",
+                                                            line={"width": 0},
+                                                            showlegend=False,
+                                                            hoverinfo="skip",
+                                                        )
+                                                    )
+                                                    fig.add_trace(
+                                                        go.Scatter(
+                                                            x=clean_data[selected_index],
+                                                            y=clean_data["mean"]
+                                                            - clean_data["std"],
+                                                            mode="lines",
+                                                            line={"width": 0},
+                                                            fill="tonexty",
+                                                            name=f"{column_name} - {rep_value} - {translate_service.translate('error_band')}",
+                                                            hoverinfo="skip",
+                                                        )
+                                                    )
 
                             # Update layout
                             fig.update_layout(
@@ -995,6 +1069,55 @@ def render_graph_view_step(
                                     label=download_label,
                                     data=csv_data,
                                     file_name=f"cell_culture_{column_name}_mean_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                    mime="text/csv",
+                                    key=f"download_graph_{column_name}_{i}",
+                                )
+                            elif display_mode_selected == translate_service.translate(
+                                "plot_by_replicate"
+                            ):
+                                if not clean_data.empty:
+                                    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+                                    with col_stats1:
+                                        total_values = len(clean_data)
+                                        st.metric(
+                                            translate_service.translate("data_points"),
+                                            int(total_values),
+                                        )
+                                    with col_stats2:
+                                        mean_val = clean_data["mean"].mean()
+                                        st.metric(
+                                            translate_service.translate("overall_average"),
+                                            f"{mean_val:.3f}",
+                                        )
+                                    with col_stats3:
+                                        min_val = clean_data["mean"].min()
+                                        st.metric(
+                                            translate_service.translate("minimum"), f"{min_val:.3f}"
+                                        )
+                                    with col_stats4:
+                                        max_val = clean_data["mean"].max()
+                                        st.metric(
+                                            translate_service.translate("maximum"), f"{max_val:.3f}"
+                                        )
+
+                                download_df = clean_data.copy()
+                                download_df = download_df.rename(
+                                    columns={
+                                        "mean": f"{column_name}_mean",
+                                        "std": f"{column_name}_std",
+                                    }
+                                )
+                                csv_data = download_df.to_csv(index=False)
+                                download_label = translate_service.translate(
+                                    "download_data"
+                                ).format(
+                                    column=f"{column_name} {translate_service.translate('mean')}"
+                                )
+                                download_label += f" {translate_service.translate('by_replicate')}"
+                                st.download_button(
+                                    label=download_label,
+                                    data=csv_data,
+                                    file_name=f"cell_culture_{column_name}_replicate_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                                     mime="text/csv",
                                     key=f"download_graph_{column_name}_{i}",
                                 )

@@ -255,12 +255,8 @@ class CellCultureRecipe(ABC):
         organized = {}
 
         for scenario in selection_scenarios:
-            # Extract display name from title or use scenario ID as fallback
-            if "Sélection - " in scenario.title:
-                display_name = scenario.title
-            else:
-                display_name = f"Sélection - {scenario.id[:8]}"
-
+            # Use the scenario title as display name, fallback to ID
+            display_name = scenario.title if scenario.title else scenario.id[:8]
             organized[display_name] = scenario
 
         return organized

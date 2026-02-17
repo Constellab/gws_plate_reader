@@ -232,6 +232,7 @@ def launch_optimization_scenario(
 
         # Add to queue
         scenario_proxy.add_to_queue()
+        st.toast(translate_service.translate("toast_scenario_launched"))
 
         # Return the new scenario
         new_scenario = scenario_proxy.get_model()

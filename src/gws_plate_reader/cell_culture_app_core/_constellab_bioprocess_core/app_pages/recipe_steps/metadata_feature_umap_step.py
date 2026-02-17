@@ -18,6 +18,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 from gws_plate_reader.cell_culture_filter import (
     CellCultureMergeFeatureMetadata,
     CellCulturePrepareFeatureMetadataTable,
@@ -451,8 +454,14 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
         return
 
     # Check existing UMAP scenarios for this feature extraction
-    recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
+    existing_metadata_umap_scenarios = recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
         feature_extraction_scenario.id
+    )
+    render_launched_scenarios_expander(
+        scenarios=existing_metadata_umap_scenarios,
+        nav_key_prefix="metadata_feature_umap_result_",
+        title_prefix="Metadata Feature UMAP - ",
+        translate_service=translate_service,
     )
 
     # Configuration form for new UMAP

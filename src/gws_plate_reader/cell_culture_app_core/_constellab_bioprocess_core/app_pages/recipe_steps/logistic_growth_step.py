@@ -19,6 +19,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 from gws_plate_reader.features_extraction.logistic_growth_fitter import LogisticGrowthFitter
 
 
@@ -292,6 +295,17 @@ def render_logistic_growth_step(
     if not data_columns:
         st.warning(translate_service.translate("no_data_columns_found"))
         return
+
+    # Show existing Logistic Growth scenarios
+    existing_lg_scenarios = recipe.get_logistic_growth_scenarios_for_quality_check(
+        quality_check_scenario.id
+    )
+    render_launched_scenarios_expander(
+        scenarios=existing_lg_scenarios,
+        nav_key_prefix="logistic_growth_result_",
+        title_prefix="Logistic Growth - ",
+        translate_service=translate_service,
+    )
 
     # Configuration form for new Logistic Growth
     st.markdown("---")

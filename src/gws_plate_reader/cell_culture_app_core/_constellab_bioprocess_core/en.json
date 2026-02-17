@@ -913,6 +913,7 @@
     "replicate_type": "Replicate type",
     "replicate_values": "Replicate values",
     "toast_scenario_launched": "Scenario launched! Processing in progress...",
+    "launched_scenarios": "Previously launched scenarios",
     "mean_selected_batches": "Mean of selected batches",
     "standalone_mode_function_blocked": "You are in standalone mode. This function is not available. Contact us if you would like the application with all its features in your lab.",
     "unknown_error": "Unknown error",

@@ -27,6 +27,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 
 
 def get_available_media_from_quality_check(
@@ -357,7 +360,13 @@ def render_medium_umap_step(
         return
 
     # Check existing UMAP scenarios
-    recipe.get_medium_umap_scenarios_for_quality_check(quality_check_scenario.id)
+    existing_umap_scenarios = recipe.get_medium_umap_scenarios_for_quality_check(quality_check_scenario.id)
+    render_launched_scenarios_expander(
+        scenarios=existing_umap_scenarios,
+        nav_key_prefix="umap_result_",
+        title_prefix="Medium UMAP - ",
+        translate_service=translate_service,
+    )
 
     # Configuration form for new UMAP
     st.markdown("---")

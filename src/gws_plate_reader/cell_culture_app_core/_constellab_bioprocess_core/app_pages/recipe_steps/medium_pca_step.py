@@ -29,6 +29,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 
 
 def get_available_media_from_quality_check(
@@ -333,8 +336,14 @@ def render_medium_pca_step(
         st.warning(translate_service.translate("pca_error_media_info"))
         return
 
-    # Check existing PCA scenarios
-    recipe.get_medium_pca_scenarios_for_quality_check(quality_check_scenario.id)
+    # Show existing PCA scenarios
+    existing_pca_scenarios = recipe.get_medium_pca_scenarios_for_quality_check(quality_check_scenario.id)
+    render_launched_scenarios_expander(
+        scenarios=existing_pca_scenarios,
+        nav_key_prefix="pca_result_",
+        title_prefix="Medium PCA - ",
+        translate_service=translate_service,
+    )
 
     # Configuration form for new PCA
     st.markdown("---")

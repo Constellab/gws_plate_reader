@@ -18,6 +18,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 from gws_plate_reader.cell_culture_filter import CellCultureQualityCheck
 
 
@@ -491,6 +494,13 @@ def _render_selection_quality_checks(
     # Get quality check scenarios for this selection
     quality_check_scenarios = recipe.get_quality_check_scenarios_for_selection(selection.id)
     qc_count = len(quality_check_scenarios)
+
+    render_launched_scenarios_expander(
+        scenarios=quality_check_scenarios,
+        nav_key_prefix="qc_visualization_",
+        title_prefix="Quality Check - ",
+        translate_service=translate_service,
+    )
 
     # Container function to avoid code duplication
     def render_content():

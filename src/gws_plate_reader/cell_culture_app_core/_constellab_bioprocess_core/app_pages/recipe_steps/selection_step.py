@@ -18,6 +18,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 from gws_plate_reader.cell_culture_filter import (
     CellCultureSubsampling,
     FilterFermentorAnalyseLoadedResourceSetBySelection,
@@ -241,6 +244,12 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
 
         # Show existing selections info if any
         existing_selections = recipe.get_selection_scenarios()
+        render_launched_scenarios_expander(
+            scenarios=existing_selections,
+            nav_key_prefix="visualization_",
+            title_prefix=translate_service.translate("selection") + " - ",
+            translate_service=translate_service,
+        )
 
         # Prepare valid data only (no missing data)
         valid_data = []

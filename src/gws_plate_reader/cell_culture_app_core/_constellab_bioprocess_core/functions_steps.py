@@ -64,6 +64,46 @@ def get_biolector_emoji(is_biolector: bool) -> str:
     return "🧫" if is_biolector else "🧪"
 
 
+def render_launched_scenarios_expander(
+    scenarios: list[Scenario],
+    nav_key_prefix: str,
+    title_prefix: str,
+    translate_service: StreamlitTranslateService,
+) -> None:
+    """Render an expander showing previously launched scenarios with clickable navigation buttons.
+
+    :param scenarios: List of Scenario objects to display
+    :param nav_key_prefix: Navigation key prefix for routing (e.g., "pca_result_")
+    :param title_prefix: Prefix to strip from scenario titles for display (e.g., "Medium PCA - ")
+    :param translate_service: Translation service instance
+    """
+    if not scenarios:
+        return
+
+    count = len(scenarios)
+    expander_label = f"{translate_service.translate('launched_scenarios')} ({count})"
+
+    with st.expander(expander_label, expanded=False):
+        for scenario in scenarios:
+            # Clean the title by removing the type prefix
+            display_title = scenario.title
+            if title_prefix and title_prefix in display_title:
+                display_title = display_title.replace(title_prefix, "")
+
+            # Build display line: emoji + title + status text
+            emoji = get_status_emoji(scenario.status)
+            status_text = get_status_prettify(scenario.status, translate_service)
+            button_label = f"{emoji} {display_title} — {status_text}"
+
+            if st.button(
+                button_label,
+                key=f"nav_{nav_key_prefix}{scenario.id}",
+                use_container_width=True,
+            ):
+                st.session_state["_force_nav_key"] = f"{nav_key_prefix}{scenario.id}"
+                st.rerun()
+
+
 def create_recipe_table_data(
     scenarios: list[Scenario],
     cell_culture_state: CellCultureState,

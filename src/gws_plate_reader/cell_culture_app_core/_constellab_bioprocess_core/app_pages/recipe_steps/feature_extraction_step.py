@@ -21,6 +21,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 
 
 def get_available_columns_from_quality_check(
@@ -283,8 +286,16 @@ def render_feature_extraction_step(
         st.warning(translate_service.translate("no_data_columns_found"))
         return
 
-    # Check existing feature extraction scenarios
-    recipe.get_feature_extraction_scenarios_for_quality_check(quality_check_scenario.id)
+    # Show existing feature extraction scenarios
+    existing_fe_scenarios = recipe.get_feature_extraction_scenarios_for_quality_check(
+        quality_check_scenario.id
+    )
+    render_launched_scenarios_expander(
+        scenarios=existing_fe_scenarios,
+        nav_key_prefix="fe_result_",
+        title_prefix="Feature Extraction - ",
+        translate_service=translate_service,
+    )
 
     # Configuration form for new Feature Extraction
     st.markdown("---")

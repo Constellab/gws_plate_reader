@@ -593,8 +593,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
             # Build and display navigation menu
             button_menu = build_analysis_tree_menu(cell_culture_state)
 
+            # Handle forced navigation from scenario expander buttons
+            if "_force_nav_key" in st.session_state:
+                forced_key = st.session_state.pop("_force_nav_key")
+                st.session_state["last_known_menu_selection"] = forced_key
+                try:
+                    button_menu.set_selected_item(forced_key)
+                except Exception:
+                    pass
+
             # Restore last known selection if menu is not initialized
-            if "recipe_navigation_menu" not in st.session_state or not st.session_state["recipe_navigation_menu"].get("item_key"):
+            elif "recipe_navigation_menu" not in st.session_state or not st.session_state["recipe_navigation_menu"].get("item_key"):
                 if "last_known_menu_selection" in st.session_state:
                     last_selection = st.session_state["last_known_menu_selection"]
                     try:

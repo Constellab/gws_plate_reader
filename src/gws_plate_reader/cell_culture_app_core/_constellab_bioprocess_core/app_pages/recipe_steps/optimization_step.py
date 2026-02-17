@@ -19,6 +19,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 from gws_plate_reader.cell_culture_filter import CellCultureMergeFeatureMetadata
 
 
@@ -340,7 +343,15 @@ def render_optimization_step(
         return
 
     # Check existing Optimization scenarios for this feature extraction
-    recipe.get_optimization_scenarios_for_feature_extraction(feature_extraction_scenario.id)
+    existing_opt_scenarios = recipe.get_optimization_scenarios_for_feature_extraction(
+        feature_extraction_scenario.id
+    )
+    render_launched_scenarios_expander(
+        scenarios=existing_opt_scenarios,
+        nav_key_prefix="optimization_result_",
+        title_prefix="Optimization - ",
+        translate_service=translate_service,
+    )
 
     # Configuration form for new Optimization
     st.markdown("---")

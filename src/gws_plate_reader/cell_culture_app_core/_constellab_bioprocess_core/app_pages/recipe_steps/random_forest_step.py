@@ -18,6 +18,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
+    render_launched_scenarios_expander,
+)
 from gws_plate_reader.cell_culture_filter import CellCultureMergeFeatureMetadata
 
 
@@ -323,8 +326,16 @@ def render_random_forest_step(
         st.code(traceback.format_exc())
         return
 
-    # Check existing Random Forest scenarios for this feature extraction
-    recipe.get_random_forest_scenarios_for_feature_extraction(feature_extraction_scenario.id)
+    # Show existing Random Forest scenarios for this feature extraction
+    existing_rf_scenarios = recipe.get_random_forest_scenarios_for_feature_extraction(
+        feature_extraction_scenario.id
+    )
+    render_launched_scenarios_expander(
+        scenarios=existing_rf_scenarios,
+        nav_key_prefix="random_forest_result_",
+        title_prefix="Random Forest Regression - ",
+        translate_service=translate_service,
+    )
 
     # Configuration form for new Random Forest
     st.markdown("---")

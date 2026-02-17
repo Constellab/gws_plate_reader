@@ -914,6 +914,7 @@
     "replicate_type": "Type de réplicat",
     "replicate_values": "Valeurs de réplicat",
     "toast_scenario_launched": "Scénario lancé ! Traitement en cours...",
+    "launched_scenarios": "Scénarios précédemment lancés",
     "mean_selected_batches": "Moyenne des batchs sélectionnés",
     "standalone_mode_function_blocked": "Vous êtes en mode standalone. Cette fonctionnalité n'est pas disponible. Contactez-nous si vous souhaitez disposer de l'application avec toutes ses fonctionnalités dans votre lab.",
     "unknown_error": "Erreur inconnue",

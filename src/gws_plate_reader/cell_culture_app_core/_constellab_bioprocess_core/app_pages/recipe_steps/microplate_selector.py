@@ -211,23 +211,16 @@ def _render_microplate_grid(
         cols_header = st.columns([1] + [1] * COLS + [1])
         for col in range(COLS):
             if cols_header[col + 1].button(str(col + 1), key=f"{session_key_prefix}_col_{col + 1}"):
-                # Toggle entire column
+                # Select entire column (add to existing selection)
                 for row in range(ROWS):
                     base_well = wells[row][col]
-                    if base_well in well_data:  # Only toggle wells with data
-                        # Handle multi-plate or single plate
+                    if base_well in well_data:  # Only select wells with data
                         if is_multiplate_structure and plate_names:
-                            # Toggle for all plates
                             for plate_name in plate_names:
                                 full_well = f"{plate_name}_{base_well}"
-                                if full_well in st.session_state[wells_key]:
-                                    st.session_state[wells_key].remove(full_well)
-                                else:
+                                if full_well not in st.session_state[wells_key]:
                                     st.session_state[wells_key].append(full_well)
-                        # Single plate mode
-                        elif base_well in st.session_state[wells_key]:
-                            st.session_state[wells_key].remove(base_well)
-                        else:
+                        elif base_well not in st.session_state[wells_key]:
                             st.session_state[wells_key].append(base_well)
                 st.rerun(scope="fragment")
 
@@ -240,23 +233,16 @@ def _render_microplate_grid(
                 chr(65 + start_row + row),
                 key=f"{session_key_prefix}_row_{chr(65 + start_row + row)}",
             ):
-                # Toggle entire row
+                # Select entire row (add to existing selection)
                 for col in range(COLS):
                     base_well = wells[row][col]
-                    if base_well in well_data:  # Only toggle wells with data
-                        # Handle multi-plate or single plate
+                    if base_well in well_data:  # Only select wells with data
                         if is_multiplate_structure and plate_names:
-                            # Toggle for all plates
                             for plate_name in plate_names:
                                 full_well = f"{plate_name}_{base_well}"
-                                if full_well in st.session_state[wells_key]:
-                                    st.session_state[wells_key].remove(full_well)
-                                else:
+                                if full_well not in st.session_state[wells_key]:
                                     st.session_state[wells_key].append(full_well)
-                        # Single plate mode
-                        elif base_well in st.session_state[wells_key]:
-                            st.session_state[wells_key].remove(base_well)
-                        else:
+                        elif base_well not in st.session_state[wells_key]:
                             st.session_state[wells_key].append(base_well)
                 st.rerun(scope="fragment")
 

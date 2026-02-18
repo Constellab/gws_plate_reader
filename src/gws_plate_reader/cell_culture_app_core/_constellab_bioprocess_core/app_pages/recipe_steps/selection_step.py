@@ -246,7 +246,7 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
         existing_selections = recipe.get_selection_scenarios()
         render_launched_scenarios_expander(
             scenarios=existing_selections,
-            nav_key_prefix="visualization_",
+            nav_key_prefix="selection_folder_",
             title_prefix=translate_service.translate("selection") + " - ",
             translate_service=translate_service,
         )

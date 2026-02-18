@@ -126,13 +126,6 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> StreamlitT
                 button_menu.add_item(selection_folder)
                 continue  # Only show analysis sub-items for successful QC scenarios
 
-            # Add visualization sub-item (combines Table, Graph and Medium views)
-            visualization_sub_item = StreamlitTreeMenuItem(
-                label=translate_service.translate("visualization"),
-                key=f"visualization_{scenario.id}",
-            )
-            selection_folder.add_child(visualization_sub_item)
-
             # Add Quality Check folder - clicking on it opens the QC creation form
             quality_check_folder = StreamlitTreeMenuItem(
                 label="Quality Check", key=f"quality_check_{scenario.id}"
@@ -158,13 +151,6 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> StreamlitT
                     if qc_scenario.status != ScenarioStatus.SUCCESS:
                         quality_check_folder.add_child(qc_folder)
                         continue  # Only show analysis sub-items for successful QC scenarios
-
-                    # Add Visualization view for QC results (combines Table, Graph and Medium views)
-                    qc_visualization_item = StreamlitTreeMenuItem(
-                        label=translate_service.translate("visualization"),
-                        key=f"qc_visualization_{qc_scenario.id}",
-                    )
-                    qc_folder.add_child(qc_visualization_item)
 
                     # Analysis sub-folder
                     analysis_folder = StreamlitTreeMenuItem(
@@ -623,6 +609,37 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
             elif selected_key == "selection":
                 st.title(f"{recipe.name} - {translate_service.translate('selection')}")
                 render_selection_step(recipe, cell_culture_state)
+            elif selected_key.startswith("selection_folder_"):
+                # Extract selection scenario ID from key (selection_folder_{scenario_id})
+                scenario_id = selected_key.replace("selection_folder_", "")
+                selection_scenarios = recipe.get_selection_scenarios()
+                target_scenario = next(
+                    (s for s in selection_scenarios if s.id == scenario_id), None
+                )
+                if target_scenario:
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(
+                            f"{recipe.name} - {translate_service.translate('selection')}\n{target_scenario.title}"
+                        )
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
+                    display_scenario_task_configs(target_scenario, translate_service)
+                    render_visualization_step(
+                        recipe,
+                        cell_culture_state,
+                        scenario=target_scenario,
+                        output_name=cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME,
+                    )
+                else:
+                    st.error(translate_service.translate("selection_scenario_not_found"))
             elif selected_key.startswith("quality_check_"):
                 # Extract selection scenario ID from key (quality_check_{selection_id})
                 selection_id = selected_key.replace("quality_check_", "")
@@ -638,39 +655,30 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     )
                 else:
                     st.error(translate_service.translate("selection_scenario_not_found"))
-            elif selected_key.startswith("visualization_"):
-                # Extract scenario ID from key
-                scenario_id = selected_key.replace("visualization_", "")
-                # Find the corresponding scenario
-                selection_scenarios = recipe.get_selection_scenarios()
-                target_scenario = next(
-                    (s for s in selection_scenarios if s.id == scenario_id), None
-                )
-                if target_scenario:
-                    st.title(
-                        f"{recipe.name} - {translate_service.translate('visualization')}\n{target_scenario.title}"
-                    )
-                    render_visualization_step(
-                        recipe,
-                        cell_culture_state,
-                        scenario=target_scenario,
-                        output_name=cell_culture_state.INTERPOLATION_SCENARIO_OUTPUT_NAME,
-                    )
-                else:
-                    st.error(translate_service.translate("selection_scenario_not_found"))
-            elif selected_key.startswith("qc_visualization_"):
-                # Extract quality check scenario ID from key
-                qc_scenario_id = selected_key.replace("qc_visualization_", "")
+            elif selected_key.startswith("qc_folder_"):
+                # Extract quality check scenario ID from key (qc_folder_{qc_scenario_id})
+                qc_scenario_id = selected_key.replace("qc_folder_", "")
                 # Find the corresponding quality check scenario
                 all_qc_scenarios = recipe.get_quality_check_scenarios()
                 target_qc_scenario = next(
                     (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                 )
                 if target_qc_scenario:
-                    st.title(
-                        f"{recipe.name} - {translate_service.translate('visualization')}\n{target_qc_scenario.title}"
-                    )
-                    # Display quality check results in visualization view (use interpolated output)
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.title(
+                            f"{recipe.name} - Quality Check\n{target_qc_scenario.title}"
+                        )
+                    with col2:
+                        if not cell_culture_state.get_is_standalone():
+                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            scenario_url = FrontService.get_scenario_url(target_qc_scenario.id)
+                            st.link_button(
+                                translate_service.translate("view_scenario"),
+                                scenario_url,
+                                icon=":material/open_in_new:",
+                            )
+                    display_scenario_task_configs(target_qc_scenario, translate_service)
                     render_visualization_step(
                         recipe,
                         cell_culture_state,

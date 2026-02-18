@@ -497,7 +497,7 @@ def _render_selection_quality_checks(
 
     render_launched_scenarios_expander(
         scenarios=quality_check_scenarios,
-        nav_key_prefix="qc_visualization_",
+        nav_key_prefix="qc_folder_",
         title_prefix="Quality Check - ",
         translate_service=translate_service,
     )

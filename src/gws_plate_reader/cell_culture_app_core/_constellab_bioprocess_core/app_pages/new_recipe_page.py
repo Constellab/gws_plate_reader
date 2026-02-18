@@ -26,7 +26,7 @@ from gws_core.resource.resource_set.resource_set_tasks import ResourceStacker
 from gws_streamlit_main import StreamlitContainers, StreamlitResourceSelect, StreamlitRouter
 
 from gws_plate_reader.biolector_xt_data_parser.biolector_xt_load_data import BiolectorXTLoadData
-from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.bioprocess_load_data import (
+from gws_plate_reader.cell_culture_app_core.bioprocess_load_data import (
     ConstellabBioprocessLoadData,
 )
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (

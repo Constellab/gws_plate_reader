@@ -406,7 +406,6 @@ def render_visualization_step(
                 translate_service.translate("choose_columns"),
                 options=filtered_data_columns,
                 key="visualization_columns",
-                max_selections=3,
                 help=translate_service.translate("data_columns_available_help")
                 + (
                     translate_service.translate("excluding_index_help").format(index=selected_index)

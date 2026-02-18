@@ -151,12 +151,16 @@ def render_graph_view_step(
         # Option to combine all columns in one plot
         combine_columns = False
         if len(selected_columns) > 1:
+            too_many = len(selected_columns) > 3
             combine_columns = st.checkbox(
                 f"📊 {translate_service.translate('combine_columns_in_same_graph')}",
                 value=False,
                 key="graph_view_combine_columns",
                 help=translate_service.translate("combine_columns_help"),
+                disabled=too_many,
             )
+            if too_many:
+                combine_columns = False
 
         # Filter data to count actual couples
         filtered_df_all = df_all[

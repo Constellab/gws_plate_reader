@@ -1,7 +1,7 @@
 {
     "name": "gws_plate_reader",
     "author": "Gencovery",
-    "version": "0.11.6",
+    "version": "0.11.7",
     "variables": {
         "testdata_dir": "${CURRENT_DIR}/tests/testdata",
         "data_dir": "${CURRENT_DIR}/data"
@@ -10,7 +10,7 @@
         "bricks": [
             {
                 "name": "gws_core",
-                "version": "0.20.0"
+                "version": "0.20.5"
             },
             {
                 "name": "gws_design_of_experiments",

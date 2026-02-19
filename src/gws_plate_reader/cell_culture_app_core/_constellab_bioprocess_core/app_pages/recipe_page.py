@@ -136,8 +136,8 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> StreamlitT
             if quality_check_scenarios:
                 for qc_scenario in quality_check_scenarios:
                     qc_timestamp = "QC"
-                    if "Quality Check - " in qc_scenario.title:
-                        qc_timestamp = qc_scenario.title.replace("Quality Check - ", "")
+                    if "Quality Check" in qc_scenario.title:
+                        qc_timestamp = qc_scenario.title.replace("Quality Check", "QC")
 
                     # Add status icon to QC scenario label
                     status_emoji = get_status_emoji(qc_scenario.status)
@@ -589,7 +589,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     pass
 
             # Restore last known selection if menu is not initialized
-            elif "recipe_navigation_menu" not in st.session_state or not st.session_state["recipe_navigation_menu"].get("item_key"):
+            elif "recipe_navigation_menu" not in st.session_state or not st.session_state[
+                "recipe_navigation_menu"
+            ].get("item_key"):
                 if "last_known_menu_selection" in st.session_state:
                     last_selection = st.session_state["last_known_menu_selection"]
                     try:
@@ -624,7 +626,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         )
                     with col2:
                         if not cell_culture_state.get_is_standalone():
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -666,12 +670,12 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 if target_qc_scenario:
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(
-                            f"{recipe.name} - Quality Check\n{target_qc_scenario.title}"
-                        )
+                        st.title(f"{recipe.name} - Quality Check\n{target_qc_scenario.title}")
                     with col2:
                         if not cell_culture_state.get_is_standalone():
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_qc_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -752,7 +756,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_lg_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -794,7 +800,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_pca_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -818,11 +826,15 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(f"{recipe.name} - Medium UMAP Results\n{target_umap_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - Medium UMAP Results\n{target_umap_scenario.title}"
+                        )
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_umap_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -852,7 +864,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_fe_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -930,7 +944,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_umap_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -1008,7 +1024,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_pls_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -1078,11 +1096,15 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(f"{recipe.name} - Random Forest Results\n{target_rf_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - Random Forest Results\n{target_rf_scenario.title}"
+                        )
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_rf_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -1158,7 +1180,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_causal_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
@@ -1228,11 +1252,15 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(f"{recipe.name} - Optimization Results\n{target_opt_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - Optimization Results\n{target_opt_scenario.title}"
+                        )
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
-                            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+                            st.markdown(
+                                '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
+                            )
                             scenario_url = FrontService.get_scenario_url(target_opt_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),

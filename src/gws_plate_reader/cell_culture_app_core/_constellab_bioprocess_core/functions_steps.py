@@ -347,12 +347,16 @@ def render_recipe_table(
         "rowHeight": 28,
     }
 
+    # Use a dynamic key so that refresh forces a full re-initialization of the grid
+    refresh_count = st.session_state.get("cell_culture_recipes_refresh", 0)
+    grid_key = f"cell_culture_recipes_grid_{refresh_count}"
+
     # Render the grid with on_click for row selection
     grid_response = slickgrid(
         data=table_data,
         columns=columns,
         options=options,
-        key="cell_culture_recipes_grid",
+        key=grid_key,
         on_click="rerun",
     )
 

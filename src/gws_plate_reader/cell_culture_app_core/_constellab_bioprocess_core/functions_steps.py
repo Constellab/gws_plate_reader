@@ -98,7 +98,7 @@ def render_launched_scenarios_expander(
             if st.button(
                 button_label,
                 key=f"nav_{nav_key_prefix}{scenario.id}",
-                use_container_width=True,
+                width="stretch",
             ):
                 st.session_state["_force_nav_key"] = f"{nav_key_prefix}{scenario.id}"
                 st.rerun()
@@ -347,12 +347,16 @@ def render_recipe_table(
         "rowHeight": 28,
     }
 
+    # Use a dynamic key so that refresh forces a full re-initialization of the grid
+    refresh_count = st.session_state.get("cell_culture_recipes_refresh", 0)
+    grid_key = f"cell_culture_recipes_grid_{refresh_count}"
+
     # Render the grid with on_click for row selection
     grid_response = slickgrid(
         data=table_data,
         columns=columns,
         options=options,
-        key="cell_culture_recipes_grid",
+        key=grid_key,
         on_click="rerun",
     )
 
@@ -397,15 +401,15 @@ def display_scenario_task_configs(
             task_name = process_model.name or instance_name
 
             if config_params:
-                task_configs.append({
-                    "name": task_name,
-                    "params": config_params,
-                })
+                task_configs.append(
+                    {
+                        "name": task_name,
+                        "params": config_params,
+                    }
+                )
 
         if task_configs:
-            with st.expander(
-                f"⚙️ {translate_service.translate('scenario_configurations')}"
-            ):
+            with st.expander(f"⚙️ {translate_service.translate('scenario_configurations')}"):
                 for i, task_info in enumerate(task_configs):
                     if i > 0:
                         st.markdown("---")
@@ -413,13 +417,15 @@ def display_scenario_task_configs(
                     param_data = []
                     for key, value in task_info["params"].items():
                         readable_key = key.replace("_", " ").replace("-", " ").title()
-                        param_data.append({
-                            translate_service.translate("parameter"): readable_key,
-                            translate_service.translate("value"): str(value),
-                        })
+                        param_data.append(
+                            {
+                                translate_service.translate("parameter"): readable_key,
+                                translate_service.translate("value"): str(value),
+                            }
+                        )
                     if param_data:
                         param_df = pd.DataFrame(param_data)
-                        st.dataframe(param_df, use_container_width=True, hide_index=True)
+                        st.dataframe(param_df, width="stretch", hide_index=True)
 
     except Exception:
         pass

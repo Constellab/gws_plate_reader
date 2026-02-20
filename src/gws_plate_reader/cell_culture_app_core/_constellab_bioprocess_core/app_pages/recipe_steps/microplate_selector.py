@@ -211,17 +211,47 @@ def _render_microplate_grid(
         cols_header = st.columns([1] + [1] * COLS + [1])
         for col in range(COLS):
             if cols_header[col + 1].button(str(col + 1), key=f"{session_key_prefix}_col_{col + 1}"):
-                # Select entire column (add to existing selection)
+                # Check if all valid wells in this column are already selected
+                all_selected_in_col = True
                 for row in range(ROWS):
                     base_well = wells[row][col]
-                    if base_well in well_data:  # Only select wells with data
+                    if base_well in well_data:
                         if is_multiplate_structure and plate_names:
                             for plate_name in plate_names:
                                 full_well = f"{plate_name}_{base_well}"
                                 if full_well not in st.session_state[wells_key]:
-                                    st.session_state[wells_key].append(full_well)
+                                    all_selected_in_col = False
+                                    break
+                            if not all_selected_in_col:
+                                break
                         elif base_well not in st.session_state[wells_key]:
-                            st.session_state[wells_key].append(base_well)
+                            all_selected_in_col = False
+                            break
+
+                if all_selected_in_col:
+                    # Deselect entire column
+                    for row in range(ROWS):
+                        base_well = wells[row][col]
+                        if base_well in well_data:
+                            if is_multiplate_structure and plate_names:
+                                for plate_name in plate_names:
+                                    full_well = f"{plate_name}_{base_well}"
+                                    if full_well in st.session_state[wells_key]:
+                                        st.session_state[wells_key].remove(full_well)
+                            elif base_well in st.session_state[wells_key]:
+                                st.session_state[wells_key].remove(base_well)
+                else:
+                    # Select entire column (add missing wells)
+                    for row in range(ROWS):
+                        base_well = wells[row][col]
+                        if base_well in well_data:
+                            if is_multiplate_structure and plate_names:
+                                for plate_name in plate_names:
+                                    full_well = f"{plate_name}_{base_well}"
+                                    if full_well not in st.session_state[wells_key]:
+                                        st.session_state[wells_key].append(full_well)
+                            elif base_well not in st.session_state[wells_key]:
+                                st.session_state[wells_key].append(base_well)
                 st.rerun(scope="fragment")
 
         # Row buttons and well grid
@@ -233,17 +263,47 @@ def _render_microplate_grid(
                 chr(65 + start_row + row),
                 key=f"{session_key_prefix}_row_{chr(65 + start_row + row)}",
             ):
-                # Select entire row (add to existing selection)
+                # Check if all valid wells in this row are already selected
+                all_selected_in_row = True
                 for col in range(COLS):
                     base_well = wells[row][col]
-                    if base_well in well_data:  # Only select wells with data
+                    if base_well in well_data:
                         if is_multiplate_structure and plate_names:
                             for plate_name in plate_names:
                                 full_well = f"{plate_name}_{base_well}"
                                 if full_well not in st.session_state[wells_key]:
-                                    st.session_state[wells_key].append(full_well)
+                                    all_selected_in_row = False
+                                    break
+                            if not all_selected_in_row:
+                                break
                         elif base_well not in st.session_state[wells_key]:
-                            st.session_state[wells_key].append(base_well)
+                            all_selected_in_row = False
+                            break
+
+                if all_selected_in_row:
+                    # Deselect entire row
+                    for col in range(COLS):
+                        base_well = wells[row][col]
+                        if base_well in well_data:
+                            if is_multiplate_structure and plate_names:
+                                for plate_name in plate_names:
+                                    full_well = f"{plate_name}_{base_well}"
+                                    if full_well in st.session_state[wells_key]:
+                                        st.session_state[wells_key].remove(full_well)
+                            elif base_well in st.session_state[wells_key]:
+                                st.session_state[wells_key].remove(base_well)
+                else:
+                    # Select entire row (add missing wells)
+                    for col in range(COLS):
+                        base_well = wells[row][col]
+                        if base_well in well_data:
+                            if is_multiplate_structure and plate_names:
+                                for plate_name in plate_names:
+                                    full_well = f"{plate_name}_{base_well}"
+                                    if full_well not in st.session_state[wells_key]:
+                                        st.session_state[wells_key].append(full_well)
+                            elif base_well not in st.session_state[wells_key]:
+                                st.session_state[wells_key].append(base_well)
                 st.rerun(scope="fragment")
 
             for col in range(COLS):

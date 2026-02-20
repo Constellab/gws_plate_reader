@@ -18,7 +18,6 @@ from gws_core import (
 )
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
-
 from gws_plate_reader.cell_culture_analysis import (
     CellCultureMediumPCA,
     CellCultureMediumTableFilter,
@@ -318,11 +317,6 @@ def render_medium_pca_step(
             st.info(translate_service.translate("medium_pca_table_success_info"))
             return
 
-        st.success(
-            translate_service.translate("medium_table_available").format(
-                name=medium_table_resource_model.name
-            )
-        )
     except Exception as e:
         st.warning(translate_service.translate("medium_pca_table_check_error").format(error=str(e)))
         return
@@ -337,7 +331,9 @@ def render_medium_pca_step(
         return
 
     # Show existing PCA scenarios
-    existing_pca_scenarios = recipe.get_medium_pca_scenarios_for_quality_check(quality_check_scenario.id)
+    existing_pca_scenarios = recipe.get_medium_pca_scenarios_for_quality_check(
+        quality_check_scenario.id
+    )
     render_launched_scenarios_expander(
         scenarios=existing_pca_scenarios,
         nav_key_prefix="pca_result_",
@@ -368,9 +364,6 @@ def render_medium_pca_step(
 
             # Check minimum number of data columns (excluding medium column)
             data_columns_count = len(excludable_columns)
-            st.info(
-                translate_service.translate("data_columns_count").format(count=data_columns_count)
-            )
             if data_columns_count < 2:
                 st.warning(translate_service.translate("min_columns_required_for_analysis"))
 
@@ -383,7 +376,7 @@ def render_medium_pca_step(
             )
 
         except Exception as e:
-            st.warning(f"⚠️ Impossible to load columns from the medium table: {str(e)}")
+            st.warning(f"⚠️ {translate_service.translate('cannot_load_medium_columns')}: {str(e)}")
 
         st.markdown(f"**{translate_service.translate('pca_select_media')}**")
 

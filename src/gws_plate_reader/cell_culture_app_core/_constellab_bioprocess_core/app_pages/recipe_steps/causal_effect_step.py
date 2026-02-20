@@ -11,7 +11,6 @@ from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, T
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_design_of_experiments import CausalEffect, GenerateCausalEffectDashboard
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -41,6 +40,7 @@ def launch_causal_effect_scenario(
     :param columns_to_exclude: List of column names to exclude from analysis
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         # Create a new scenario for Causal Effect
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -226,7 +226,6 @@ def launch_causal_effect_scenario(
         return new_scenario
 
     except Exception as e:
-        translate_service = cell_culture_state.get_translate_service()
         st.error(
             translate_service.translate("error_launching_scenario_generic").format(
                 scenario_type="Causal Effect", error=str(e)
@@ -257,14 +256,6 @@ def render_causal_effect_step(
         translate_service.translate("help_title").format(analysis_type="Causal Effect")
     ):
         st.markdown(translate_service.translate("causal_effect_help_content"))
-
-    # Display selected feature extraction scenario
-    st.info(
-        "📊 "
-        + translate_service.translate("feature_extraction_scenario_info").format(
-            title=feature_extraction_scenario.title
-        )
-    )
 
     # Get available columns from merged table (metadata + features)
     try:
@@ -339,9 +330,9 @@ def render_causal_effect_step(
 
     # Configuration form for new Causal Effect
     st.markdown("---")
-    st.markdown("### ➕ Lancer une nouvelle analyse Causal Effect")
+    st.markdown(f"### ➕ {translate_service.translate('launch_new_causal_effect_analysis')}")
 
-    st.markdown("**Configuration de l'analyse**")
+    st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
 
     # Target columns selection (must select at least one)
     target_columns = st.multiselect(
@@ -352,7 +343,7 @@ def render_causal_effect_step(
         help=translate_service.translate("target_variables_help"),
     )
 
-    st.markdown("**Advanced Options**")
+    st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns

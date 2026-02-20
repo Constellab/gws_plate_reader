@@ -292,8 +292,14 @@ def render_graph_view_step(
 
                 # Axis colors to visually associate traces with their y-axis
                 axis_colors = [
-                    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-                    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+                    "#1f77b4",
+                    "#ff7f0e",
+                    "#2ca02c",
+                    "#d62728",
+                    "#9467bd",
+                    "#8c564b",
+                    "#e377c2",
+                    "#7f7f7f",
                 ]
 
                 # For each selected column, add traces assigned to its own y-axis
@@ -514,7 +520,8 @@ def render_graph_view_step(
                                     for rep_value in selected_replicate_values:
                                         # Get columns that belong to this replicate value
                                         rep_cols = [
-                                            col for col in data_cols
+                                            col
+                                            for col in data_cols
                                             if replicate_well_mapping.get(col) == rep_value
                                         ]
 
@@ -625,13 +632,18 @@ def render_graph_view_step(
                         "domain": [0, plot_domain_right],
                     },
                     showlegend=True,
-                    legend={"orientation": "h", "x": 0.5, "y": -0.15,
-                            "xanchor": "center", "yanchor": "top"},
+                    legend={
+                        "orientation": "h",
+                        "x": 0.5,
+                        "y": -0.15,
+                        "xanchor": "center",
+                        "yanchor": "top",
+                    },
                     height=650,
                 )
 
                 # Display the combined plot
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
                 # Add note about combined view
                 st.info(translate_service.translate("combined_graph_info"))
@@ -850,7 +862,8 @@ def render_graph_view_step(
                                 if data_cols and selected_replicate_values:
                                     for rep_value in selected_replicate_values:
                                         rep_cols = [
-                                            col for col in data_cols
+                                            col
+                                            for col in data_cols
                                             if replicate_well_mapping.get(col) == rep_value
                                         ]
 
@@ -924,7 +937,7 @@ def render_graph_view_step(
                             )
 
                             # Display the plot
-                            st.plotly_chart(fig, use_container_width=True)
+                            st.plotly_chart(fig, width="stretch")
 
                             # Add summary statistics based on display mode
                             if display_mode_selected == translate_service.translate(
@@ -973,6 +986,7 @@ def render_graph_view_step(
                                     file_name=f"cell_culture_{column_name}_graph_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                                     mime="text/csv",
                                     key=f"download_graph_{column_name}_{i}",
+                                    icon=":material/download:",
                                 )
 
                             elif display_mode_selected == translate_service.translate(
@@ -1024,6 +1038,7 @@ def render_graph_view_step(
                                     file_name=f"cell_culture_{column_name}_mean_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                                     mime="text/csv",
                                     key=f"download_graph_{column_name}_{i}",
+                                    icon=":material/download:",
                                 )
                             elif display_mode_selected == translate_service.translate(
                                 "plot_by_batch"
@@ -1075,6 +1090,7 @@ def render_graph_view_step(
                                     file_name=f"cell_culture_{column_name}_mean_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                                     mime="text/csv",
                                     key=f"download_graph_{column_name}_{i}",
+                                    icon=":material/download:",
                                 )
                             elif display_mode_selected == translate_service.translate(
                                 "plot_by_replicate"
@@ -1124,6 +1140,7 @@ def render_graph_view_step(
                                     file_name=f"cell_culture_{column_name}_replicate_data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
                                     mime="text/csv",
                                     key=f"download_graph_{column_name}_{i}",
+                                    icon=":material/download:",
                                 )
 
     except Exception as e:

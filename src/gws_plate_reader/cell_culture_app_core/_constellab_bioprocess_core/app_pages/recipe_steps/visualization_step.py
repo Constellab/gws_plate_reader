@@ -132,7 +132,7 @@ def render_visualization_step(
 
         if is_microplate:
             # Microplate mode: Display interactive plate selector
-            st.info("🧫 **Microplate Mode**: Select wells from the interactive plate below")
+            st.info(f"🧫 {translate_service.translate('microplate_mode_info')}")
 
             # Build well data from the metadata table of the load scenario
             # Structure: {well: {Medium: 'name', metadata_col1: value1, ...}, ...}
@@ -252,7 +252,7 @@ def render_visualization_step(
             with btn_select_all:
                 if st.button(
                     translate_service.translate("select_all"),
-                    use_container_width=True,
+                    width="stretch",
                     key="microplate_select_all",
                 ):
                     st.session_state["visualization_selected_wells"] = list(all_valid_wells)
@@ -260,7 +260,7 @@ def render_visualization_step(
             with btn_deselect_all:
                 if st.button(
                     translate_service.translate("deselect_all"),
-                    use_container_width=True,
+                    width="stretch",
                     key="microplate_deselect_all",
                 ):
                     st.session_state["visualization_selected_wells"] = []
@@ -269,7 +269,7 @@ def render_visualization_step(
                 if st.button(
                     translate_service.translate("apply_selection"),
                     type="primary",
-                    use_container_width=True,
+                    width="stretch",
                     key="apply_microplate_viz_filters",
                 ):
                     current_wells = st.session_state.get("visualization_selected_wells", [])

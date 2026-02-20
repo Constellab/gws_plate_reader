@@ -6,7 +6,6 @@ Displays the results of a Logistic Growth Fitter analysis scenario
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Table
 from gws_core.impl.plotly.plotly_resource import PlotlyResource
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -63,6 +62,7 @@ def render_logistic_growth_results(
                 data=csv,
                 file_name=f"logistic_growth_params_{lg_scenario.id[:8]}.csv",
                 mime="text/csv",
+                icon=":material/download:",
             )
 
             # Display summary statistics
@@ -98,7 +98,7 @@ def render_logistic_growth_results(
         fitted_curves_plot = protocol_proxy.get_output("fitted_curves_plot")
         if fitted_curves_plot and isinstance(fitted_curves_plot, PlotlyResource):
             fig = fitted_curves_plot.figure
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.warning(translate_service.translate("fitted_curves_not_found"))
 
@@ -107,6 +107,6 @@ def render_logistic_growth_results(
         histogram_plot = protocol_proxy.get_output("growth_rate_histogram")
         if histogram_plot and isinstance(histogram_plot, PlotlyResource):
             fig = histogram_plot.figure
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.warning(translate_service.translate("histogram_not_found"))

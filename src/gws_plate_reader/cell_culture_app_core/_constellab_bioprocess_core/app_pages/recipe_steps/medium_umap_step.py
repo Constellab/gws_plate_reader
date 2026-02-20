@@ -19,7 +19,6 @@ from gws_core import (
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_design_of_experiments.umap.umap import UMAPTask
-
 from gws_plate_reader.cell_culture_analysis import CellCultureMediumTableFilter
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
@@ -341,11 +340,6 @@ def render_medium_umap_step(
             st.info(translate_service.translate("medium_table_success_info"))
             return
 
-        st.success(
-            translate_service.translate("medium_table_available").format(
-                name=medium_table_resource_model.name
-            )
-        )
     except Exception as e:
         st.warning(translate_service.translate("medium_table_check_error").format(error=str(e)))
         return
@@ -360,7 +354,9 @@ def render_medium_umap_step(
         return
 
     # Check existing UMAP scenarios
-    existing_umap_scenarios = recipe.get_medium_umap_scenarios_for_quality_check(quality_check_scenario.id)
+    existing_umap_scenarios = recipe.get_medium_umap_scenarios_for_quality_check(
+        quality_check_scenario.id
+    )
     render_launched_scenarios_expander(
         scenarios=existing_umap_scenarios,
         nav_key_prefix="umap_result_",
@@ -398,13 +394,12 @@ def render_medium_umap_step(
         except Exception as e:
             available_columns = ["MILIEU", "Medium", "Media"]
             default_medium_col = "MILIEU"
-            st.warning(f"⚠️ Impossible to load columns from the medium table: {str(e)}")
+            st.warning(f"⚠️ {translate_service.translate('cannot_load_medium_columns')}: {str(e)}")
 
         # Check minimum number of data columns (excluding medium column)
         data_columns_count = len(
             [col for col in available_columns if col.upper() not in ["MILIEU", "MEDIUM", "MEDIA"]]
         )
-        st.info(translate_service.translate("data_columns_count").format(count=data_columns_count))
         if data_columns_count < 2:
             st.warning(translate_service.translate("min_columns_required_for_analysis"))
 

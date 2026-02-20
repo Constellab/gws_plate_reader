@@ -2,8 +2,6 @@ import streamlit as st
 from gws_core import Scenario, ScenarioSearchBuilder, Tag
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
-from gws_streamlit_main import StreamlitContainers, StreamlitRouter
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
@@ -11,6 +9,7 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.function
     create_recipe_table_data,
     render_recipe_table,
 )
+from gws_streamlit_main import StreamlitContainers, StreamlitRouter
 
 
 def render_first_page(cell_culture_state: CellCultureState) -> None:
@@ -46,6 +45,16 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                     icon=":material/refresh:",
                     width="content",
                 ):
+                    # Increment refresh counter to force slickgrid re-initialization
+                    st.session_state["cell_culture_recipes_refresh"] = (
+                        st.session_state.get("cell_culture_recipes_refresh", 0) + 1
+                    )
+                    # Also clear the old slickgrid key if present
+                    keys_to_delete = [
+                        k for k in st.session_state if k.startswith("cell_culture_recipes_grid")
+                    ]
+                    for k in keys_to_delete:
+                        del st.session_state[k]
                     st.rerun()
 
             with header_cols[2]:
@@ -57,14 +66,6 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                 ):
                     router = StreamlitRouter.load_from_session()
                     router.navigate("new-analysis")
-        else:
-            with header_cols[1]:
-                if st.button(
-                    translate_service.translate("refresh"),
-                    icon=":material/refresh:",
-                    width="content",
-                ):
-                    st.rerun()
 
         # Search for existing cell culture analyses (both load and selection scenarios)
         # Get load scenarios

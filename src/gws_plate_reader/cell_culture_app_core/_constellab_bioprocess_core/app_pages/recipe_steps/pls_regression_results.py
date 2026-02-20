@@ -7,7 +7,6 @@ import traceback
 
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -29,7 +28,7 @@ def render_pls_regression_results(
     translate_service = cell_culture_state.get_translate_service()
 
     # Additional information section
-    with st.expander(f"ℹ️ {translate_service.translate('pls_interpretation_guide')}"):
+    with st.expander(f"💡 {translate_service.translate('pls_interpretation_guide')}"):
         st.markdown(translate_service.translate("pls_guide_content"))
 
     if pls_scenario.status != ScenarioStatus.SUCCESS:
@@ -76,7 +75,7 @@ def render_pls_regression_results(
             if plot_components_model:
                 st.markdown(f"**{translate_service.translate('component_selection_cv')}**")
                 plot_components = plot_components_model.get_resource()
-                st.plotly_chart(plot_components.figure, use_container_width=True)
+                st.plotly_chart(plot_components.figure, width="stretch")
                 st.info(f"💡 {translate_service.translate('optimal_components_info')}")
 
             st.markdown("---")
@@ -92,10 +91,11 @@ def render_pls_regression_results(
                 # Download button
                 csv = summary_df.to_csv(index=True)
                 st.download_button(
-                    label=f"📥 {translate_service.translate('download_metrics_csv')}",
+                    label=f"{translate_service.translate('download_metrics_csv')}",
                     data=csv,
                     file_name=f"pls_metrics_{pls_scenario.id[:8]}.csv",
                     mime="text/csv",
+                    icon=":material/download:",
                 )
 
                 st.markdown(translate_service.translate("pls_metrics_interpretation"))
@@ -106,9 +106,8 @@ def render_pls_regression_results(
 
             # Display VIP plot
             if vip_plot_model:
-                st.markdown(f"**{translate_service.translate('top_20_important_variables')}**")
                 vip_plot = vip_plot_model.get_resource()
-                st.plotly_chart(vip_plot.figure, use_container_width=True)
+                st.plotly_chart(vip_plot.figure, width="stretch")
 
                 st.info(f"💡 {translate_service.translate('vip_importance_threshold_info')}")
 
@@ -125,10 +124,11 @@ def render_pls_regression_results(
                 # Download button
                 csv = vip_df.to_csv(index=True)
                 st.download_button(
-                    label=f"📥 {translate_service.translate('download_vip_csv')}",
+                    label=f"{translate_service.translate('download_vip_csv')}",
                     data=csv,
                     file_name=f"pls_vip_{pls_scenario.id[:8]}.csv",
                     mime="text/csv",
+                    icon=":material/download:",
                 )
 
                 st.markdown(translate_service.translate("pls_vip_interpretation"))
@@ -141,7 +141,7 @@ def render_pls_regression_results(
 
             if plot_train_model:
                 plot_train = plot_train_model.get_resource()
-                st.plotly_chart(plot_train.figure, use_container_width=True)
+                st.plotly_chart(plot_train.figure, width="stretch")
 
                 st.markdown(translate_service.translate("pls_train_interpretation"))
 
@@ -153,7 +153,7 @@ def render_pls_regression_results(
 
             if plot_test_model:
                 plot_test = plot_test_model.get_resource()
-                st.plotly_chart(plot_test.figure, use_container_width=True)
+                st.plotly_chart(plot_test.figure, width="stretch")
 
                 st.markdown(translate_service.translate("pls_test_interpretation"))
 

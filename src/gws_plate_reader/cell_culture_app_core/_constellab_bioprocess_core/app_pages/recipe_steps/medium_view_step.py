@@ -10,7 +10,6 @@ import pandas as pd
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Table
 from gws_core.resource.resource_set.resource_set import ResourceSet
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -27,6 +26,7 @@ def get_medium_data_from_resource_set(
     Returns a list of dictionaries with batch, sample, medium name, and composition.
     """
     try:
+        translate_service = cell_culture_state.get_translate_service()
         resources = resource_set.get_resources()
         medium_table_model = cell_culture_state.get_load_scenario_output_resource_model(
             "medium_table"
@@ -70,7 +70,7 @@ def get_medium_data_from_resource_set(
 
         return series_medium_data
     except Exception as e:
-        st.error(f"Error extracting medium data: {str(e)}")
+        st.error(translate_service.translate("error_extracting_media").format(error=str(e)))
         st.error(traceback.format_exc())
         return []
 

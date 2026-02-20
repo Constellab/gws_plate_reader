@@ -11,7 +11,6 @@ from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, T
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_design_of_experiments.pls.pls_regression_task import PLSRegressorTask
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -258,11 +257,6 @@ def render_pls_regression_step(
     ):
         st.markdown(translate_service.translate("pls_help_content"))
 
-    # Display selected feature extraction scenario
-    st.info(
-        f"📊 {translate_service.translate('feature_extraction_scenario_label')} : **{feature_extraction_scenario.title}**"
-    )
-
     # Get the load scenario to check for metadata_table output
     load_scenario = recipe.get_load_scenario()
 
@@ -283,11 +277,8 @@ def render_pls_regression_step(
             st.warning(translate_service.translate("metadata_table_unavailable"))
             return
 
-        st.success(
-            f"{translate_service.translate('metadata_table_available')} : {metadata_table_resource_model.name}"
-        )
     except Exception as e:
-        st.warning(f"Cannot verify metadata table: {str(e)}")
+        st.warning(translate_service.translate("cannot_verify_metadata") + f": {str(e)}")
         return
 
     # Get available columns from merged table (metadata + features)
@@ -334,7 +325,7 @@ def render_pls_regression_step(
             all_non_numeric_columns = sorted(set(all_merged_columns) - set(all_numeric_columns))
 
     except Exception as e:
-        st.error(f"Error reading tables: {str(e)}")
+        st.error(translate_service.translate("error_reading_tables").format(error=str(e)))
         st.code(traceback.format_exc())
         return
 
@@ -355,7 +346,7 @@ def render_pls_regression_step(
         f"### ➕ {translate_service.translate('create_new_analysis').format(analysis_type='PLS')}"
     )
 
-    st.markdown("**Analysis Configuration**")
+    st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
 
     # Target columns selection (must select at least one)
     target_columns = st.multiselect(
@@ -366,7 +357,7 @@ def render_pls_regression_step(
         help=translate_service.translate("target_variables_help"),
     )
 
-    st.markdown("**Model Parameters**")
+    st.markdown(f"**{translate_service.translate('model_parameters')}**")
 
     col1, col2 = st.columns(2)
 
@@ -389,7 +380,7 @@ def render_pls_regression_step(
             help=translate_service.translate("test_size_help"),
         )
 
-    st.markdown("**Advanced Options**")
+    st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns

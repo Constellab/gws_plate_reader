@@ -11,7 +11,6 @@ from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, T
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_design_of_experiments.random_forest.random_forest_task import RandomForestRegressorTask
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -256,13 +255,11 @@ def render_random_forest_step(
     ):
         st.markdown(translate_service.translate("rf_help_content"))
 
-    st.markdown(translate_service.translate("rf_step_description"))
-
     # Get load scenario from recipe
     load_scenario = recipe.get_load_scenario()
 
     if not load_scenario:
-        st.error("⚠️ Load scenario not found")
+        st.error(f"{translate_service.translate('load_scenario_not_found')}")
         return
 
     # Display selected feature extraction scenario
@@ -277,7 +274,7 @@ def render_random_forest_step(
         ).get_output_resource_model("metadata_table")
 
         if not metadata_table_resource_model:
-            st.error("⚠️ Metadata table is not available in the load scenario")
+            st.error(translate_service.translate("metadata_table_unavailable"))
             return
 
         metadata_table = metadata_table_resource_model.get_resource()
@@ -343,7 +340,7 @@ def render_random_forest_step(
         f"### ➕ {translate_service.translate('create_new_analysis').format(analysis_type='Random Forest')}"
     )
 
-    st.markdown("**Analysis Configuration**")
+    st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
 
     # Target column selection (must select exactly one)
     target_column = st.selectbox(
@@ -354,7 +351,7 @@ def render_random_forest_step(
         help=translate_service.translate("target_variables_help"),
     )
 
-    st.markdown("**Model Parameters**")
+    st.markdown(f"**{translate_service.translate('model_parameters')}**")
 
     test_size = st.slider(
         translate_service.translate("test_size_label"),
@@ -366,7 +363,7 @@ def render_random_forest_step(
         help=translate_service.translate("test_size_help"),
     )
 
-    st.markdown("**Advanced Options**")
+    st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns

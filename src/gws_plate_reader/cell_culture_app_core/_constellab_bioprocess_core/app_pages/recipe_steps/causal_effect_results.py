@@ -7,7 +7,6 @@ import traceback
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus
 from gws_core.core.utils.settings import Settings
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -28,21 +27,16 @@ def render_causal_effect_results(
     """
     translate_service = cell_culture_state.get_translate_service()
 
-    st.markdown(f"**{translate_service.translate('scenario_label')}** : {causal_scenario.title}")
-    st.markdown(
-        f"**{translate_service.translate('creation_date')}** : {causal_scenario.created_at.strftime('%d/%m/%Y %H:%M:%S')}"
-    )
-
     # Display scenario status
     if causal_scenario.status == ScenarioStatus.SUCCESS:
-        st.success(f"✅ {translate_service.translate('analysis_completed_success')}")
+        pass
     elif causal_scenario.status == ScenarioStatus.ERROR:
         st.error(f"❌ {translate_service.translate('analysis_failed')}")
         # Display error message if available
         if causal_scenario.error_info:
             with st.expander(f"📋 {translate_service.translate('error_details_expander')}"):
                 st.code(
-                    causal_scenario.error_info.get("message", "Aucun message d'erreur disponible")
+                    causal_scenario.error_info.get("message", translate_service.translate("no_error_message_available"))
                 )
         return
     elif causal_scenario.is_running:
@@ -50,7 +44,7 @@ def render_causal_effect_results(
         st.markdown(translate_service.translate("refresh_page_for_results"))
         return
     else:
-        st.warning(f"⚠️ Statut : {causal_scenario.status.name}")
+        st.warning(f"⚠️ {translate_service.translate('status_label')}: {causal_scenario.status.name}")
         return
 
     # If analysis is successful, get the Streamlit app resource
@@ -105,8 +99,6 @@ def render_causal_effect_results(
         # Additional info
         with st.expander(f"ℹ️ {translate_service.translate('results_info_label')}"):
             st.markdown(f"""
-            **{translate_service.translate("resource_id_label")}** : `{streamlit_app_resource_model.id}`
-
             {translate_service.translate("causal_effect_usage_guide")}
                         """)
 

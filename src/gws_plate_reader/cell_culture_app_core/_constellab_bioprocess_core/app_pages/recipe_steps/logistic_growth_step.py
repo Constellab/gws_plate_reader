@@ -11,7 +11,6 @@ import streamlit as st
 from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, Tag
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
-
 from gws_plate_reader.cell_culture_analysis import ResourceSetToDataTable
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
@@ -36,6 +35,7 @@ def get_available_columns_from_quality_check(
     :param index_only: If True, return only columns with is_index_column=true tag (strict filtering)
     :return: List of column names
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         # Get the ResourceSet from quality check (non-interpolated data)
         resource_set_resource_model = (
@@ -58,7 +58,7 @@ def get_available_columns_from_quality_check(
             return cell_culture_state.get_data_columns_from_resource_set(resource_set)
 
     except Exception as e:
-        st.error(f"Erreur lors de l'extraction des colonnes : {str(e)}")
+        st.error(translate_service.translate("error_extracting_columns").format(error=str(e)))
         return []
 
 

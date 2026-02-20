@@ -11,8 +11,6 @@ from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, T
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_design_of_experiments import GenerateOptimizationDashboard, Optimization
-from gws_streamlit_main import StreamlitResourceSelect
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -23,6 +21,7 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.function
     render_launched_scenarios_expander,
 )
 from gws_plate_reader.cell_culture_filter import CellCultureMergeFeatureMetadata
+from gws_streamlit_main import StreamlitResourceSelect
 
 
 def launch_optimization_scenario(
@@ -274,14 +273,6 @@ def render_optimization_step(
     ):
         st.markdown(translate_service.translate("optimization_help_content"))
 
-    # Display selected feature extraction scenario
-    st.info(
-        "📊 "
-        + translate_service.translate("feature_extraction_scenario_info").format(
-            title=feature_extraction_scenario.title
-        )
-    )
-
     # Get available columns from merged table (metadata + features)
     try:
         # Get metadata table from quality check
@@ -355,7 +346,7 @@ def render_optimization_step(
 
     # Configuration form for new Optimization
     st.markdown("---")
-    st.markdown(translate_service.translate("launch_new_optimization_analysis"))
+    st.markdown(f"### ➕ {translate_service.translate('launch_new_optimization_analysis')}")
 
     if cell_culture_state.get_is_standalone():
         st.info(translate_service.translate("standalone_mode_function_blocked"))
@@ -467,7 +458,7 @@ def render_optimization_step(
                 st.session_state.num_targets -= 1
                 st.rerun()
 
-    st.markdown("**Advanced Options**")
+    st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
     # Calculate default columns to exclude:
     # 1. All non-numeric columns

@@ -11,7 +11,6 @@ from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, T
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_design_of_experiments.umap.umap import UMAPTask
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -58,6 +57,7 @@ def launch_metadata_feature_umap_scenario(
     :param hover_data_columns: List of column names to display as hover metadata
     :return: The created scenario or None if error
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
         # Create a new scenario for Metadata Feature UMAP
         timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -81,7 +81,7 @@ def launch_metadata_feature_umap_scenario(
 
         if not metadata_table_resource_model:
             raise ValueError(
-                "La sortie 'metadata_table' n'est pas disponible dans le scénario de quality check"
+                translate_service.translate("metadata_feature_umap_metadata_output_unavailable")
             )
 
             # Get the results_table from feature extraction scenario
@@ -92,7 +92,7 @@ def launch_metadata_feature_umap_scenario(
 
         if not results_table_resource_model:
             raise ValueError(
-                "La sortie 'results_table' n'est pas disponible dans le scénario d'extraction de caractéristiques"
+                translate_service.translate("metadata_feature_umap_results_table_unavailable")
             )
 
             # Add input task for metadata_table
@@ -257,7 +257,6 @@ def launch_metadata_feature_umap_scenario(
         return new_scenario
 
     except Exception as e:
-        translate_service = cell_culture_state.get_translate_service()
         st.error(
             translate_service.translate("error_launching_scenario_generic").format(
                 scenario_type="Metadata Feature UMAP", error=str(e)
@@ -286,67 +285,60 @@ def render_metadata_feature_umap_step(
     # Info box with explanation
     with st.expander(
         translate_service.translate("help_title").format(
-            analysis_type="UMAP Métadonnées + Features"
+            analysis_type=translate_service.translate("umap_metadata_features")
         )
     ):
         st.markdown(f"### {translate_service.translate('what_is_this_analysis')}")
-        st.markdown("""
-Cette analyse combine deux types de données complémentaires :
+        st.markdown(
+            f"""{translate_service.translate("metadata_feature_umap_help_intro")}
 
-1. **Métadonnées** : Composition des milieux de culture (nutriments, concentrations, etc.)
-2. **Features** : Paramètres biologiques extraits des courbes de croissance (taux de croissance, phase de latence, etc.)
+1. {translate_service.translate("metadata_feature_umap_help_metadata")}
+2. {translate_service.translate("metadata_feature_umap_help_features")}
 
-L'analyse UMAP projette ces données combinées en 2D ou 3D pour révéler les relations entre composition du milieu et performances de croissance.
+{translate_service.translate("metadata_feature_umap_help_projection")}
 
-### Interprétation des résultats
+### {translate_service.translate("metadata_feature_umap_help_results_title")}
 
-**Graphiques 2D et 3D** :
-- Chaque point représente une série (essai/fermenteur)
-- La couleur distingue les différents milieux
-- Les points proches ont des compositions ET des comportements de croissance similaires
-- Les groupes révèlent des combinaisons milieu-performance cohérentes
+**{translate_service.translate("metadata_feature_umap_help_charts_title")}** :
+- {translate_service.translate("metadata_feature_umap_help_chart_point")}
+- {translate_service.translate("metadata_feature_umap_help_chart_color")}
+- {translate_service.translate("metadata_feature_umap_help_chart_proximity")}
+- {translate_service.translate("metadata_feature_umap_help_chart_groups")}
 
-**Applications** :
-- Identifier quelles compositions donnent des performances similaires
-- Découvrir des milieux alternatifs avec performances équivalentes
-- Optimiser la formulation en reliant composition et résultats
-- Détecter des patterns inattendus dans les données
+**{translate_service.translate("metadata_feature_umap_help_applications_title")}** :
+- {translate_service.translate("metadata_feature_umap_help_app_similar")}
+- {translate_service.translate("metadata_feature_umap_help_app_alternative")}
+- {translate_service.translate("metadata_feature_umap_help_app_optimize")}
+- {translate_service.translate("metadata_feature_umap_help_app_patterns")}
 
-### Paramètres recommandés
+### {translate_service.translate("metadata_feature_umap_help_params_title")}
 
-Pour l'analyse métadonnées + features :
-- **Nombre de voisins** : 10-20 (compromis entre local et global)
-- **Distance minimale** : 0.1-0.3
-- **Normalisation** : Activée (fortement recommandé car les échelles des métadonnées et features diffèrent)
-- **Métrique** : Euclidienne ou corrélation
+{translate_service.translate("metadata_feature_umap_help_params_intro")}
+- {translate_service.translate("metadata_feature_umap_help_param_neighbors")}
+- {translate_service.translate("metadata_feature_umap_help_param_dist")}
+- {translate_service.translate("metadata_feature_umap_help_param_normalize")}
+- {translate_service.translate("metadata_feature_umap_help_param_metric")}
 
-### Clustering
+### {translate_service.translate("metadata_feature_umap_help_clustering_title")}
 
-Le clustering K-Means peut identifier automatiquement des groupes de séries avec profils similaires :
-- Utile pour segmenter vos expériences en catégories
-- Le nombre optimal de clusters dépend de vos données
-- Comparez avec votre connaissance du domaine pour valider
+{translate_service.translate("metadata_feature_umap_help_clustering_desc")}
+- {translate_service.translate("metadata_feature_umap_help_clustering_segment")}
+- {translate_service.translate("metadata_feature_umap_help_clustering_optimal")}
+- {translate_service.translate("metadata_feature_umap_help_clustering_validate")}
 
-### Options avancées
+### {translate_service.translate("metadata_feature_umap_help_advanced_title")}
 
-**Colonnes à exclure** :
-- Permet d'exclure certaines colonnes de l'analyse UMAP
-- Utile pour retirer des colonnes non informatives (ID, dates, etc.)
-- Ces colonnes seront complètement ignorées dans le calcul UMAP
+**{translate_service.translate("metadata_feature_umap_help_exclude_title")}** :
+- {translate_service.translate("metadata_feature_umap_help_exclude_desc")}
+- {translate_service.translate("metadata_feature_umap_help_exclude_useful")}
+- {translate_service.translate("metadata_feature_umap_help_exclude_ignored")}
 
-**Colonnes à afficher au survol** :
-- Permet d'afficher des informations supplémentaires au survol des points
-- Utile pour identifier rapidement les échantillons (Batch, Essai, Date, etc.)
-- Ces colonnes ne sont pas utilisées dans le calcul UMAP, uniquement pour l'affichage
-""")
-
-    # Display selected feature extraction scenario
-    st.info(
-        "📊 "
-        + translate_service.translate("feature_extraction_scenario_info").format(
-            title=feature_extraction_scenario.title
+**{translate_service.translate("metadata_feature_umap_help_hover_title")}** :
+- {translate_service.translate("metadata_feature_umap_help_hover_desc")}
+- {translate_service.translate("metadata_feature_umap_help_hover_useful")}
+- {translate_service.translate("metadata_feature_umap_help_hover_display_only")}
+"""
         )
-    )
 
     # Get the load scenario to check for metadata_table output
     load_scenario = recipe.get_load_scenario()
@@ -368,11 +360,6 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
             st.warning(translate_service.translate("metadata_table_unavailable_load"))
             return
 
-        st.success(
-            translate_service.translate("metadata_table_success").format(
-                name=metadata_table_resource_model.name
-            )
-        )
     except Exception as e:
         st.warning(translate_service.translate("metadata_table_check_failed").format(error=str(e)))
         return
@@ -426,36 +413,18 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
             if col not in ["Series", "Medium", default_medium_column]
         ]
         data_columns_count = len(data_columns_for_analysis)
-        st.info(translate_service.translate("data_columns_count").format(count=data_columns_count))
         if data_columns_count < 2:
             st.warning(translate_service.translate("min_columns_required_for_analysis"))
-
-        st.markdown(
-            "**" + translate_service.translate("available_series") + "** : " + str(n_series)
-        )
-        cols_preview = ", ".join(available_columns[:10])
-        if len(available_columns) > 10:
-            st.markdown(
-                "**"
-                + translate_service.translate("available_columns")
-                + "** : "
-                + cols_preview
-                + translate_service.translate("more_columns").format(
-                    count=len(available_columns) - 10
-                )
-            )
-        else:
-            st.markdown(
-                "**" + translate_service.translate("available_columns") + "** : " + cols_preview
-            )
 
     except Exception as e:
         st.error(translate_service.translate("error_reading_metadata").format(error=str(e)))
         return
 
     # Check existing UMAP scenarios for this feature extraction
-    existing_metadata_umap_scenarios = recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
-        feature_extraction_scenario.id
+    existing_metadata_umap_scenarios = (
+        recipe.get_metadata_feature_umap_scenarios_for_feature_extraction(
+            feature_extraction_scenario.id
+        )
     )
     render_launched_scenarios_expander(
         scenarios=existing_metadata_umap_scenarios,
@@ -466,10 +435,10 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
 
     # Configuration form for new UMAP
     st.markdown("---")
-    st.markdown("### ➕ Launch New UMAP Analysis")
+    st.markdown(f"### ➕ {translate_service.translate('launch_new_umap_analysis')}")
 
     with st.form(key=f"metadata_feature_umap_form_{quality_check_scenario.id}"):
-        st.markdown("**Analysis Configuration**")
+        st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
 
         # Medium column selection
         medium_name_column = st.selectbox(
@@ -481,7 +450,7 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
             help=translate_service.translate("medium_name_column_help"),
         )
 
-        st.markdown("**" + translate_service.translate("umap_parameters") + "**")
+        st.markdown(f"**{translate_service.translate('umap_parameters')}**")
 
         col1, col2 = st.columns(2)
 
@@ -531,7 +500,7 @@ Le clustering K-Means peut identifier automatiquement des groupes de séries ave
                 help=translate_service.translate("n_clusters_help"),
             )
 
-        st.markdown("**Advanced Options**")
+        st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
         # Columns to exclude
         columns_to_exclude = st.multiselect(

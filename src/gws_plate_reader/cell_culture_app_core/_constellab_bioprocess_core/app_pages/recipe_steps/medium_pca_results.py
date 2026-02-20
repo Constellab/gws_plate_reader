@@ -6,7 +6,6 @@ Displays the results of a Medium PCA analysis scenario
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Table
 from gws_core.impl.plotly.plotly_resource import PlotlyResource
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -75,24 +74,25 @@ def render_medium_pca_results(
                 data=csv,
                 file_name=f"pca_scores_{pca_scenario.id[:8]}.csv",
                 mime="text/csv",
+                icon=":material/download:",
             )
     else:
         st.warning(translate_service.translate("pca_biplot_not_found"))
 
     # Display scatter plot
-    st.markdown("### 📈 PCA Scatter Plot (PC1 vs PC2)")
+    st.markdown(f"### 📈 {translate_service.translate('pca_scatter_plot_title')}")
     scatter_plot = protocol_proxy.get_output("pca_scatter_plot")
     if scatter_plot and isinstance(scatter_plot, PlotlyResource):
         fig = scatter_plot.figure
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.warning(translate_service.translate("pca_variance_not_found"))
 
     # Display biplot
-    st.markdown("### 🎯 PCA Biplot")
+    st.markdown(f"### 🎯 {translate_service.translate('pca_biplot_title')}")
     biplot = protocol_proxy.get_output("pca_biplot")
     if biplot and isinstance(biplot, PlotlyResource):
         fig = biplot.figure
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.warning(translate_service.translate("pca_biplot_not_found"))

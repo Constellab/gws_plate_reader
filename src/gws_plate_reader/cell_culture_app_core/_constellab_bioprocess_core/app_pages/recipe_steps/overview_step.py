@@ -12,7 +12,6 @@ import plotly.graph_objects as go
 import streamlit as st
 from gws_core import ScenarioStatus, Table
 from gws_core.resource.resource_set.resource_set import ResourceSet
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -362,7 +361,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
                 # Display the pre-computed Venn diagram from the load task
                 try:
                     fig = venn_diagram.get_figure()
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
                 except Exception:
                     # Fallback: compute on the fly if there's an issue
                     if missing_data or valid_data:
@@ -400,7 +399,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
                         fig_venn = create_venn_diagram_3_sets_fallback(
                             sample_sets, translate_service
                         )
-                        st.plotly_chart(fig_venn, use_container_width=True)
+                        st.plotly_chart(fig_venn, width="stretch")
             elif missing_data or valid_data:
                 # Fallback: compute on the fly if venn diagram output not found
                 # Build sets of (batch, sample) tuples for each data type
@@ -435,7 +434,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
 
                 # Create Venn diagram
                 fig_venn = create_venn_diagram_3_sets_fallback(sample_sets, translate_service)
-                st.plotly_chart(fig_venn, use_container_width=True)
+                st.plotly_chart(fig_venn, width="stretch")
 
         if missing_data:
             # Section 3: Missing data information
@@ -502,7 +501,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
                         title=translate_service.translate("batch_distribution"),
                     )
                     fig_batch.update_layout(height=400)
-                    st.plotly_chart(fig_batch, use_container_width=True)
+                    st.plotly_chart(fig_batch, width="stretch")
                 else:
                     st.info(translate_service.translate("distribution_single_batch"))
 
@@ -524,7 +523,7 @@ def render_overview_step(recipe: CellCultureRecipe, cell_culture_state: CellCult
                         },
                     )
                     fig_medium.update_layout(height=400)
-                    st.plotly_chart(fig_medium, use_container_width=True)
+                    st.plotly_chart(fig_medium, width="stretch")
                 else:
                     st.info(translate_service.translate("distribution_single_medium"))
         else:

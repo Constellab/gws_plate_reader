@@ -11,7 +11,6 @@ from gws_core import InputTask, Scenario, ScenarioCreationType, ScenarioProxy, T
 from gws_core.impl.table.table import Table
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -449,14 +448,11 @@ def render_quality_check_step(
 
     # If a specific selection scenario is provided, only show that one
     if selection_scenario:
-        st.markdown(translate_service.translate("qc_step_description"))
-
         # Display only this selection's quality checks
         _render_selection_quality_checks(selection_scenario, recipe, cell_culture_state)
 
     else:
         # Show all selections (backward compatibility if called without selection_scenario)
-        st.markdown(translate_service.translate("qc_step_description"))
 
         # Get existing selection scenarios
         selection_scenarios = recipe.get_selection_scenarios()

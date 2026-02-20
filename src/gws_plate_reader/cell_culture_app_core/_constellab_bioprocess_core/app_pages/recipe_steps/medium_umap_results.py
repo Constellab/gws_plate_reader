@@ -6,7 +6,6 @@ Displays the results of a Medium UMAP analysis scenario
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Table
 from gws_core.impl.plotly.plotly_resource import PlotlyResource
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -61,7 +60,7 @@ def render_medium_umap_results(
     umap_2d_plot = protocol_proxy.get_output("umap_2d_plot")
     if umap_2d_plot and isinstance(umap_2d_plot, PlotlyResource):
         fig = umap_2d_plot.figure
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.warning(translate_service.translate("umap_2d_plot_not_found"))
 
@@ -70,42 +69,44 @@ def render_medium_umap_results(
     umap_3d_plot = protocol_proxy.get_output("umap_3d_plot")
     if umap_3d_plot and isinstance(umap_3d_plot, PlotlyResource):
         fig = umap_3d_plot.figure
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.warning(translate_service.translate("umap_3d_plot_not_found"))
 
     # Display 2D coordinates table
-    st.markdown(f"### 📋 {translate_service.translate('umap_2d_table_title')}")
-    umap_2d_table = protocol_proxy.get_output("umap_2d_table")
-    if umap_2d_table and isinstance(umap_2d_table, Table):
-        df = umap_2d_table.get_data()
-        st.dataframe(df, width="stretch", height=400)
+    with st.expander(f"📋 {translate_service.translate('umap_2d_table_title')}"):
+        umap_2d_table = protocol_proxy.get_output("umap_2d_table")
+        if umap_2d_table and isinstance(umap_2d_table, Table):
+            df = umap_2d_table.get_data()
+            st.dataframe(df, width="stretch", height=400)
 
-        # Download button
-        csv = df.to_csv(index=False)
-        st.download_button(
-            label=translate_service.translate("download_umap_2d_csv"),
-            data=csv,
-            file_name=f"umap_2d_coordinates_{umap_scenario.id[:8]}.csv",
-            mime="text/csv",
-        )
-    else:
-        st.warning(translate_service.translate("umap_2d_table_not_found"))
+            # Download button
+            csv = df.to_csv(index=False)
+            st.download_button(
+                label=translate_service.translate("download_umap_2d_csv"),
+                data=csv,
+                file_name=f"umap_2d_coordinates_{umap_scenario.id[:8]}.csv",
+                mime="text/csv",
+                icon=":material/download:",
+            )
+        else:
+            st.warning(translate_service.translate("umap_2d_table_not_found"))
 
     # Display 3D coordinates table
-    st.markdown(f"### 📋 {translate_service.translate('umap_3d_table_title')}")
-    umap_3d_table = protocol_proxy.get_output("umap_3d_table")
-    if umap_3d_table and isinstance(umap_3d_table, Table):
-        df = umap_3d_table.get_data()
-        st.dataframe(df, width="stretch", height=400)
+    with st.expander(f"📋 {translate_service.translate('umap_3d_table_title')}"):
+        umap_3d_table = protocol_proxy.get_output("umap_3d_table")
+        if umap_3d_table and isinstance(umap_3d_table, Table):
+            df = umap_3d_table.get_data()
+            st.dataframe(df, width="stretch", height=400)
 
-        # Download button
-        csv = df.to_csv(index=False)
-        st.download_button(
-            label=translate_service.translate("download_umap_3d_csv"),
-            data=csv,
-            file_name=f"umap_3d_coordinates_{umap_scenario.id[:8]}.csv",
-            mime="text/csv",
-        )
-    else:
-        st.warning(translate_service.translate("umap_3d_table_not_found"))
+            # Download button
+            csv = df.to_csv(index=False)
+            st.download_button(
+                label=translate_service.translate("download_umap_3d_csv"),
+                data=csv,
+                file_name=f"umap_3d_coordinates_{umap_scenario.id[:8]}.csv",
+                mime="text/csv",
+                icon=":material/download:",
+            )
+        else:
+            st.warning(translate_service.translate("umap_3d_table_not_found"))

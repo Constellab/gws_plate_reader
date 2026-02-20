@@ -6,7 +6,6 @@ Displays the results of a Metadata Feature UMAP analysis scenario
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Table
 from gws_core.impl.plotly.plotly_resource import PlotlyResource
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -131,19 +130,15 @@ def render_metadata_feature_umap_results(
             )
         return
 
-    st.success(translate_service.translate("umap_analysis_complete"))
-
     # Display UMAP scenario outputs
     scenario_proxy = ScenarioProxy.from_existing_scenario(umap_scenario.id)
     protocol_proxy = scenario_proxy.get_protocol()
 
     # Display merged table info
-    st.markdown("### 📊 " + translate_service.translate("combined_data"))
     merged_table = protocol_proxy.get_output("merged_table")
     if merged_table and isinstance(merged_table, Table):
         merged_df = merged_table.get_data()
         n_rows, n_cols = merged_df.shape
-        st.info(translate_service.translate("combined_table_info").format(rows=n_rows, cols=n_cols))
 
         with st.expander(f"📋 {translate_service.translate('preview_combined_table')}"):
             st.dataframe(merged_df.head(20), width="stretch")
@@ -151,10 +146,11 @@ def render_metadata_feature_umap_results(
             # Download button
             csv = merged_df.to_csv(index=False)
             st.download_button(
-                label=f"💾 {translate_service.translate('download_combined_table_csv')}",
+                label=translate_service.translate("download_combined_table_csv"),
                 data=csv,
                 file_name=f"metadata_features_merged_{umap_scenario.id[:8]}.csv",
                 mime="text/csv",
+                icon=":material/download:",
             )
     else:
         st.warning(translate_service.translate("combined_table_unavailable"))
@@ -163,12 +159,11 @@ def render_metadata_feature_umap_results(
 
     # Display 2D UMAP plot
     st.markdown(f"### 🗺️ {translate_service.translate('umap_2d_plot')}")
-    st.markdown(translate_service.translate("visualization_2d_description"))
 
     umap_2d_plot = protocol_proxy.get_output("umap_2d_plot")
     if umap_2d_plot and isinstance(umap_2d_plot, PlotlyResource):
         fig = umap_2d_plot.figure
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         st.markdown(f"""
         **{translate_service.translate("pls_train_interpretation").split(":")[0]}** :
@@ -184,70 +179,50 @@ def render_metadata_feature_umap_results(
 
     # Display 3D UMAP plot
     st.markdown(f"### 🎲 {translate_service.translate('umap_3d_projection')}")
-    st.markdown(translate_service.translate("3d_visualization_description"))
 
     umap_3d_plot = protocol_proxy.get_output("umap_3d_plot")
     if umap_3d_plot and isinstance(umap_3d_plot, PlotlyResource):
         fig = umap_3d_plot.figure
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown(f"""
-        **{translate_service.translate("usage_tips")}** :
-        - {translate_service.translate("rotate_graph_tip")}
-        - {translate_service.translate("zoom_specific_areas")}
-        - {translate_service.translate("compare_2d_3d")}
-        """)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.warning(f"⚠️ {translate_service.translate('umap_3d_plot_not_found')}")
 
     st.markdown("---")
 
     # Display 2D coordinates table
-    st.markdown(f"### 📊 {translate_service.translate('umap_2d_coordinates_title')}")
-    umap_2d_table = protocol_proxy.get_output("umap_2d_table")
-    if umap_2d_table and isinstance(umap_2d_table, Table):
-        df_2d = umap_2d_table.get_data()
-
-        col1, col2 = st.columns([2, 1])
-        with col1:
+    with st.expander(f"📋 {translate_service.translate('umap_2d_coordinates_title')}"):
+        umap_2d_table = protocol_proxy.get_output("umap_2d_table")
+        if umap_2d_table and isinstance(umap_2d_table, Table):
+            df_2d = umap_2d_table.get_data()
             st.dataframe(df_2d, width="stretch", height=400)
-        with col2:
-            st.metric(translate_service.translate("number_of_series_label"), len(df_2d))
-            st.metric(translate_service.translate("columns_label"), len(df_2d.columns))
 
-        # Download button
-        csv = df_2d.to_csv(index=False)
-        st.download_button(
-            label=f"💾 {translate_service.translate('download_2d_coordinates_csv')}",
-            data=csv,
-            file_name=f"umap_2d_coordinates_{umap_scenario.id[:8]}.csv",
-            mime="text/csv",
-        )
-    else:
-        st.warning(f"⚠️ {translate_service.translate('coordinates_2d_table_unavailable')}")
-
-    st.markdown("---")
+            # Download button
+            csv = df_2d.to_csv(index=False)
+            st.download_button(
+                label=translate_service.translate("download_2d_coordinates_csv"),
+                data=csv,
+                file_name=f"umap_2d_coordinates_{umap_scenario.id[:8]}.csv",
+                mime="text/csv",
+                icon=":material/download:",
+            )
+        else:
+            st.warning(f"⚠️ {translate_service.translate('coordinates_2d_table_unavailable')}")
 
     # Display 3D coordinates table
-    st.markdown(f"### 📊 {translate_service.translate('umap_3d_coordinates_title')}")
-    umap_3d_table = protocol_proxy.get_output("umap_3d_table")
-    if umap_3d_table and isinstance(umap_3d_table, Table):
-        df_3d = umap_3d_table.get_data()
-
-        col1, col2 = st.columns([2, 1])
-        with col1:
+    with st.expander(f"📋 {translate_service.translate('umap_3d_coordinates_title')}"):
+        umap_3d_table = protocol_proxy.get_output("umap_3d_table")
+        if umap_3d_table and isinstance(umap_3d_table, Table):
+            df_3d = umap_3d_table.get_data()
             st.dataframe(df_3d, width="stretch", height=400)
-        with col2:
-            st.metric(translate_service.translate("number_of_series_label"), len(df_3d))
-            st.metric(translate_service.translate("columns_label"), len(df_3d.columns))
 
-        # Download button
-        csv = df_3d.to_csv(index=False)
-        st.download_button(
-            label=f"💾 {translate_service.translate('download_3d_coordinates_csv')}",
-            data=csv,
-            file_name=f"umap_3d_coordinates_{umap_scenario.id[:8]}.csv",
-            mime="text/csv",
-        )
-    else:
-        st.warning(f"⚠️ {translate_service.translate('coordinates_3d_table_unavailable')}")
+            # Download button
+            csv = df_3d.to_csv(index=False)
+            st.download_button(
+                label=translate_service.translate("download_3d_coordinates_csv"),
+                data=csv,
+                file_name=f"umap_3d_coordinates_{umap_scenario.id[:8]}.csv",
+                mime="text/csv",
+                icon=":material/download:",
+            )
+        else:
+            st.warning(f"⚠️ {translate_service.translate('coordinates_3d_table_unavailable')}")

@@ -128,7 +128,8 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> StreamlitT
 
             # Add Quality Check folder - clicking on it opens the QC creation form
             quality_check_folder = StreamlitTreeMenuItem(
-                label="Quality Check", key=f"quality_check_{scenario.id}"
+                label=translate_service.translate("qc_quality_checks"),
+                key=f"quality_check_{scenario.id}",
             )
 
             # Add quality check scenario sub-folders with their own Table/Graph views
@@ -606,7 +607,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
         with right_col:
             # Render the selected step
             if selected_key == "apercu":
-                st.title(f"{recipe.name} - Overview")
+                st.title(f"{recipe.name} - {translate_service.translate('overview')}")
                 render_overview_step(recipe, cell_culture_state)
             elif selected_key == "selection":
                 st.title(f"{recipe.name} - {translate_service.translate('selection')}")
@@ -653,7 +654,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in selection_scenarios if s.id == selection_id), None
                 )
                 if target_selection_scenario:
-                    st.title(f"{recipe.name} - Quality Check")
+                    st.title(f"{recipe.name} - {translate_service.translate('qc_quality_checks')}")
                     render_quality_check_step(
                         recipe, cell_culture_state, selection_scenario=target_selection_scenario
                     )
@@ -670,7 +671,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                 if target_qc_scenario:
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(f"{recipe.name} - Quality Check\n{target_qc_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - {translate_service.translate('qc_quality_checks')} \n {target_qc_scenario.title}"
+                        )
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             st.markdown(
@@ -690,7 +693,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         output_name=cell_culture_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME,
                     )
                 else:
-                    st.error("Quality Check scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Quality Check"
+                        )
+                    )
             elif selected_key.startswith("analysis_medium_pca_qc_"):
                 # Extract quality check scenario ID from key (analysis_medium_pca_qc_{qc_id})
                 qc_scenario_id = selected_key.replace("analysis_medium_pca_qc_", "")
@@ -700,12 +707,18 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                 )
                 if target_qc_scenario:
-                    st.title(f"{recipe.name} - Medium PCA Analysis")
+                    st.title(
+                        f"{recipe.name} - {translate_service.translate('medium_pca_analysis')}"
+                    )
                     render_medium_pca_step(
                         recipe, cell_culture_state, quality_check_scenario=target_qc_scenario
                     )
                 else:
-                    st.error("Quality Check scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Quality Check"
+                        )
+                    )
             elif selected_key.startswith("analysis_medium_umap_qc_"):
                 # Extract quality check scenario ID from key (analysis_medium_umap_qc_{qc_id})
                 qc_scenario_id = selected_key.replace("analysis_medium_umap_qc_", "")
@@ -715,12 +728,18 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                 )
                 if target_qc_scenario:
-                    st.title(f"{recipe.name} - Medium UMAP Analysis")
+                    st.title(
+                        f"{recipe.name} - {translate_service.translate('medium_umap_analysis')}"
+                    )
                     render_medium_umap_step(
                         recipe, cell_culture_state, quality_check_scenario=target_qc_scenario
                     )
                 else:
-                    st.error("Quality Check scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Quality Check"
+                        )
+                    )
             elif selected_key.startswith("analysis_logistic_growth_qc_"):
                 # Extract quality check scenario ID from key (analysis_logistic_growth_qc_{qc_id})
                 qc_scenario_id = selected_key.replace("analysis_logistic_growth_qc_", "")
@@ -737,7 +756,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         recipe, cell_culture_state, quality_check_scenario=target_qc_scenario
                     )
                 else:
-                    st.error("Quality Check scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Quality Check"
+                        )
+                    )
             elif selected_key.startswith("logistic_growth_result_"):
                 # Extract Logistic Growth scenario ID from key (logistic_growth_result_{lg_scenario_id})
                 lg_scenario_id = selected_key.replace("logistic_growth_result_", "")
@@ -768,7 +791,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     display_scenario_task_configs(target_lg_scenario, translate_service)
                     render_logistic_growth_results(recipe, cell_culture_state, target_lg_scenario)
                 else:
-                    st.error("Logistic Growth scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Logistic Growth"
+                        )
+                    )
             elif selected_key.startswith("analysis_feature_extraction_qc_"):
                 # Extract quality check scenario ID from key (analysis_feature_extraction_qc_{qc_id})
                 qc_scenario_id = selected_key.replace("analysis_feature_extraction_qc_", "")
@@ -778,12 +805,18 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     (s for s in all_qc_scenarios if s.id == qc_scenario_id), None
                 )
                 if target_qc_scenario:
-                    st.title(f"{recipe.name} - Feature Extraction Analysis")
+                    st.title(
+                        f"{recipe.name} - {translate_service.translate('feature_extraction_analysis')}"
+                    )
                     render_feature_extraction_step(
                         recipe, cell_culture_state, quality_check_scenario=target_qc_scenario
                     )
                 else:
-                    st.error("Quality Check scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Quality Check"
+                        )
+                    )
             elif selected_key.startswith("pca_result_"):
                 # Extract PCA scenario ID from key (pca_result_{pca_scenario_id})
                 pca_scenario_id = selected_key.replace("pca_result_", "")
@@ -796,7 +829,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(f"{recipe.name} - Medium PCA Results\n{target_pca_scenario.title}")
+                        st.title(
+                            f"{recipe.name} - {translate_service.translate('medium_pca_results')}\n{target_pca_scenario.title}"
+                        )
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
@@ -813,7 +848,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     display_scenario_task_configs(target_pca_scenario, translate_service)
                     render_medium_pca_results(recipe, cell_culture_state, target_pca_scenario)
                 else:
-                    st.error("PCA scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="PCA"
+                        )
+                    )
             elif selected_key.startswith("umap_result_"):
                 # Extract UMAP scenario ID from key (umap_result_{umap_scenario_id})
                 umap_scenario_id = selected_key.replace("umap_result_", "")
@@ -826,8 +865,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
+                        medium_umap_label = translate_service.translate("medium_umap_results")
                         st.title(
-                            f"{recipe.name} - Medium UMAP Results\n{target_umap_scenario.title}"
+                            f"{recipe.name} - {medium_umap_label}\n{target_umap_scenario.title}"
                         )
                     with col2:
                         if not cell_culture_state.get_is_standalone():
@@ -845,7 +885,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     display_scenario_task_configs(target_umap_scenario, translate_service)
                     render_medium_umap_results(recipe, cell_culture_state, target_umap_scenario)
                 else:
-                    st.error("UMAP scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="UMAP"
+                        )
+                    )
             elif selected_key.startswith("fe_result_"):
                 # Extract Feature Extraction scenario ID from key (fe_result_{fe_scenario_id})
                 fe_scenario_id = selected_key.replace("fe_result_", "")
@@ -858,9 +902,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(
-                            f"{recipe.name} - Feature Extraction Results\n{target_fe_scenario.title}"
-                        )
+                        fe_label = translate_service.translate("feature_extraction_results_title")
+                        st.title(f"{recipe.name} - {fe_label}\n{target_fe_scenario.title}")
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
@@ -879,7 +922,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         recipe, cell_culture_state, target_fe_scenario
                     )
                 else:
-                    st.error("Feature Extraction scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Feature Extraction"
+                        )
+                    )
             elif selected_key.startswith("analysis_metadata_feature_umap_fe_"):
                 # Extract Feature Extraction scenario ID from key (analysis_metadata_feature_umap_fe_{fe_scenario_id})
                 fe_scenario_id = selected_key.replace("analysis_metadata_feature_umap_fe_", "")
@@ -912,9 +959,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(
-                            f"{recipe.name} - Metadata Feature UMAP Analysis\n{target_fe_scenario.title}"
-                        )
+                        _label = translate_service.translate("metadata_feature_umap_analysis")
+                        st.title(f"{recipe.name} - {_label}\n{target_fe_scenario.title}")
                         # Render the step page to launch new analyses or view existing ones
                         render_metadata_feature_umap_step(
                             recipe,
@@ -923,9 +969,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             feature_extraction_scenario=target_fe_scenario,
                         )
                     else:
-                        st.error("Quality Check scenario not found")
+                        st.error(
+                            translate_service.translate("scenario_not_found").format(
+                                scenario_type="Quality Check"
+                            )
+                        )
                 else:
-                    st.error("Feature Extraction scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Feature Extraction"
+                        )
+                    )
             elif selected_key.startswith("metadata_feature_umap_result_"):
                 # Extract UMAP scenario ID from key (metadata_feature_umap_result_{umap_scenario_id})
                 umap_scenario_id = selected_key.replace("metadata_feature_umap_result_", "")
@@ -938,9 +992,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(
-                            f"{recipe.name} - Metadata Feature UMAP Results\n{target_umap_scenario.title}"
-                        )
+                        _label = translate_service.translate("metadata_feature_umap_results")
+                        st.title(f"{recipe.name} - {_label}\n{target_umap_scenario.title}")
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
@@ -959,7 +1012,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                         recipe, cell_culture_state, target_umap_scenario
                     )
                 else:
-                    st.error("UMAP Metadata+Features scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="UMAP Metadata+Features"
+                        )
+                    )
             elif selected_key.startswith("analysis_pls_regression_fe_"):
                 # Extract Feature Extraction scenario ID from key (analysis_pls_regression_fe_{fe_scenario_id})
                 fe_scenario_id = selected_key.replace("analysis_pls_regression_fe_", "")
@@ -992,9 +1049,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(
-                            f"{recipe.name} - PLS Regression Analysis\n{target_fe_scenario.title}"
-                        )
+                        _label = translate_service.translate("pls_regression_title")
+                        st.title(f"{recipe.name} - {_label}\n{target_fe_scenario.title}")
                         # Render the step page to launch new analyses or view existing ones
                         render_pls_regression_step(
                             recipe,
@@ -1003,9 +1059,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             feature_extraction_scenario=target_fe_scenario,
                         )
                     else:
-                        st.error("Quality Check scenario not found")
+                        st.error(
+                            translate_service.translate("scenario_not_found").format(
+                                scenario_type="Quality Check"
+                            )
+                        )
                 else:
-                    st.error("Feature Extraction scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Feature Extraction"
+                        )
+                    )
             elif selected_key.startswith("pls_regression_result_"):
                 # Extract PLS scenario ID from key (pls_regression_result_{pls_scenario_id})
                 pls_scenario_id = selected_key.replace("pls_regression_result_", "")
@@ -1018,9 +1082,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(
-                            f"{recipe.name} - PLS Regression Results\n{target_pls_scenario.title}"
-                        )
+                        _label = translate_service.translate("pls_regression_results_title")
+                        st.title(f"{recipe.name} - {_label}\n{target_pls_scenario.title}")
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
@@ -1037,7 +1100,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     display_scenario_task_configs(target_pls_scenario, translate_service)
                     render_pls_regression_results(recipe, cell_culture_state, target_pls_scenario)
                 else:
-                    st.error("PLS Regression scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="PLS Regression"
+                        )
+                    )
             elif selected_key.startswith("analysis_random_forest_regression_fe_"):
                 # Extract Feature Extraction scenario ID from key (analysis_random_forest_regression_fe_{fe_scenario_id})
                 fe_scenario_id = selected_key.replace("analysis_random_forest_regression_fe_", "")
@@ -1070,9 +1137,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(
-                            f"{recipe.name} - Random Forest Regression Analysis\n{target_fe_scenario.title}"
-                        )
+                        _label = translate_service.translate("random_forest_title")
+                        st.title(f"{recipe.name} - {_label}\n{target_fe_scenario.title}")
                         # Render the step page to launch new analyses or view existing ones
                         render_random_forest_step(
                             recipe,
@@ -1081,9 +1147,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             feature_extraction_scenario=target_fe_scenario,
                         )
                     else:
-                        st.error("Quality Check scenario not found")
+                        st.error(
+                            translate_service.translate("scenario_not_found").format(
+                                scenario_type="Quality Check"
+                            )
+                        )
                 else:
-                    st.error("Feature Extraction scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Feature Extraction"
+                        )
+                    )
             elif selected_key.startswith("random_forest_result_"):
                 # Extract Random Forest scenario ID from key (random_forest_result_{rf_scenario_id})
                 rf_scenario_id = selected_key.replace("random_forest_result_", "")
@@ -1096,9 +1170,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(
-                            f"{recipe.name} - Random Forest Results\n{target_rf_scenario.title}"
-                        )
+                        _label = translate_service.translate("random_forest_results_title")
+                        st.title(f"{recipe.name} - {_label}\n{target_rf_scenario.title}")
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
@@ -1115,7 +1188,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     display_scenario_task_configs(target_rf_scenario, translate_service)
                     render_random_forest_results(recipe, cell_culture_state, target_rf_scenario)
                 else:
-                    st.error("Random Forest Regression scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Random Forest Regression"
+                        )
+                    )
             elif selected_key.startswith("analysis_causal_effect_fe_"):
                 # Extract Feature Extraction scenario ID from key (analysis_causal_effect_fe_{fe_scenario_id})
                 fe_scenario_id = selected_key.replace("analysis_causal_effect_fe_", "")
@@ -1148,9 +1225,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(
-                            f"{recipe.name} - Causal Effect Analysis\n{target_fe_scenario.title}"
-                        )
+                        _label = translate_service.translate("causal_effect_title")
+                        st.title(f"{recipe.name} - {_label}\n{target_fe_scenario.title}")
                         # Render the step page to launch new analyses or view existing ones
                         render_causal_effect_step(
                             recipe,
@@ -1159,9 +1235,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             feature_extraction_scenario=target_fe_scenario,
                         )
                     else:
-                        st.error("Quality Check scenario not found")
+                        st.error(
+                            translate_service.translate("scenario_not_found").format(
+                                scenario_type="Quality Check"
+                            )
+                        )
                 else:
-                    st.error("Feature Extraction scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Feature Extraction"
+                        )
+                    )
             elif selected_key.startswith("causal_effect_result_"):
                 # Extract Causal Effect scenario ID from key (causal_effect_result_{causal_scenario_id})
                 causal_scenario_id = selected_key.replace("causal_effect_result_", "")
@@ -1174,9 +1258,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(
-                            f"{recipe.name} - Causal Effect Results\n{target_causal_scenario.title}"
-                        )
+                        _label = translate_service.translate("causal_effect_results_title")
+                        st.title(f"{recipe.name} - {_label}\n{target_causal_scenario.title}")
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
@@ -1193,7 +1276,11 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     display_scenario_task_configs(target_causal_scenario, translate_service)
                     render_causal_effect_results(recipe, cell_culture_state, target_causal_scenario)
                 else:
-                    st.error("Causal Effect scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Causal Effect"
+                        )
+                    )
             elif selected_key.startswith("analysis_optimization_fe_"):
                 # Extract Feature Extraction scenario ID from key (analysis_optimization_fe_{fe_scenario_id})
                 fe_scenario_id = selected_key.replace("analysis_optimization_fe_", "")
@@ -1226,9 +1313,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             target_qc_scenario = data_processing_scenarios[0]
 
                     if target_qc_scenario:
-                        st.title(
-                            f"{recipe.name} - Optimization Analysis\n{target_fe_scenario.title}"
-                        )
+                        _label = translate_service.translate("optimization_title")
+                        st.title(f"{recipe.name} - {_label}\n{target_fe_scenario.title}")
                         # Render the step page to launch new analyses or view existing ones
                         render_optimization_step(
                             recipe,
@@ -1237,9 +1323,17 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             feature_extraction_scenario=target_fe_scenario,
                         )
                     else:
-                        st.error("Quality Check scenario not found")
+                        st.error(
+                            translate_service.translate("scenario_not_found").format(
+                                scenario_type="Quality Check"
+                            )
+                        )
                 else:
-                    st.error("Feature Extraction scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Feature Extraction"
+                        )
+                    )
             elif selected_key.startswith("optimization_result_"):
                 # Extract Optimization scenario ID from key (optimization_result_{opt_scenario_id})
                 opt_scenario_id = selected_key.replace("optimization_result_", "")
@@ -1252,9 +1346,8 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     # Display title with view scenario button
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.title(
-                            f"{recipe.name} - Optimization Results\n{target_opt_scenario.title}"
-                        )
+                        _label = translate_service.translate("optimization_results_title")
+                        st.title(f"{recipe.name} - {_label}\n{target_opt_scenario.title}")
                     with col2:
                         if not cell_culture_state.get_is_standalone():
                             # Add vertical centering with padding
@@ -1271,6 +1364,10 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                     display_scenario_task_configs(target_opt_scenario, translate_service)
                     render_optimization_results(cell_culture_state, target_opt_scenario)
                 else:
-                    st.error("Optimization scenario not found")
+                    st.error(
+                        translate_service.translate("scenario_not_found").format(
+                            scenario_type="Optimization"
+                        )
+                    )
             else:
                 st.info(translate_service.translate("select_step_in_menu"))

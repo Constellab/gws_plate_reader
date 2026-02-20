@@ -6,7 +6,6 @@ Displays the results of a Feature Extraction analysis scenario
 import streamlit as st
 from gws_core import ResourceSet, Scenario, ScenarioProxy, ScenarioStatus, Table
 from gws_core.impl.plotly.plotly_resource import PlotlyResource
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,
 )
@@ -58,6 +57,7 @@ def render_feature_extraction_results(
                 data=csv,
                 file_name=f"feature_extraction_results_{fe_scenario.id[:8]}.csv",
                 mime="text/csv",
+                icon=":material/download:",
             )
         else:
             st.warning(translate_service.translate("feature_extraction_params_not_found"))
@@ -68,7 +68,6 @@ def render_feature_extraction_results(
 
     if plots_resource_set and isinstance(plots_resource_set, ResourceSet):
         plots_resources = plots_resource_set.get_resources()
-        st.info(f"📊 {len(plots_resources)} {translate_service.translate('resources')}")
 
         # Organize plots by type
         comparison_plots = []
@@ -118,7 +117,7 @@ def render_feature_extraction_results(
                 for plot_name, plot_resource in comparison_plots:
                     st.markdown(f"#### {plot_name}")
                     fig = plot_resource.figure
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             else:
                 st.info(translate_service.translate("no_comparison_plots"))
                 # Fallback: display all plots
@@ -126,7 +125,7 @@ def render_feature_extraction_results(
                     if isinstance(plot_resource, PlotlyResource):
                         st.markdown(f"#### {plot_name}")
                         fig = plot_resource.figure
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width="stretch")
         else:
             # Extract model name from selection
             model_name = selected_option.replace("📈 ", "")
@@ -135,7 +134,7 @@ def render_feature_extraction_results(
                 for plot_name, plot_resource in model_plots[model_name]:
                     st.markdown(f"**{plot_name}**")
                     fig = plot_resource.figure
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
             else:
                 st.warning(translate_service.translate("feature_extraction_curves_not_found"))
     else:

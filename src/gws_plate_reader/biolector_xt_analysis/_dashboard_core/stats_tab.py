@@ -256,7 +256,7 @@ def render_stats_tab():
                     row_page_size_options=[25, 50, 100],
                     paginate_columns=False,
                     column_page_size_options=None,
-                    use_container_width=True,
+                    width="stretch",
                 )
             else:
                 st.warning("No Dunn's post-hoc test summary results found.")

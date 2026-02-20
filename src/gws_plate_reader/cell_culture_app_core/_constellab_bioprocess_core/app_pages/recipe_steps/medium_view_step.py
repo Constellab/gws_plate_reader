@@ -25,8 +25,8 @@ def get_medium_data_from_resource_set(
     Extract medium composition data from ResourceSet.
     Returns a list of dictionaries with batch, sample, medium name, and composition.
     """
+    translate_service = cell_culture_state.get_translate_service()
     try:
-        translate_service = cell_culture_state.get_translate_service()
         resources = resource_set.get_resources()
         medium_table_model = cell_culture_state.get_load_scenario_output_resource_model(
             "medium_table"

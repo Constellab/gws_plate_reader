@@ -72,7 +72,7 @@ def render_quality_check_config_form(
     config = {}
 
     # Section 1: Validation de plages
-    with st.expander(f"📊 {translate_service.translate('qc_range_checks_title')}", expanded=False):
+    with st.expander(f"{translate_service.translate('qc_range_checks_title')}", expanded=False):
         st.markdown(translate_service.translate("qc_range_definition"))
 
         # Nombre de validations
@@ -128,7 +128,7 @@ def render_quality_check_config_form(
         config["range_checks"] = range_checks
 
     # Section 3: Données manquantes
-    with st.expander(f"❓ {translate_service.translate('qc_missing_data_title')}", expanded=False):
+    with st.expander(f"{translate_service.translate('qc_missing_data_title')}", expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:
@@ -208,7 +208,7 @@ def render_quality_check_config_form(
         config["min_data_points"] = min_data_points
 
     # Section 5: Options
-    with st.expander(f"⚙️ {translate_service.translate('qc_options_title')}", expanded=False):
+    with st.expander(f"{translate_service.translate('qc_options_title')}", expanded=False):
         config["add_quality_tags"] = st.checkbox(
             translate_service.translate("qc_add_quality_tags"),
             value=True,
@@ -443,7 +443,7 @@ def render_quality_check_step(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with quality check tips
-    with st.expander(f"💡 {translate_service.translate('qc_tips_title')}"):
+    with st.expander(f"{translate_service.translate('qc_tips_title')}"):
         st.markdown(translate_service.translate("qc_tips_content"))
 
     # If a specific selection scenario is provided, only show that one
@@ -502,7 +502,7 @@ def _render_selection_quality_checks(
     def render_content():
         # Always show quality check creation form
         st.markdown("---")
-        st.markdown(f"### ➕ {translate_service.translate('qc_create_new')}")
+        st.markdown(f"### {translate_service.translate('qc_create_new')}")
 
         # Initialize session state for quality check config
         config_key = f"quality_check_config_{selection.id}"
@@ -514,7 +514,7 @@ def _render_selection_quality_checks(
 
         # Launch button
         if st.button(
-            f"🚀 {translate_service.translate('qc_launch_button')}",
+            f"{translate_service.translate('qc_launch_button')}",
             key=f"launch_qc_{selection.id}",
             type="primary",
             width="stretch",

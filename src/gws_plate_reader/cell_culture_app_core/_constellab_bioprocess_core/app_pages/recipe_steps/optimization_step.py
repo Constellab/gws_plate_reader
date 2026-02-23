@@ -346,7 +346,7 @@ def render_optimization_step(
 
     # Configuration form for new Optimization
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('launch_new_optimization_analysis')}")
+    st.markdown(f"### {translate_service.translate('launch_new_optimization_analysis')}")
 
     if cell_culture_state.get_is_standalone():
         st.info(translate_service.translate("standalone_mode_function_blocked"))
@@ -419,13 +419,20 @@ def render_optimization_step(
 
     targets_thresholds = []
 
+    # Filter target options: only allowed feature extraction columns + base metadata columns
+    allowed_feature_columns = {"param_A", "param_lag", "param_mu", "param_y0", "t50", "t95"}
+    allowed_target_columns = sorted(
+        col for col in all_numeric_columns
+        if col not in feature_extraction_columns or col in allowed_feature_columns
+    )
+
     for i in range(st.session_state.num_targets):
         col_target, col_threshold = st.columns(2)
 
         with col_target:
             target = st.selectbox(
                 translate_service.translate("target_label").format(number=i + 1),
-                options=all_numeric_columns,
+                options=allowed_target_columns,
                 key=f"optimization_target_{i}_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
                 help=translate_service.translate("variable_to_optimize"),
             )
@@ -458,24 +465,13 @@ def render_optimization_step(
                 st.session_state.num_targets -= 1
                 st.rerun()
 
-    st.markdown(f"**{translate_service.translate('advanced_options')}**")
-
-    # Calculate default columns to exclude:
+    # Auto-compute columns to exclude (not user-editable):
     # 1. All non-numeric columns
     # 2. All feature extraction columns (except those selected as targets)
     selected_targets = [t["targets"] for t in targets_thresholds]
-    default_excluded = sorted(
+    columns_to_exclude = sorted(
         set(all_non_numeric_columns)
         | {col for col in feature_extraction_columns if col not in selected_targets}
-    )
-
-    # Columns to exclude
-    columns_to_exclude = st.multiselect(
-        translate_service.translate("columns_to_exclude_label"),
-        options=[col for col in all_merged_columns if col not in selected_targets],
-        default=default_excluded,
-        key=f"optimization_columns_exclude_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        help=translate_service.translate("columns_to_exclude_help"),
     )
     # Convert empty list to None
     if not columns_to_exclude:

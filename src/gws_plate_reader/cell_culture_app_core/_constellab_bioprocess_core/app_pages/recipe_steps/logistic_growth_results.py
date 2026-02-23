@@ -27,8 +27,9 @@ def render_logistic_growth_results(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with interpretation help
-    with st.expander(f"💡 {translate_service.translate('interpretation_help')}"):
+    with st.expander(f"{translate_service.translate('interpretation_help')}"):
         st.markdown(translate_service.translate("logistic_growth_results_interpretation"))
+    st.markdown("")
 
     # Check scenario status
     if lg_scenario.status != ScenarioStatus.SUCCESS:
@@ -49,7 +50,7 @@ def render_logistic_growth_results(
     )
 
     with tab_params:
-        st.markdown(f"### 📊 {translate_service.translate('growth_parameters_table')}")
+        st.markdown(f"### {translate_service.translate('growth_parameters_table')}")
         parameters_table = protocol_proxy.get_output("parameters")
         if parameters_table and isinstance(parameters_table, Table):
             df = parameters_table.get_data()
@@ -94,7 +95,7 @@ def render_logistic_growth_results(
             st.warning(translate_service.translate("parameters_table_not_found"))
 
     with tab_curves:
-        st.markdown(f"### 📈 {translate_service.translate('fitted_growth_curves')}")
+        st.markdown(f"### {translate_service.translate('fitted_growth_curves')}")
         fitted_curves_plot = protocol_proxy.get_output("fitted_curves_plot")
         if fitted_curves_plot and isinstance(fitted_curves_plot, PlotlyResource):
             fig = fitted_curves_plot.figure
@@ -103,7 +104,7 @@ def render_logistic_growth_results(
             st.warning(translate_service.translate("fitted_curves_not_found"))
 
     with tab_histogram:
-        st.markdown(f"### 📊 {translate_service.translate('growth_rate_distribution')}")
+        st.markdown(f"### {translate_service.translate('growth_rate_distribution')}")
         histogram_plot = protocol_proxy.get_output("growth_rate_histogram")
         if histogram_plot and isinstance(histogram_plot, PlotlyResource):
             fig = histogram_plot.figure

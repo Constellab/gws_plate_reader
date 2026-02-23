@@ -254,13 +254,13 @@ def render_table_view_step(
             st.markdown("---")
 
             st.markdown(
-                "### 📊 "
+                "### "
                 + translate_service.translate("data_organized_by").format(index=selected_index)
             )
 
             # Create a section for each selected column using the optimized function
             for i, column_name in enumerate(selected_columns):
-                st.markdown(f"##### 📈 {column_name}")
+                st.markdown(f"##### {column_name}")
 
                 # Use the optimized function to build the DataFrame for this column
                 # The subsampling task already combined real and interpolated data

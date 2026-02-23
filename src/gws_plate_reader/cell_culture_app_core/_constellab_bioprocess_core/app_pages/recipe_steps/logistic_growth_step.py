@@ -263,8 +263,10 @@ def render_logistic_growth_step(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with Logistic Growth explanation
-    with st.expander(f"💡 {translate_service.translate('about_logistic_growth')}"):
+    with st.expander(f"{translate_service.translate('about_logistic_growth')}"):
         st.markdown(translate_service.translate("logistic_growth_help_content"))
+
+    st.markdown("")
 
     # Get the quality check output
     qc_output = cell_culture_state.get_quality_check_scenario_output_resource_model(
@@ -309,7 +311,7 @@ def render_logistic_growth_step(
 
     # Configuration form for new Logistic Growth
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('logistic_growth_launch_button')}")
+    st.markdown(f"### {translate_service.translate('logistic_growth_launch_button')}")
 
     with st.form(key=f"logistic_growth_form_{quality_check_scenario.id}"):
         st.markdown(f"**{translate_service.translate('logistic_growth_analysis_config')}**")
@@ -359,7 +361,7 @@ def render_logistic_growth_step(
 
         # Submit button
         submit_button = st.form_submit_button(
-            f"🚀 {translate_service.translate('logistic_growth_launch_button')}",
+            f"{translate_service.translate('logistic_growth_launch_button')}",
             type="primary",
             width="stretch",
             disabled=cell_culture_state.get_is_standalone(),

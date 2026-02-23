@@ -340,6 +340,8 @@ def render_metadata_feature_umap_step(
 """
         )
 
+    st.markdown("")
+
     # Get the load scenario to check for metadata_table output
     load_scenario = recipe.get_load_scenario()
 
@@ -435,7 +437,7 @@ def render_metadata_feature_umap_step(
 
     # Configuration form for new UMAP
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('launch_new_umap_analysis')}")
+    st.markdown(f"### {translate_service.translate('launch_new_umap_analysis')}")
 
     with st.form(key=f"metadata_feature_umap_form_{quality_check_scenario.id}"):
         st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
@@ -502,13 +504,8 @@ def render_metadata_feature_umap_step(
 
         st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
-        # Columns to exclude
-        columns_to_exclude = st.multiselect(
-            translate_service.translate("columns_to_exclude_label"),
-            options=all_merged_columns,
-            default=[medium_name_column] if medium_name_column in all_merged_columns else [],
-            help=translate_service.translate("columns_to_exclude_help"),
-        )
+        # Auto-compute columns to exclude (not user-editable)
+        columns_to_exclude = [medium_name_column] if medium_name_column in all_merged_columns else []
         # Convert empty list to None
         if not columns_to_exclude:
             columns_to_exclude = None

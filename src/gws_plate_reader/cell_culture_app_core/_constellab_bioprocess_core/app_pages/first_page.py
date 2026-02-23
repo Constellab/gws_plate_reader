@@ -331,10 +331,10 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         # Show info message and getting started if no recipes
         if not recipes_dict:
             # No recipes found - show getting started guide
-            st.subheader(f"🚀 {translate_service.translate('getting_started')}")
+            st.subheader(f"{translate_service.translate('getting_started')}")
 
             # Show example of what the recipe includes
-            with st.expander(f"ℹ️ {translate_service.translate('what_is_recipe')}"):
+            with st.expander(f"{translate_service.translate('what_is_recipe')}"):
                 st.markdown(f"""
                 {translate_service.translate("recipe_includes")}
 
@@ -355,12 +355,13 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                 - {translate_service.translate("results_stats")}
                 - {translate_service.translate("results_export")}
                 """)
+            st.markdown("")
 
             # Add direct call-to-action
             if not cell_culture_state.get_is_standalone():
                 st.markdown("---")
                 if st.button(
-                    f"🆕 {translate_service.translate('create_first_analysis')}",
+                    f"{translate_service.translate('create_first_analysis')}",
                     type="primary",
                     width="stretch",
                 ):

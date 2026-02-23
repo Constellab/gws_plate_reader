@@ -153,7 +153,7 @@ def render_graph_view_step(
         if len(selected_columns) > 1:
             too_many = len(selected_columns) > 3
             combine_columns = st.checkbox(
-                f"📊 {translate_service.translate('combine_columns_in_same_graph')}",
+                f"{translate_service.translate('combine_columns_in_same_graph')}",
                 value=False,
                 key="graph_view_combine_columns",
                 help=translate_service.translate("combine_columns_help"),
@@ -267,12 +267,12 @@ def render_graph_view_step(
             st.markdown("---")
 
             st.markdown(
-                f"### 📊 {translate_service.translate('plots_organized_by')} {selected_index}"
+                f"### {translate_service.translate('plots_organized_by')} {selected_index}"
             )
 
             # If combine_columns is True, display all columns in one plot
             if combine_columns:
-                st.markdown(f"##### 📈 {translate_service.translate('all_columns_combined')}")
+                st.markdown(f"##### {translate_service.translate('all_columns_combined')}")
 
                 # Create a single figure with multiple overlaid y-axes
                 num_columns = len(selected_columns)
@@ -651,7 +651,7 @@ def render_graph_view_step(
             else:
                 # Original behavior: Create a section for each selected column with line plots
                 for i, column_name in enumerate(selected_columns):
-                    st.markdown(f"##### 📈 {column_name}")
+                    st.markdown(f"##### {column_name}")
 
                     # Use the optimized function to build the DataFrame for this column
                     # The subsampling task already combined real and interpolated data

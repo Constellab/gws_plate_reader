@@ -21,12 +21,12 @@ def render_settings_page(cell_culture_state: CellCultureState):
     ):
         translate_service = cell_culture_state.get_translate_service()
 
-        st.title(f"⚙️ {translate_service.translate('settings_title')}")
+        st.title(f"{translate_service.translate('settings_title')}")
 
         st.markdown("---")
 
         # Section 1: General Settings - Language
-        st.subheader(f"🌐 {translate_service.translate('general_settings')}")
+        st.subheader(f"{translate_service.translate('general_settings')}")
 
         # Get current language from translate service
         current_lang = translate_service.get_lang()
@@ -65,11 +65,11 @@ def render_settings_page(cell_culture_state: CellCultureState):
         st.markdown("---")
 
         # Section 2: Interpolation Preferences
-        st.subheader(f"📈 {translate_service.translate('interpolation_settings')}")
+        st.subheader(f"{translate_service.translate('interpolation_settings')}")
 
         st.info(translate_service.translate("interpolation_description"))
 
-        with st.expander(f"📋 {translate_service.translate('available_methods')}", expanded=False):
+        with st.expander(f"{translate_service.translate('available_methods')}", expanded=False):
             st.markdown(f"""
             - **Linear**: {translate_service.translate("method_linear")}
             - **Nearest**: {translate_service.translate("method_nearest")}
@@ -81,11 +81,12 @@ def render_settings_page(cell_culture_state: CellCultureState):
             - **Univariate Spline**: {translate_service.translate("method_univariate_spline")}
             - **Spline**: {translate_service.translate("method_spline")}
             """)
+        st.markdown("")
 
         st.markdown("---")
 
         # Section 3: About
-        st.subheader(f"ℹ️ {translate_service.translate('about')}")
+        st.subheader(f"{translate_service.translate('about')}")
 
         st.markdown(translate_service.translate("dashboard_description"))
 

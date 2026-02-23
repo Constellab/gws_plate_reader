@@ -330,36 +330,32 @@ def render_causal_effect_step(
 
     # Configuration form for new Causal Effect
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('launch_new_causal_effect_analysis')}")
+    st.markdown(f"### {translate_service.translate('launch_new_causal_effect_analysis')}")
 
     st.markdown(f"**{translate_service.translate('analysis_configuration')}**")
+
+    # Filter target options: only allowed feature extraction columns + base metadata columns
+    allowed_feature_columns = {"param_A", "param_lag", "param_mu", "param_y0", "t50", "t95"}
+    allowed_target_columns = sorted(
+        col for col in all_numeric_columns
+        if col not in feature_extraction_columns or col in allowed_feature_columns
+    )
 
     # Target columns selection (must select at least one)
     target_columns = st.multiselect(
         translate_service.translate("target_variables_label"),
-        options=all_numeric_columns,
+        options=allowed_target_columns,
         default=[],
         key=f"causal_target_columns_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
         help=translate_service.translate("target_variables_help"),
     )
 
-    st.markdown(f"**{translate_service.translate('advanced_options')}**")
-
-    # Calculate default columns to exclude:
+    # Auto-compute columns to exclude (not user-editable):
     # 1. All non-numeric columns
     # 2. All feature extraction columns (except those selected as targets)
-    default_excluded = sorted(
+    columns_to_exclude = sorted(
         set(all_non_numeric_columns)
         | {col for col in feature_extraction_columns if col not in target_columns}
-    )
-
-    # Columns to exclude
-    columns_to_exclude = st.multiselect(
-        translate_service.translate("columns_to_exclude_label"),
-        options=[col for col in all_merged_columns if col not in target_columns],
-        default=default_excluded,
-        key=f"causal_columns_exclude_{quality_check_scenario.id}_{feature_extraction_scenario.id}",
-        help=translate_service.translate("columns_to_exclude_help"),
     )
     # Convert empty list to None
     if not columns_to_exclude:

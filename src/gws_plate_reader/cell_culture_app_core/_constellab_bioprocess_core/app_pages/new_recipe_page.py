@@ -57,15 +57,15 @@ def render_new_recipe_page(cell_culture_state: CellCultureState) -> None:
                 router.navigate("first-page")
 
         with col_title:
-            st.markdown(f"## 🧬 {translate_service.translate('new_recipe')}")
+            st.markdown(f"## {translate_service.translate('new_recipe')}")
 
         st.markdown("---")
 
         # Tab menu
         tab_fermentor, tab_biolector = st.tabs(
             [
-                f"🧪 {translate_service.translate('tab_fermentor_recipe')}",
-                f"🧫 {translate_service.translate('tab_biolector_recipe')}",
+                f"{translate_service.translate('tab_fermentor_recipe')}",
+                f"{translate_service.translate('tab_biolector_recipe')}",
             ]
         )
 
@@ -86,7 +86,7 @@ def render_new_recipe_fermentor(cell_culture_state: CellCultureState) -> None:
     router = StreamlitRouter.load_from_session()
 
     # Recipe details
-    st.subheader(f"📝 {translate_service.translate('recipe_details')}")
+    st.subheader(f"{translate_service.translate('recipe_details')}")
 
     analysis_name = st.text_input(
         translate_service.translate("recipe_name_label"),
@@ -97,7 +97,7 @@ def render_new_recipe_fermentor(cell_culture_state: CellCultureState) -> None:
     # Upload the 4 required files
     col_title, col_doc_button = st.columns([5, 1])
     with col_title:
-        st.subheader(f"📁 {translate_service.translate('import_required_files')}")
+        st.subheader(f"{translate_service.translate('import_required_files')}")
     with col_doc_button:
         url_doc_context = "https://constellab.community/bricks/gws_plate_reader/latest/doc/technical-folder/task/ConstellabBioprocessLoadData"
         st.link_button(translate_service.translate("documentation"), url_doc_context)
@@ -247,7 +247,7 @@ def render_new_recipe_fermentor(cell_culture_state: CellCultureState) -> None:
 
     # Submit button
     submit_button = st.button(
-        label=f"🚀 {translate_service.translate('create_recipe_button')}",
+        label=f"{translate_service.translate('create_recipe_button')}",
         type="primary",
         width="stretch",
         key="fermentor_create_recipe_submit_button",
@@ -546,7 +546,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
     router = StreamlitRouter.load_from_session()
 
     # Recipe details
-    st.subheader(f"📝 {translate_service.translate('recipe_details')}")
+    st.subheader(f"{translate_service.translate('recipe_details')}")
 
     analysis_name = st.text_input(
         translate_service.translate("recipe_name_label"),
@@ -557,7 +557,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
     # Upload the required files
     col_title, col_doc_button = st.columns([5, 1])
     with col_title:
-        st.subheader(f"📁 {translate_service.translate('import_required_files')}")
+        st.subheader(f"{translate_service.translate('import_required_files')}")
     with col_doc_button:
         # Documentation link button aligned to the right
         st.markdown(
@@ -621,7 +621,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
 
     # Per-plate inputs
     st.markdown("---")
-    st.subheader(f"📋 {translate_service.translate('plate_configurations')}")
+    st.subheader(f"{translate_service.translate('plate_configurations')}")
 
     # Initialize plates list in session state
     if "microplate_plates_list" not in st.session_state:
@@ -634,7 +634,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
     for plate_idx in st.session_state.microplate_plates_list:
         # Plate title
         st.write(
-            f"### 🧫 {translate_service.translate('plate')} {st.session_state.microplate_plates_list.index(plate_idx) + 1}"
+            f"### {translate_service.translate('plate')} {st.session_state.microplate_plates_list.index(plate_idx) + 1}"
         )
 
         with st.container():
@@ -789,7 +789,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
 
     # Add plate button
     if st.button(
-        f"➕ {translate_service.translate('add_plate')}",
+        f"{translate_service.translate('add_plate')}",
         width="stretch",
         type="secondary",
         key="microplate_add_plate_button",
@@ -811,7 +811,6 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
         translate_service.translate("create_recipe_button"),
         type="primary",
         width="stretch",
-        icon="🚀",
         disabled=has_duplicate_names,
         key="microplate_create_recipe_button",
     ):

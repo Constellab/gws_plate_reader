@@ -270,7 +270,7 @@ def render_medium_pca_step(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with PCA explanation
-    with st.expander(f"💡 {translate_service.translate('pca_help_title')}"):
+    with st.expander(f"{translate_service.translate('pca_help_title')}"):
         st.markdown(f"### {translate_service.translate('pca_help_intro_title')}")
         st.markdown(translate_service.translate("pca_help_intro_text"))
 
@@ -294,6 +294,8 @@ def render_medium_pca_step(
         st.markdown(f"- {translate_service.translate('pca_help_usage_1')}")
         st.markdown(f"- {translate_service.translate('pca_help_usage_2')}")
         st.markdown(f"- {translate_service.translate('pca_help_usage_3')}")
+
+    st.markdown("")
 
     # Get the load scenario to check for medium_table output
     load_scenario = recipe.get_load_scenario()
@@ -343,7 +345,7 @@ def render_medium_pca_step(
 
     # Configuration form for new PCA
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('pca_launch_button')}")
+    st.markdown(f"### {translate_service.translate('pca_launch_button')}")
 
     with st.form(key=f"medium_pca_form_{quality_check_scenario.id}"):
         # Get available columns from medium_table
@@ -397,7 +399,7 @@ def render_medium_pca_step(
 
         # Submit button
         submit_button = st.form_submit_button(
-            f"🚀 {translate_service.translate('pca_launch_button')}",
+            f"{translate_service.translate('pca_launch_button')}",
             type="primary",
             width="stretch",
             disabled=cell_culture_state.get_is_standalone(),

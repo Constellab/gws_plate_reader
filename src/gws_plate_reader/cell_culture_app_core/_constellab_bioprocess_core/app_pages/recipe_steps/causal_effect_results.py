@@ -34,10 +34,11 @@ def render_causal_effect_results(
         st.error(f"❌ {translate_service.translate('analysis_failed')}")
         # Display error message if available
         if causal_scenario.error_info:
-            with st.expander(f"📋 {translate_service.translate('error_details_expander')}"):
+            with st.expander(f"{translate_service.translate('error_details_expander')}"):
                 st.code(
                     causal_scenario.error_info.get("message", translate_service.translate("no_error_message_available"))
                 )
+            st.markdown("")
         return
     elif causal_scenario.is_running:
         st.info(f"⏳ {translate_service.translate('analysis_in_progress')}")
@@ -66,7 +67,7 @@ def render_causal_effect_results(
         resource_url = f"{front_url}/app/resource/{streamlit_app_resource_model.id}"
 
         st.markdown("---")
-        st.markdown(f"### 📊 {translate_service.translate('causal_effect_dashboard_title')}")
+        st.markdown(f"### {translate_service.translate('causal_effect_dashboard_title')}")
 
         st.markdown(translate_service.translate("causal_effect_dashboard_description"))
 
@@ -97,10 +98,11 @@ def render_causal_effect_results(
         st.markdown("---")
 
         # Additional info
-        with st.expander(f"ℹ️ {translate_service.translate('results_info_label')}"):
+        with st.expander(f"{translate_service.translate('results_info_label')}"):
             st.markdown(f"""
             {translate_service.translate("causal_effect_usage_guide")}
                         """)
+        st.markdown("")
 
     except Exception as e:
         st.error(translate_service.translate("error_retrieving_results").format(error=str(e)))

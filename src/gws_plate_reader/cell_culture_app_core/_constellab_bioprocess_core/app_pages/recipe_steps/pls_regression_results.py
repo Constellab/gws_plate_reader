@@ -28,8 +28,9 @@ def render_pls_regression_results(
     translate_service = cell_culture_state.get_translate_service()
 
     # Additional information section
-    with st.expander(f"💡 {translate_service.translate('pls_interpretation_guide')}"):
+    with st.expander(f"{translate_service.translate('pls_interpretation_guide')}"):
         st.markdown(translate_service.translate("pls_guide_content"))
+    st.markdown("")
 
     if pls_scenario.status != ScenarioStatus.SUCCESS:
         if pls_scenario.status == ScenarioStatus.ERROR:
@@ -60,16 +61,16 @@ def render_pls_regression_results(
         # Display results in tabs
         tabs = st.tabs(
             [
-                f"📈 {translate_service.translate('tab_performance')}",
-                f"🎯 {translate_service.translate('tab_variable_importance')}",
-                f"🔬 {translate_service.translate('tab_predictions_train')}",
-                f"✅ {translate_service.translate('tab_predictions_test')}",
+                f"{translate_service.translate('tab_performance')}",
+                f"{translate_service.translate('tab_variable_importance')}",
+                f"{translate_service.translate('tab_predictions_train')}",
+                f"{translate_service.translate('tab_predictions_test')}",
             ]
         )
 
         # Tab 1: Performance metrics and components plot
         with tabs[0]:
-            st.markdown(f"#### 📈 {translate_service.translate('model_performance')}")
+            st.markdown(f"#### {translate_service.translate('model_performance')}")
 
             # Display components plot
             if plot_components_model:
@@ -102,7 +103,7 @@ def render_pls_regression_results(
 
         # Tab 2: VIP scores
         with tabs[1]:
-            st.markdown(f"#### 🎯 {translate_service.translate('vip_scores')}")
+            st.markdown(f"#### {translate_service.translate('vip_scores')}")
 
             # Display VIP plot
             if vip_plot_model:
@@ -136,7 +137,7 @@ def render_pls_regression_results(
         # Tab 3: Train predictions
         with tabs[2]:
             st.markdown(
-                f"#### 🔬 {translate_service.translate('predictions_vs_observations_train')}"
+                f"#### {translate_service.translate('predictions_vs_observations_train')}"
             )
 
             if plot_train_model:
@@ -148,7 +149,7 @@ def render_pls_regression_results(
         # Tab 4: Test predictions
         with tabs[3]:
             st.markdown(
-                f"#### ✅ {translate_service.translate('predictions_vs_observations_test')}"
+                f"#### {translate_service.translate('predictions_vs_observations_test')}"
             )
 
             if plot_test_model:

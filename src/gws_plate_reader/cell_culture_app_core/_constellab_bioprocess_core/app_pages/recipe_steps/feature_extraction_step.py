@@ -253,8 +253,10 @@ def render_feature_extraction_step(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with Feature Extraction explanation
-    with st.expander(f"💡 {translate_service.translate('about_feature_extraction')}"):
+    with st.expander(f"{translate_service.translate('about_feature_extraction')}"):
         st.markdown(translate_service.translate("feature_extraction_help_content"))
+
+    st.markdown("")
 
     # Get the quality check output
     qc_output = cell_culture_state.get_quality_check_scenario_output_resource_model(
@@ -295,7 +297,7 @@ def render_feature_extraction_step(
 
     # Configuration form for new Feature Extraction
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('feature_extraction_launch_button')}")
+    st.markdown(f"### {translate_service.translate('feature_extraction_launch_button')}")
 
     # Available models
     all_models = [
@@ -340,7 +342,7 @@ def render_feature_extraction_step(
 
         # Submit button
         submit_button = st.form_submit_button(
-            f"🚀 {translate_service.translate('feature_extraction_launch_button')}",
+            f"{translate_service.translate('feature_extraction_launch_button')}",
             type="primary",
             width="stretch",
             disabled=cell_culture_state.get_is_standalone(),

@@ -27,7 +27,7 @@ def render_medium_umap_results(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with UMAP explanation
-    with st.expander(f"💡 {translate_service.translate('umap_help_title')}"):
+    with st.expander(f"{translate_service.translate('umap_help_title')}"):
         st.markdown(f"### {translate_service.translate('umap_help_intro_title')}")
         st.markdown(translate_service.translate("umap_help_intro_text"))
 
@@ -45,6 +45,7 @@ def render_medium_umap_results(
         st.markdown(f"- {translate_service.translate('umap_help_usage_1')}")
         st.markdown(f"- {translate_service.translate('umap_help_usage_2')}")
         st.markdown(f"- {translate_service.translate('umap_help_usage_3')}")
+    st.markdown("")
 
     # Check scenario status
     if umap_scenario.status != ScenarioStatus.SUCCESS:
@@ -56,7 +57,7 @@ def render_medium_umap_results(
     protocol_proxy = scenario_proxy.get_protocol()
 
     # Display 2D UMAP plot
-    st.markdown(f"### 📊 {translate_service.translate('umap_2d_plot_title')}")
+    st.markdown(f"### {translate_service.translate('umap_2d_plot_title')}")
     umap_2d_plot = protocol_proxy.get_output("umap_2d_plot")
     if umap_2d_plot and isinstance(umap_2d_plot, PlotlyResource):
         fig = umap_2d_plot.figure
@@ -65,7 +66,7 @@ def render_medium_umap_results(
         st.warning(translate_service.translate("umap_2d_plot_not_found"))
 
     # Display 3D UMAP plot
-    st.markdown(f"### 📈 {translate_service.translate('umap_3d_plot_title')}")
+    st.markdown(f"### {translate_service.translate('umap_3d_plot_title')}")
     umap_3d_plot = protocol_proxy.get_output("umap_3d_plot")
     if umap_3d_plot and isinstance(umap_3d_plot, PlotlyResource):
         fig = umap_3d_plot.figure
@@ -74,7 +75,7 @@ def render_medium_umap_results(
         st.warning(translate_service.translate("umap_3d_plot_not_found"))
 
     # Display 2D coordinates table
-    with st.expander(f"📋 {translate_service.translate('umap_2d_table_title')}"):
+    with st.expander(f"{translate_service.translate('umap_2d_table_title')}"):
         umap_2d_table = protocol_proxy.get_output("umap_2d_table")
         if umap_2d_table and isinstance(umap_2d_table, Table):
             df = umap_2d_table.get_data()
@@ -91,9 +92,10 @@ def render_medium_umap_results(
             )
         else:
             st.warning(translate_service.translate("umap_2d_table_not_found"))
+    st.markdown("")
 
     # Display 3D coordinates table
-    with st.expander(f"📋 {translate_service.translate('umap_3d_table_title')}"):
+    with st.expander(f"{translate_service.translate('umap_3d_table_title')}"):
         umap_3d_table = protocol_proxy.get_output("umap_3d_table")
         if umap_3d_table and isinstance(umap_3d_table, Table):
             df = umap_3d_table.get_data()
@@ -110,3 +112,4 @@ def render_medium_umap_results(
             )
         else:
             st.warning(translate_service.translate("umap_3d_table_not_found"))
+    st.markdown("")

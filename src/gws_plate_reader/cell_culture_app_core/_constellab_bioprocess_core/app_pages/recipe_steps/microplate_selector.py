@@ -35,9 +35,9 @@ def _render_microplate_grid(
         unified_text = translate_service.translate("unified_view_plates").format(
             num_plates=len(plate_names), plate_names=", ".join(plate_names)
         )
-        st.markdown(f"<p style='font-size: 0.9em;'>📊 {unified_text}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size: 0.9em;'>{unified_text}</p>", unsafe_allow_html=True)
         st.markdown(
-            f"<p style='font-size: 0.9em;'>ℹ️ {translate_service.translate('selecting_well_info')}</p>",
+            f"<p style='font-size: 0.9em;'>{translate_service.translate('selecting_well_info')}</p>",
             unsafe_allow_html=True,
         )
 

@@ -318,6 +318,8 @@ def render_medium_umap_step(
         st.markdown("- " + translate_service.translate("umap_help_tip_clustering"))
         st.markdown("- " + translate_service.translate("umap_help_tip_compare"))
 
+    st.markdown("")
+
     # Get the load scenario to check for medium_table output
     load_scenario = recipe.get_load_scenario()
 
@@ -366,7 +368,7 @@ def render_medium_umap_step(
 
     # Configuration form for new UMAP
     st.markdown("---")
-    st.markdown(f"### ➕ {translate_service.translate('launch_new_umap')}")
+    st.markdown(f"### {translate_service.translate('launch_new_umap')}")
 
     with st.form(key=f"medium_umap_form_{quality_check_scenario.id}"):
         # Get available columns from medium_table

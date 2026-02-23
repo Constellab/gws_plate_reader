@@ -118,7 +118,8 @@ def render_optimization_results(
         st.markdown("---")
 
         # Additional info
-        with st.expander(f"ℹ️ {translate_service.translate('results_info_label')}"):
+        with st.expander(f"{translate_service.translate('results_info_label')}"):
             st.markdown(translate_service.translate("optimization_dashboard_usage_guide"))
+        st.markdown("")
     except Exception as e:
         st.error(translate_service.translate("error_retrieving_results").format(error=str(e)))

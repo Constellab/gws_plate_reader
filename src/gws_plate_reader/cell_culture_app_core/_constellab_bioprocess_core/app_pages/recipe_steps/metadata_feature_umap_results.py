@@ -27,7 +27,7 @@ def render_metadata_feature_umap_results(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with interpretation guide
-    with st.expander(f"💡 {translate_service.translate('detailed_interpretation_guide')}"):
+    with st.expander(f"{translate_service.translate('detailed_interpretation_guide')}"):
         st.markdown(f"### {translate_service.translate('understanding_umap_results_title')}")
 
         st.markdown(f"""
@@ -115,6 +115,7 @@ def render_metadata_feature_umap_results(
 
         {translate_service.translate("unsatisfactory_results")}
         """)
+    st.markdown("")
 
     # Check scenario status
     if umap_scenario.status != ScenarioStatus.SUCCESS:
@@ -140,7 +141,7 @@ def render_metadata_feature_umap_results(
         merged_df = merged_table.get_data()
         n_rows, n_cols = merged_df.shape
 
-        with st.expander(f"📋 {translate_service.translate('preview_combined_table')}"):
+        with st.expander(f"{translate_service.translate('preview_combined_table')}"):
             st.dataframe(merged_df.head(20), width="stretch")
 
             # Download button
@@ -152,13 +153,14 @@ def render_metadata_feature_umap_results(
                 mime="text/csv",
                 icon=":material/download:",
             )
+        st.markdown("")
     else:
         st.warning(translate_service.translate("combined_table_unavailable"))
 
     st.markdown("---")
 
     # Display 2D UMAP plot
-    st.markdown(f"### 🗺️ {translate_service.translate('umap_2d_plot')}")
+    st.markdown(f"### {translate_service.translate('umap_2d_plot')}")
 
     umap_2d_plot = protocol_proxy.get_output("umap_2d_plot")
     if umap_2d_plot and isinstance(umap_2d_plot, PlotlyResource):
@@ -178,7 +180,7 @@ def render_metadata_feature_umap_results(
     st.markdown("---")
 
     # Display 3D UMAP plot
-    st.markdown(f"### 🎲 {translate_service.translate('umap_3d_projection')}")
+    st.markdown(f"### {translate_service.translate('umap_3d_projection')}")
 
     umap_3d_plot = protocol_proxy.get_output("umap_3d_plot")
     if umap_3d_plot and isinstance(umap_3d_plot, PlotlyResource):
@@ -190,7 +192,7 @@ def render_metadata_feature_umap_results(
     st.markdown("---")
 
     # Display 2D coordinates table
-    with st.expander(f"📋 {translate_service.translate('umap_2d_coordinates_title')}"):
+    with st.expander(f"{translate_service.translate('umap_2d_coordinates_title')}"):
         umap_2d_table = protocol_proxy.get_output("umap_2d_table")
         if umap_2d_table and isinstance(umap_2d_table, Table):
             df_2d = umap_2d_table.get_data()
@@ -207,9 +209,10 @@ def render_metadata_feature_umap_results(
             )
         else:
             st.warning(f"⚠️ {translate_service.translate('coordinates_2d_table_unavailable')}")
+    st.markdown("")
 
     # Display 3D coordinates table
-    with st.expander(f"📋 {translate_service.translate('umap_3d_coordinates_title')}"):
+    with st.expander(f"{translate_service.translate('umap_3d_coordinates_title')}"):
         umap_3d_table = protocol_proxy.get_output("umap_3d_table")
         if umap_3d_table and isinstance(umap_3d_table, Table):
             df_3d = umap_3d_table.get_data()
@@ -226,3 +229,4 @@ def render_metadata_feature_umap_results(
             )
         else:
             st.warning(f"⚠️ {translate_service.translate('coordinates_3d_table_unavailable')}")
+    st.markdown("")

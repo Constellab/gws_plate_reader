@@ -27,8 +27,9 @@ def render_feature_extraction_results(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with interpretation help
-    with st.expander(f"💡 {translate_service.translate('interpretation_help')}"):
+    with st.expander(f"{translate_service.translate('interpretation_help')}"):
         st.markdown(translate_service.translate("feature_extraction_results_interpretation"))
+    st.markdown("")
 
     # Check scenario status
     if fe_scenario.status != ScenarioStatus.SUCCESS:
@@ -41,7 +42,7 @@ def render_feature_extraction_results(
 
     # Display results table in expandable section (at the top)
     with st.expander(
-        f"📊 {translate_service.translate('view_button')} {translate_service.translate('feature_extraction_params_table').lower()}",
+        f"{translate_service.translate('view_button')} {translate_service.translate('feature_extraction_params_table').lower()}",
         expanded=False,
     ):
         st.markdown(f"**{translate_service.translate('feature_extraction_params_table')}**")
@@ -61,9 +62,10 @@ def render_feature_extraction_results(
             )
         else:
             st.warning(translate_service.translate("feature_extraction_params_not_found"))
+    st.markdown("")
 
     # Display plots ResourceSet (main content)
-    st.markdown(f"### 📈 {translate_service.translate('feature_extraction_fitted_curves')}")
+    st.markdown(f"### {translate_service.translate('feature_extraction_fitted_curves')}")
     plots_resource_set = protocol_proxy.get_output("plots")
 
     if plots_resource_set and isinstance(plots_resource_set, ResourceSet):
@@ -99,9 +101,8 @@ def render_feature_extraction_results(
                         model_plots["Autre"].append((plot_name, plot_resource))
 
         # Create selection options
-        plot_options = [f"📊 {translate_service.translate('plot_comparaison')}"] + [
-            f"📈 {model}" for model in sorted(model_plots.keys())
-        ]
+        comparison_label = translate_service.translate('plot_comparaison')
+        plot_options = [comparison_label] + sorted(model_plots.keys())
 
         selected_option = st.selectbox(
             translate_service.translate("select_plots"),
@@ -111,7 +112,7 @@ def render_feature_extraction_results(
         )
 
         # Display plots based on selection
-        if selected_option.startswith("📊"):
+        if selected_option == comparison_label:
             # Display comparison plots
             if comparison_plots:
                 for plot_name, plot_resource in comparison_plots:
@@ -128,7 +129,7 @@ def render_feature_extraction_results(
                         st.plotly_chart(fig, width="stretch")
         else:
             # Extract model name from selection
-            model_name = selected_option.replace("📈 ", "")
+            model_name = selected_option
             if model_name in model_plots:
                 st.markdown(f"#### {translate_service.translate('model')}: {model_name}")
                 for plot_name, plot_resource in model_plots[model_name]:

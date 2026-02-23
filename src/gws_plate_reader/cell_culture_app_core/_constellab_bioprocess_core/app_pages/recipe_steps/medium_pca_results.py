@@ -27,7 +27,7 @@ def render_medium_pca_results(
     translate_service = cell_culture_state.get_translate_service()
 
     # Info box with PCA explanation
-    with st.expander(f"💡 {translate_service.translate('pca_help_title')}"):
+    with st.expander(f"{translate_service.translate('pca_help_title')}"):
         st.markdown(f"### {translate_service.translate('pca_help_intro_title')}")
         st.markdown(translate_service.translate("pca_help_intro_text"))
 
@@ -46,6 +46,7 @@ def render_medium_pca_results(
         st.markdown(f"- {translate_service.translate('pca_help_biplot_1')}")
         st.markdown(f"- {translate_service.translate('pca_help_biplot_2')}")
         st.markdown(f"- {translate_service.translate('pca_help_biplot_3')}")
+    st.markdown("")
 
     # Check scenario status
     if pca_scenario.status != ScenarioStatus.SUCCESS:
@@ -61,7 +62,7 @@ def render_medium_pca_results(
     if scores_table and isinstance(scores_table, Table):
         df = scores_table.get_data()
         with st.expander(
-            f"📊 {translate_service.translate('pca_results_title')} - {translate_service.translate('parameters_tab')}"
+            f"{translate_service.translate('pca_results_title')} - {translate_service.translate('parameters_tab')}"
         ):
             max_rows_df = 12
             height = 400 if len(df) > max_rows_df else "auto"
@@ -76,11 +77,12 @@ def render_medium_pca_results(
                 mime="text/csv",
                 icon=":material/download:",
             )
+        st.markdown("")
     else:
         st.warning(translate_service.translate("pca_biplot_not_found"))
 
     # Display scatter plot
-    st.markdown(f"### 📈 {translate_service.translate('pca_scatter_plot_title')}")
+    st.markdown(f"### {translate_service.translate('pca_scatter_plot_title')}")
     scatter_plot = protocol_proxy.get_output("pca_scatter_plot")
     if scatter_plot and isinstance(scatter_plot, PlotlyResource):
         fig = scatter_plot.figure
@@ -89,7 +91,7 @@ def render_medium_pca_results(
         st.warning(translate_service.translate("pca_variance_not_found"))
 
     # Display biplot
-    st.markdown(f"### 🎯 {translate_service.translate('pca_biplot_title')}")
+    st.markdown(f"### {translate_service.translate('pca_biplot_title')}")
     biplot = protocol_proxy.get_output("pca_biplot")
     if biplot and isinstance(biplot, PlotlyResource):
         fig = biplot.figure

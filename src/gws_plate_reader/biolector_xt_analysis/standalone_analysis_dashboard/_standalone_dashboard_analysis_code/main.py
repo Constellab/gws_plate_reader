@@ -10,7 +10,7 @@ StreamlitMainState.initialize()
 
 
 st.info(
-    "This dashboard is a deprecated dashboard. Please use the new dashboard Constellab Bioprocess. You can find a demo here:"
+    "This dashboard is deprecated. Please use the new dashboard Constellab Bioprocess. You can find a demo here:"
 )
 st.link_button(
     "Constellab Bioprocess Dashboard Demo",

@@ -45,7 +45,7 @@ def render_download_exp_main(credentials_name: str, mock_service: bool):
             scenario = download_experiment(exp_id, credentials_name, mock_service)
             st.session_state.scenario_model = scenario
 
-        # check if the Constellab bioprocess
+        # check if the Constellab bioprocess resource exists
         st.session_state.constellab_bioprocess_resource = get_constellab_bioprocess_resource()
 
         # If there is no app already, create one

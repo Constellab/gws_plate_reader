@@ -290,11 +290,6 @@ def render_medium_pca_step(
         st.markdown(f"- {translate_service.translate('pca_help_biplot_2')}")
         st.markdown(f"- {translate_service.translate('pca_help_biplot_3')}")
 
-        st.markdown(f"\n### {translate_service.translate('pca_help_usage_title')}")
-        st.markdown(f"- {translate_service.translate('pca_help_usage_1')}")
-        st.markdown(f"- {translate_service.translate('pca_help_usage_2')}")
-        st.markdown(f"- {translate_service.translate('pca_help_usage_3')}")
-
     st.markdown("")
 
     # Get the load scenario to check for medium_table output

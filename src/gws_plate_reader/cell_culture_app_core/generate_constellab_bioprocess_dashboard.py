@@ -5,6 +5,8 @@ from gws_core import (
     OutputSpec,
     OutputSpecs,
     StreamlitResource,
+    Tag,
+    TagList,
     Task,
     TaskInputs,
     TaskOutputs,
@@ -69,10 +71,16 @@ class GenerateConstellabBioprocessDashboard(Task):
         {"dashboard": OutputSpec(StreamlitResource, human_name="Constellab Bioprocess Dashboard")}
     )
 
+    TAG_APP = "app"
+    TAG_APP_CONSTELLAB_BIOPROCESS_DASHBOARD = "constellab_bioprocess_dashboard"
+
     def run(self, params: ConfigParams, inputs: TaskInputs) -> TaskOutputs:
         """Generate and return the Constellab Bioprocess Dashboard Streamlit application."""
         dashboard = StreamlitResource()
         dashboard.set_app_config(ConstellabBioprocessDashboardAppConfig())
         dashboard.name = "Constellab Bioprocess"
+        dashboard.tags = TagList(
+            [Tag(key=self.TAG_APP, value=self.TAG_APP_CONSTELLAB_BIOPROCESS_DASHBOARD)]
+        )
 
         return {"dashboard": dashboard}

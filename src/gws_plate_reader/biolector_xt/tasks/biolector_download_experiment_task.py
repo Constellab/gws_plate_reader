@@ -32,7 +32,7 @@ from gws_plate_reader.biolector_xt.biolector_xt_types import CredentialsDataBiol
 
 @task_decorator(
     unique_name="BiolectorDownloadExperiment",
-    short_description="Download the reuslt of an experiment from Biolector XT",
+    short_description="Download the result of an experiment from Biolector XT",
     style=TypingStyle.community_icon("bioreactor"),
 )
 class BiolectorDownloadExperiment(Task):

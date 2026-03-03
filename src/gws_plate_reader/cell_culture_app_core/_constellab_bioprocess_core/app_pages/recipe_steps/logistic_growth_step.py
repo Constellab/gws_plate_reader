@@ -278,10 +278,6 @@ def render_logistic_growth_step(
         st.warning(translate_service.translate("cannot_retrieve_qc_data"))
         return
 
-    st.success(
-        f"✅ {len(qc_output_resource_set.get_resources())} {translate_service.translate('resources')}"
-    )
-
     # Get available columns
     index_columns = get_available_columns_from_quality_check(
         quality_check_scenario, cell_culture_state, index_only=True

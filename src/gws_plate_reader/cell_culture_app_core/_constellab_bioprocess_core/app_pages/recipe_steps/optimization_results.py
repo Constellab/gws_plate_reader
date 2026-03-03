@@ -5,7 +5,6 @@ Displays the results of an Optimization analysis scenario
 
 import streamlit as st
 from gws_core import Scenario, ScenarioProxy, ScenarioStatus, Settings
-
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
@@ -59,12 +58,6 @@ def render_optimization_results(
             f"⏳ **{translate_service.translate('status_label')}** : {translate_service.translate('analysis_in_progress')}"
         )
         st.markdown(translate_service.translate("analysis_in_progress_refresh"))
-
-        if st.button(
-            f"🔄 {translate_service.translate('refresh')}",
-            key=f"refresh_optimization_{optimization_scenario.id}",
-        ):
-            st.rerun()
 
         return
     else:

@@ -154,9 +154,7 @@ def render_quality_check_config_form(
             config["required_columns"] = ", ".join(required_cols) if required_cols else ""
 
     # Section 4: Minimum Data Points
-    with st.expander(
-        f"📏 {translate_service.translate('qc_min_data_points_title')}", expanded=False
-    ):
+    with st.expander(f"{translate_service.translate('qc_min_data_points_title')}", expanded=False):
         st.markdown(translate_service.translate("qc_min_data_points_description"))
 
         # Nombre de vérifications

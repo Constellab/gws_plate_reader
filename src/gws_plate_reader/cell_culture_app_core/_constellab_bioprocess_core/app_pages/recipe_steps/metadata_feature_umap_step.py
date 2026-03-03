@@ -504,8 +504,13 @@ def render_metadata_feature_umap_step(
 
         st.markdown(f"**{translate_service.translate('advanced_options')}**")
 
-        # Auto-compute columns to exclude (not user-editable)
-        columns_to_exclude = [medium_name_column] if medium_name_column in all_merged_columns else []
+        # Columns to exclude
+        columns_to_exclude = st.multiselect(
+            translate_service.translate("columns_to_exclude_label"),
+            options=all_merged_columns,
+            default=[medium_name_column] if medium_name_column in all_merged_columns else [],
+            help=translate_service.translate("columns_to_exclude_help"),
+        )
         # Convert empty list to None
         if not columns_to_exclude:
             columns_to_exclude = None

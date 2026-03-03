@@ -370,12 +370,16 @@ def render_random_forest_step(
         help=translate_service.translate("test_size_help"),
     )
 
-    # Auto-compute columns to exclude (not user-editable):
-    # 1. All non-numeric columns
-    # 2. All feature extraction columns (except the target if it's from features)
-    columns_to_exclude = sorted(
+    # Columns to exclude
+    default_exclude_rf = sorted(
         set(all_non_numeric_columns)
         | {col for col in feature_extraction_columns if col != target_column}
+    )
+    columns_to_exclude = st.multiselect(
+        translate_service.translate("columns_to_exclude_label"),
+        options=all_merged_columns,
+        default=default_exclude_rf,
+        help=translate_service.translate("columns_to_exclude_help"),
     )
     # Convert empty list to None
     if not columns_to_exclude:

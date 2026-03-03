@@ -431,6 +431,10 @@ class ConstellabBioprocessLoadData(Task):
                 follow_up_df_medians = follow_up_df_medians.drop([TIME_NAME], axis=1)
                 # Remove na values
                 follow_up_df_medians = follow_up_df_medians.dropna(how="any")
+                # Add _median suffix to all columns except Series
+                follow_up_df_medians = follow_up_df_medians.rename(
+                    columns={col: f"{col}_median" for col in follow_up_df_medians.columns if col != "Series"}
+                )
 
         full_info_dict: dict[str, Any] = {}
 
@@ -640,28 +644,12 @@ class ConstellabBioprocessLoadData(Task):
                         follow_up_key = f"{essai} {fermentor}"
                         has_follow_up_file = follow_up_key in follow_up_dict
 
-                        # Debug: log follow-up detection
-                        self.log_info_message(
-                            f"Checking follow-up for {follow_up_key}: has_file={has_follow_up_file}"
-                        )
-
-                        # Vérifier l'état du fichier de suivi
                         if not has_follow_up_file:
-                            # Pas de fichier de suivi du tout
                             missing_values.append("follow_up")
-                            self.log_info_message(
-                                "  → No follow-up file, added 'follow_up' to missing_values"
-                            )
                         else:
-                            # Le fichier existe, vérifier s'il est vide
                             follow_up_data = follow_up_dict[follow_up_key].get_data()
                             if follow_up_data.empty:
                                 missing_values.append("follow_up_empty")
-                                self.log_info_message(
-                                    "  → Follow-up file is empty, added 'follow_up_empty' to missing_values"
-                                )
-                            else:
-                                self.log_info_message("  → Follow-up file exists and is not empty")
 
                         # Ajouter le tag missing_value si des données manquent
                         if missing_values:
@@ -768,29 +756,17 @@ class ConstellabBioprocessLoadData(Task):
                         else []
                     )
 
-                    # Debug logging
-                    self.log_info_message(f"DEBUG - Sample {batch}/{sample}:")
-                    self.log_info_message(f"  missing_value tag: '{missing_value}'")
-                    self.log_info_message(f"  missing_types parsed: {missing_types}")
-
                     # Add to sets for data types that are NOT missing
                     if "info" not in missing_types:
                         sample_sets["info"].add(sample_tuple)
-                        self.log_info_message(f"  ✓ Added to info")
                     if "raw_data" not in missing_types:
                         sample_sets["raw_data"].add(sample_tuple)
-                        self.log_info_message(f"  ✓ Added to raw_data")
                     if "follow_up" not in missing_types and "follow_up_empty" not in missing_types:
                         sample_sets["follow_up"].add(sample_tuple)
-                        self.log_info_message(f"  ✓ Added to follow_up")
 
         # Create Venn diagram
         venn_diagram = None
         if any(len(s) > 0 for s in sample_sets.values()):
-            self.log_info_message(f"\nDEBUG - Final sample_sets:")
-            self.log_info_message(f"  info: {sample_sets['info']}")
-            self.log_info_message(f"  raw_data: {sample_sets['raw_data']}")
-            self.log_info_message(f"  follow_up: {sample_sets['follow_up']}")
             fig = create_venn_diagram_3_sets(sample_sets)
             venn_diagram = PlotlyResource(fig)
 

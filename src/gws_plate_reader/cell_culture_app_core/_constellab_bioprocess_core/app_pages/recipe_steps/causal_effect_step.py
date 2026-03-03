@@ -350,12 +350,16 @@ def render_causal_effect_step(
         help=translate_service.translate("target_variables_help"),
     )
 
-    # Auto-compute columns to exclude (not user-editable):
-    # 1. All non-numeric columns
-    # 2. All feature extraction columns (except those selected as targets)
-    columns_to_exclude = sorted(
+    # Columns to exclude
+    default_exclude = sorted(
         set(all_non_numeric_columns)
         | {col for col in feature_extraction_columns if col not in target_columns}
+    )
+    columns_to_exclude = st.multiselect(
+        translate_service.translate("columns_to_exclude_label"),
+        options=all_merged_columns,
+        default=default_exclude,
+        help=translate_service.translate("columns_to_exclude_help"),
     )
     # Convert empty list to None
     if not columns_to_exclude:

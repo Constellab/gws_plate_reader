@@ -465,13 +465,17 @@ def render_optimization_step(
                 st.session_state.num_targets -= 1
                 st.rerun()
 
-    # Auto-compute columns to exclude (not user-editable):
-    # 1. All non-numeric columns
-    # 2. All feature extraction columns (except those selected as targets)
+    # Columns to exclude
     selected_targets = [t["targets"] for t in targets_thresholds]
-    columns_to_exclude = sorted(
+    default_exclude = sorted(
         set(all_non_numeric_columns)
         | {col for col in feature_extraction_columns if col not in selected_targets}
+    )
+    columns_to_exclude = st.multiselect(
+        translate_service.translate("columns_to_exclude_label"),
+        options=all_merged_columns,
+        default=default_exclude,
+        help=translate_service.translate("columns_to_exclude_help"),
     )
     # Convert empty list to None
     if not columns_to_exclude:

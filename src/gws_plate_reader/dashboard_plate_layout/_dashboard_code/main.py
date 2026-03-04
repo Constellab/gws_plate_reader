@@ -13,14 +13,13 @@ from gws_core import (
     TagService,
     TagValueModel,
 )
+from gws_streamlit_main import StreamlitMainState
 from streamlit_extras.stylable_container import stylable_container
 
-from gws_plate_reader.dashboard_plate_layout.plate_layout_state import PlateLayoutState
+# Initialize GWS - MUST be at the top
+StreamlitMainState.initialize()
 
-# thoses variable will be set by the streamlit app
-# don't initialize them, there are create to avoid errors in the IDE
-sources: list
-params: dict
+from gws_plate_reader.dashboard_plate_layout.plate_layout_state import PlateLayoutState
 
 
 def key_tag_selector() -> tuple[str, Any] | None:
@@ -205,6 +204,24 @@ def show_content():
 
     with tab_plate_layout:
         # Add the button to generate plate layout ressource
+        # Restore standard Streamlit styling for the reset button (keep it non-circular)
+        st.markdown(
+            """
+            <style>
+                /* Target the reset button by its streamlit key class */
+                div[class*="st-key-reset_wells"] .stButton button,
+                div[class*="st-key-reset_wells"] .stTooltipHoverTarget {
+                    border-radius: 0.5rem !important;
+                    width: auto !important;
+                    height: auto !important;
+                    padding: 0.25rem 0.75rem !important;
+                    line-height: normal !important;
+                    font-size: 14px !important;
+                }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
         if st.button("Generate plate layout ressource", icon=":material/note_add:"):
             path_temp = os.path.join(
                 os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir()
@@ -327,6 +344,8 @@ def show_content():
 
 
 # -------------------------------------------------------------------------------------------#
+sources = StreamlitMainState.get_sources()
+params = StreamlitMainState.get_params()
 if not sources:
     raise Exception("Source paths are not provided.")
 folder_data = sources[0].path

@@ -36,12 +36,17 @@ def key_tag_selector() -> tuple[str, Any] | None:
     # Select tag key
     tag_key_options = {tag.key: f"{tag.label}" for tag in all_tag_keys}
 
+    # Initialize multiselect value from selected_key_tags if not already set
+    if "multiselect_tag_keys" not in st.session_state:
+        st.session_state["multiselect_tag_keys"] = (
+            list(plate_layout_state.get_selected_key_tags().keys())
+            if plate_layout_state.get_selected_key_tags()
+            else []
+        )
+
     selected_keys = st.multiselect(
         "Select tag(s):",
         options=list(tag_key_options.keys()),
-        default=list(plate_layout_state.get_selected_key_tags().keys())
-        if plate_layout_state.get_selected_key_tags()
-        else [],
         format_func=lambda x: tag_key_options[x],
         placeholder="Choose at least a tag...",
         on_change=save_selected_keys,
@@ -157,6 +162,9 @@ def dialog_delete_keys():
     with col1:
         if st.button("❌ No, keep the key(s)", key="keep_keys"):
             # Revert to previous selection
+            plate_layout_state.set_multiselect_tag_keys(
+                list(plate_layout_state.get_selected_key_tags().keys())
+            )
             plate_layout_state.set_pending_key_removal(None)
             st.rerun()
 

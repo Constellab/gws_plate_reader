@@ -133,6 +133,25 @@ def dialog_delete_keys():
     st.warning(f"⚠️ The following key(s) have data in wells: **{', '.join(keys_with_data)}**")
     st.write("Do you want to really delete this key? Data related to this key will be deleted.")
 
+    st.markdown(
+        """
+        <style>
+            div[class*="st-key-keep_keys"] .stButton button,
+            div[class*="st-key-keep_keys"] .stTooltipHoverTarget,
+            div[class*="st-key-delete_keys"] .stButton button,
+            div[class*="st-key-delete_keys"] .stTooltipHoverTarget {
+                border-radius: 0.5rem !important;
+                width: auto !important;
+                height: auto !important;
+                padding: 0.25rem 0.75rem !important;
+                line-height: normal !important;
+                font-size: 14px !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -204,13 +223,11 @@ def show_content():
 
     with tab_plate_layout:
         # Add the button to generate plate layout ressource
-        # Restore standard Streamlit styling for the reset button (keep it non-circular)
         st.markdown(
             """
             <style>
-                /* Target the reset button by its streamlit key class */
-                div[class*="st-key-reset_wells"] .stButton button,
-                div[class*="st-key-reset_wells"] .stTooltipHoverTarget {
+                div[class*="st-key-generate_plate_layout"] .stButton button,
+                div[class*="st-key-generate_plate_layout"] .stTooltipHoverTarget {
                     border-radius: 0.5rem !important;
                     width: auto !important;
                     height: auto !important;
@@ -222,7 +239,11 @@ def show_content():
             """,
             unsafe_allow_html=True,
         )
-        if st.button("Generate plate layout ressource", icon=":material/note_add:"):
+        if st.button(
+            "Generate plate layout ressource",
+            icon=":material/note_add:",
+            key="generate_plate_layout",
+        ):
             path_temp = os.path.join(
                 os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir()
             )
@@ -263,7 +284,25 @@ def show_content():
                     set_selected_key.append((selected_key, value))
 
             # Save information for selected wells
-            if st.button("Save these informations", icon=":material/save:"):
+            st.markdown(
+                """
+                <style>
+                    div[class*="st-key-save_informations"] .stButton button,
+                    div[class*="st-key-save_informations"] .stTooltipHoverTarget {
+                        border-radius: 0.5rem !important;
+                        width: auto !important;
+                        height: auto !important;
+                        padding: 0.25rem 0.75rem !important;
+                        line-height: normal !important;
+                        font-size: 14px !important;
+                    }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                "Save these informations", icon=":material/save:", key="save_informations"
+            ):
                 plate_layout = plate_layout_state.get_plate_layout()
                 for selected_key, label in set_selected_key:
                     for well in plate_layout_state.get_well_clicked():
@@ -316,6 +355,22 @@ def show_content():
                 for well in plate_layout_state.get_well_clicked()
             ):
                 # Remove information for selected wells
+                st.markdown(
+                    """
+                    <style>
+                        div[class*="st-key-remove_button"] .stButton button,
+                        div[class*="st-key-remove_button"] .stTooltipHoverTarget {
+                            border-radius: 0.5rem !important;
+                            width: auto !important;
+                            height: auto !important;
+                            padding: 0.25rem 0.75rem !important;
+                            line-height: normal !important;
+                            font-size: 14px !important;
+                        }
+                    </style>
+                    """,
+                    unsafe_allow_html=True,
+                )
                 if st.button(
                     "**:red[Remove saved information]**",
                     icon=":material/delete:",

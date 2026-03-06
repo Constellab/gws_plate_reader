@@ -229,7 +229,7 @@ def show_content():
             selected_key_tags = key_tag_selector()
 
     with tab_plate_layout:
-        # Add the button to generate plate layout ressource
+        # Add the button to generate plate layout resource
         st.markdown(
             """
             <style>
@@ -247,7 +247,7 @@ def show_content():
             unsafe_allow_html=True,
         )
         if st.button(
-            "Generate plate layout ressource",
+            "Generate plate layout resource",
             icon=":material/note_add:",
             key="generate_plate_layout",
         ):
@@ -273,7 +273,7 @@ def show_content():
                             row[label] = data.get("value", "") if isinstance(data, dict) else ""
                     rows.append(row)
 
-                # Ensure "Well" is first, "Medium" second (if present), then other columns
+                # Ensure "Well" is first, "Medium", then other columns
                 other_labels = [label for label in tag_columns.values() if label != "Medium"]
                 column_order = ["Well"] + (["Medium"]) + other_labels
                 df = pd.DataFrame(rows, columns=column_order)
@@ -288,7 +288,7 @@ def show_content():
         if not plate_layout_state.get_selected_key_tags():
             st.warning("Please select at least one key")
         elif plate_layout_state.get_well_clicked():
-            st.write(f"Fill informations for {', '.join(plate_layout_state.get_well_clicked())}:")
+            st.write(f"Fill information for {', '.join(plate_layout_state.get_well_clicked())}:")
 
             # Add selector for each key
             set_selected_key = []
@@ -326,7 +326,7 @@ def show_content():
                 unsafe_allow_html=True,
             )
             if st.button(
-                "Save this information", icon=":material/save:", key="save_informations"
+                "Save these informations", icon=":material/save:", key="save_informations"
             ):
                 plate_layout = plate_layout_state.get_plate_layout()
                 for selected_key, label in set_selected_key:
@@ -454,7 +454,10 @@ def convert_table_to_plate_layout(table: Table) -> dict:
                 continue
             tag_key = label_to_key.get(col)
             if tag_key:
-                well_data[tag_key] = {"label": col, "value": str(row[col]) if pd.notna(row[col]) else ""}
+                well_data[tag_key] = {
+                    "label": col,
+                    "value": str(row[col]) if pd.notna(row[col]) else "",
+                }
         if well_data:
             plate_layout[well] = well_data
 

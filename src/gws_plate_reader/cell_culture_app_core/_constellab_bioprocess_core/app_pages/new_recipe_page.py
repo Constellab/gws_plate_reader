@@ -23,15 +23,14 @@ from gws_core import (
 from gws_core.impl.file.file_decompress_task import FileDecompressTask
 from gws_core.impl.table.tasks.table_importer import TableImporter
 from gws_core.resource.resource_set.resource_set_tasks import ResourceStacker
-from gws_streamlit_main import StreamlitContainers, StreamlitResourceSelect, StreamlitRouter
-
 from gws_plate_reader.biolector_xt_data_parser.biolector_xt_load_data import BiolectorXTLoadData
-from gws_plate_reader.cell_culture_app_core.bioprocess_load_data import (
-    ConstellabBioprocessLoadData,
-)
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
+from gws_plate_reader.cell_culture_app_core.bioprocess_load_data import (
+    ConstellabBioprocessLoadData,
+)
+from gws_streamlit_main import StreamlitContainers, StreamlitResourceSelect, StreamlitRouter
 
 
 def render_new_recipe_page(cell_culture_state: CellCultureState) -> None:
@@ -572,7 +571,7 @@ def render_new_recipe_microplate(cell_culture_state: CellCultureState) -> None:
         """,
             unsafe_allow_html=True,
         )
-        url_doc_context = "https://constellab.community/bricks/gws_plate_reader/latest/doc/technical-folder/task/BiolectorLoadData"
+        url_doc_context = "https://constellab.community/bricks/gws_plate_reader/latest/doc/technical-folder/task/BiolectorXTLoadData"
         st.link_button(translate_service.translate("documentation"), url_doc_context)
 
     st.info(translate_service.translate("microplate_import_files_info"))

@@ -326,7 +326,7 @@ def show_content():
                 unsafe_allow_html=True,
             )
             if st.button(
-                "Save these informations", icon=":material/save:", key="save_informations"
+                "Save this information", icon=":material/save:", key="save_informations"
             ):
                 plate_layout = plate_layout_state.get_plate_layout()
                 for selected_key, label in set_selected_key:

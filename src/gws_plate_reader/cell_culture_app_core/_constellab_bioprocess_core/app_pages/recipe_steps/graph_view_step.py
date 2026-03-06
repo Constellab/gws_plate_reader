@@ -201,13 +201,19 @@ def render_graph_view_step(
         replicate_well_mapping = {}  # maps "batch_sample" -> replicate_value
 
         if display_mode_selected == translate_service.translate("plot_by_replicate") and well_data:
+            # Only consider wells that match the selected batches and samples
+            selected_batches_set = set(selected_batches) if selected_batches else set()
+            selected_samples_set = set(selected_samples) if selected_samples else set()
+
             # Extract available replicate keys from well_data (same logic as microplate "Color by")
             available_replicate_keys = set()
             for _well, data in well_data.items():
                 if isinstance(data, dict):
-                    for plate_or_value in data.values():
+                    for plate_name, plate_or_value in data.items():
                         if isinstance(plate_or_value, dict):
-                            available_replicate_keys.update(plate_or_value.keys())
+                            if (not selected_batches_set or plate_name in selected_batches_set) and \
+                               (not selected_samples_set or _well in selected_samples_set):
+                                available_replicate_keys.update(plate_or_value.keys())
 
             available_replicate_keys = sorted(available_replicate_keys)
             if "Medium" in available_replicate_keys:
@@ -224,7 +230,7 @@ def render_graph_view_step(
                 )
 
             if replicate_type:
-                # Extract unique values for the selected replicate type
+                # Extract unique values for the selected replicate type (only from selected wells)
                 unique_replicate_values = set()
                 for base_well, data in well_data.items():
                     if isinstance(data, dict):
@@ -232,9 +238,12 @@ def render_graph_view_step(
                             if isinstance(plate_data, dict):
                                 value = plate_data.get(replicate_type, "")
                                 if value != "":
-                                    unique_replicate_values.add(str(value))
-                                    # Build mapping: "plate_sample" -> replicate_value
+                                    # Build mapping for all wells (needed for plotting)
                                     replicate_well_mapping[f"{plate_name}_{base_well}"] = str(value)
+                                    # Only show values from selected wells as options
+                                    if (not selected_batches_set or plate_name in selected_batches_set) and \
+                                       (not selected_samples_set or base_well in selected_samples_set):
+                                        unique_replicate_values.add(str(value))
 
                 unique_replicate_values = sorted(unique_replicate_values)
 

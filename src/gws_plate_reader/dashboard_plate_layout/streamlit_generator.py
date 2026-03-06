@@ -8,11 +8,11 @@ from gws_core import (
     Folder,
     InputSpec,
     InputSpecs,
-    JSONDict,
     OutputSpec,
     OutputSpecs,
     StreamlitResource,
     StrParam,
+    Table,
     Task,
     TaskInputs,
     TaskOutputs,
@@ -51,7 +51,10 @@ class StreamlitGeneratorPlateLayout(Task):
     input_specs: InputSpecs = InputSpecs(
         {
             "plate_layout": InputSpec(
-                JSONDict, human_name="JSONDict containing the plate_layout", optional=True
+                Table,
+                human_name="Table containing the plate layout",
+                optional=True,
+                short_description="A table containing the plate layout. The table should have a column 'Well' with the well names (e.g. A1, A2, etc.) and other columns for the tags (e.g. 'Medium', 'Treatment', etc.)",
             )
         }
     )
@@ -72,7 +75,7 @@ class StreamlitGeneratorPlateLayout(Task):
         streamlit_resource.add_resource(folder_data, create_new_resource=True)
 
         # set the input in the streamlit resource
-        plate_layout: JSONDict = inputs.get("plate_layout")
+        plate_layout: Table = inputs.get("plate_layout")
         if plate_layout:
             streamlit_resource.add_resource(plate_layout, create_new_resource=False)
 

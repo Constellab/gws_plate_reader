@@ -2,14 +2,13 @@ import json
 import os
 from typing import Any
 
+import pandas as pd
 import streamlit as st
 from gws_core import (
-    File,
     FrontService,
-    JSONImporter,
     ResourceModel,
     ResourceOrigin,
-    Settings,
+    Table,
     TagService,
     TagValueModel,
 )
@@ -252,22 +251,40 @@ def show_content():
             icon=":material/note_add:",
             key="generate_plate_layout",
         ):
-            path_temp = os.path.join(
-                os.path.abspath(os.path.dirname(__file__)), Settings.make_temp_dir()
-            )
-            full_path = os.path.join(path_temp, "Plate_layout.json")
-            plate_layout: File = File(full_path)
-            # Convert dict to JSON string
-            json_str = json.dumps(plate_layout_state.get_plate_layout(), indent=4)
-            plate_layout.write(json_str)
-            # Import the resource as JSONDict
-            plate_layout_json_dict = JSONImporter.call(plate_layout)
-            plate_layout_resource = ResourceModel.save_from_resource(
-                plate_layout_json_dict, ResourceOrigin.UPLOADED, flagged=True
-            )
-            st.success(
-                f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(plate_layout_resource.id)}"
-            )
+            layout = plate_layout_state.get_plate_layout()
+            if not layout:
+                st.warning("No plate layout data to generate.")
+            else:
+                # Collect all tag keys used across wells to build column headers
+                tag_columns = {}  # key -> label
+                for well_data in layout.values():
+                    if isinstance(well_data, dict):
+                        for key, data in well_data.items():
+                            if isinstance(data, dict) and key not in tag_columns:
+                                tag_columns[key] = data.get("label", key)
+
+                # Build rows: one per well
+                rows = []
+                for well_name, well_data in layout.items():
+                    row = {"Well": well_name}
+                    if isinstance(well_data, dict):
+                        for key, label in tag_columns.items():
+                            data = well_data.get(key, {})
+                            row[label] = data.get("value", "") if isinstance(data, dict) else ""
+                    rows.append(row)
+
+                # Ensure "Well" is first, "Medium" second (if present), then other columns
+                other_labels = [label for label in tag_columns.values() if label != "Medium"]
+                column_order = ["Well"] + (["Medium"]) + other_labels
+                df = pd.DataFrame(rows, columns=column_order)
+
+                plate_layout_table = Table(df)
+                plate_layout_resource = ResourceModel.save_from_resource(
+                    plate_layout_table, ResourceOrigin.UPLOADED, flagged=True
+                )
+                st.success(
+                    f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(plate_layout_resource.id)}"
+                )
         if not plate_layout_state.get_selected_key_tags():
             st.warning("Please select at least one key")
         elif plate_layout_state.get_well_clicked():
@@ -412,17 +429,44 @@ params = StreamlitMainState.get_params()
 if not sources:
     raise Exception("Source paths are not provided.")
 folder_data = sources[0].path
-# Retrieve existing plate layout if provided
-existing_plate_layout = sources[1].get_data() if len(sources) > 1 else None
+# Retrieve existing plate layout Table if provided
+existing_plate_layout_table = sources[1] if len(sources) > 1 else None
 number_wells = params["number_wells"]
 
 
-def validate_plate_layout(existing_plate_layout, number_wells):
+def convert_table_to_plate_layout(table: Table) -> dict:
+    """Convert a Table resource (with columns Well, Medium, ...) to the internal plate layout dict format."""
+    df = table.get_data()
+    if "Well" not in df.columns:
+        raise ValueError("The input table must have a 'Well' column.")
+
+    # Build reverse mapping: label -> tag key
+    tag_service = TagService()
+    all_tag_keys = tag_service.get_all_tags()
+    label_to_key = {f"{tag.label}": tag.key for tag in all_tag_keys}
+
+    plate_layout = {}
+    for _, row in df.iterrows():
+        well = str(row["Well"])
+        well_data = {}
+        for col in df.columns:
+            if col == "Well":
+                continue
+            tag_key = label_to_key.get(col)
+            if tag_key:
+                well_data[tag_key] = {"label": col, "value": str(row[col]) if pd.notna(row[col]) else ""}
+        if well_data:
+            plate_layout[well] = well_data
+
+    return plate_layout
+
+
+def validate_plate_layout(well_names: list, number_wells: int):
     if number_wells == 48:
         invalid_letters = {"G", "H"}
         invalid_numbers = {"9", "10", "11", "12"}
 
-        for well in existing_plate_layout:
+        for well in well_names:
             letter, number = well[0], well[1:]
 
             if letter in invalid_letters or number in invalid_numbers:
@@ -498,10 +542,13 @@ if files_plate_layout:
             json.dump(plate_layout_state.get_plate_layout(), json_file, indent=4)
 
 # If is the first execution and there is an existing plate layout given in input, then we load it
-elif existing_plate_layout:
+elif existing_plate_layout_table:
+    # Convert Table to internal plate layout dict
+    existing_plate_layout = convert_table_to_plate_layout(existing_plate_layout_table)
+
     # check if the existing_plate_layout have the same size than the number entered in the parameters of the task
     try:
-        validate_plate_layout(existing_plate_layout, number_wells)
+        validate_plate_layout(list(existing_plate_layout.keys()), number_wells)
     except ValueError as e:
         st.write(e)
     plate_layout_state.set_plate_layout(existing_plate_layout)

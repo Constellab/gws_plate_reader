@@ -18,7 +18,7 @@ from gws_core import (
 )
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
-from gws_design_of_experiments.umap.umap import UMAPTask
+from gws_design_of_experiments.umap.umap_task import UMAPTask
 from gws_plate_reader.cell_culture_analysis import CellCultureMediumTableFilter
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_recipe import (
     CellCultureRecipe,

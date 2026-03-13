@@ -338,16 +338,6 @@ def render_selection_step(recipe: CellCultureRecipe, cell_culture_state: CellCul
                         if selection_scenario:
                             st.success(translate_service.translate("selection_launched_success"))
                             st.info(translate_service.translate("scenario_running"))
-
-                            updated_selection_scenarios = [selection_scenario] + existing_selections
-
-                            # Sort by creation date (oldest first, most recent last)
-                            updated_selection_scenarios.sort(
-                                key=lambda s: s.created_at or s.last_modified_at, reverse=False
-                            )
-
-                            # Update the recipe instance with the new selection scenario
-                            recipe.add_scenarios_by_step("selection", updated_selection_scenarios)
                             st.rerun()
                         else:
                             st.error(translate_service.translate("error_launching_scenario"))

@@ -630,7 +630,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -679,7 +679,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_qc_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_qc_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -782,7 +782,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_lg_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_lg_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -838,7 +838,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_pca_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_pca_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -875,7 +875,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_umap_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_umap_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -910,7 +910,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_fe_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_fe_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -1000,7 +1000,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_umap_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_umap_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -1090,7 +1090,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_pls_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_pls_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -1178,7 +1178,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_rf_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_rf_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -1266,7 +1266,9 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_causal_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(
+                                target_causal_scenario.id
+                            )
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,
@@ -1354,7 +1356,7 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
                             st.markdown(
                                 '<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True
                             )
-                            scenario_url = FrontService.get_scenario_url(target_opt_scenario.id)
+                            scenario_url = FrontService().get_scenario_url(target_opt_scenario.id)
                             st.link_button(
                                 translate_service.translate("view_scenario"),
                                 scenario_url,

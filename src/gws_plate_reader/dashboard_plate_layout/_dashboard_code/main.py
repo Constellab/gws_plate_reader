@@ -283,7 +283,7 @@ def show_content():
                     plate_layout_table, ResourceOrigin.UPLOADED, flagged=True
                 )
                 st.success(
-                    f"Resource created! ✅ You can find it here : {FrontService.get_resource_url(plate_layout_resource.id)}"
+                    f"Resource created! ✅ You can find it here : {FrontService().get_resource_url(plate_layout_resource.id)}"
                 )
         if not plate_layout_state.get_selected_key_tags():
             st.warning("Please select at least one key")

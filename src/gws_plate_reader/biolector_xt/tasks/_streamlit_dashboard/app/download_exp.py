@@ -66,13 +66,13 @@ def render_download_exp_main(credentials_name: str, mock_service: bool):
     if "scenario_model" in st.session_state:
         scenario: Scenario = st.session_state.scenario_model
 
-        exp_url = FrontService.get_scenario_url(scenario.id)
+        exp_url = FrontService().get_scenario_url(scenario.id)
 
         # show a link with target=_blank to open the scenario in a new tab
         st.link_button("Open Constellab scenario", exp_url)
     # Show a link to open the constellab bioprocess if it exists
     if "constellab_bioprocess_resource" in st.session_state:
-        constellab_bioprocess_url = FrontService.get_resource_url(
+        constellab_bioprocess_url = FrontService().get_resource_url(
             st.session_state.constellab_bioprocess_resource.id
         )
 

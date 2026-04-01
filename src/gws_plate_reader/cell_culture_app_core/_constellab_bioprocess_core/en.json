@@ -56,7 +56,7 @@
     "create_first_recipe": "Create my first recipe",
     "return_to_recipes": "Return to recipes",
     "recipe_details": "Recipe details",
-    "recipe_name_label": "Recipe name *",
+    "recipe_name_label": "Recipe name",
     "recipe_name_placeholder": "Ex: Fermentation Batch 2024-10",
     "tab_fermentor_recipe": "Fermentor Recipe",
     "tab_biolector_recipe": "Biolector Recipe",

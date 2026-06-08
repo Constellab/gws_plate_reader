@@ -13,6 +13,7 @@ from gws_core import (
     OutputSpecs,
     ParamSet,
     ResourceSet,
+    SelectParam,
     StrParam,
     Table,
     Tag,
@@ -523,11 +524,11 @@ class CellCultureQualityCheck(Task):
     config_specs = ConfigSpecs(
         {
             # Outlier detection parameters
-            "outlier_method": StrParam(
+            "outlier_method": SelectParam(
                 human_name="Outlier detection method",
                 short_description="Method: none, zscore, iqr, percentile",
                 default_value="none",
-                allowed_values=["none", "zscore", "iqr", "percentile"],
+                options=["none", "zscore", "iqr", "percentile"],
             ),
             "outlier_threshold": FloatParam(
                 human_name="Outlier threshold",
@@ -556,11 +557,11 @@ class CellCultureQualityCheck(Task):
                 default_value="",
                 optional=True,
             ),
-            "outlier_action": StrParam(
+            "outlier_action": SelectParam(
                 human_name="Action when outliers detected",
                 short_description="Action: remove_rows (delete outlier points), mark_only (tag), remove_sample (exclude entire sample)",
                 default_value="remove_rows",
-                allowed_values=["remove_rows", "mark_only", "remove_sample"],
+                options=["remove_rows", "mark_only", "remove_sample"],
             ),
             # Range validation parameters
             "range_checks": ParamSet(
@@ -579,11 +580,11 @@ class CellCultureQualityCheck(Task):
                             short_description="Maximum acceptable value (None = no limit)",
                             optional=True,
                         ),
-                        "action": StrParam(
+                        "action": SelectParam(
                             human_name="Action on violation",
                             short_description="Action: remove_rows, mark_only, remove_sample",
                             default_value="remove_rows",
-                            allowed_values=["remove_rows", "mark_only", "remove_sample"],
+                            options=["remove_rows", "mark_only", "remove_sample"],
                         ),
                     }
                 ),
@@ -620,11 +621,11 @@ class CellCultureQualityCheck(Task):
                             min_value=1.0,
                             max_value=1000.0,
                         ),
-                        "action": StrParam(
+                        "action": SelectParam(
                             human_name="Action on violation",
                             short_description="Action: mark_only or remove_sample",
                             default_value="remove_sample",
-                            allowed_values=["mark_only", "remove_sample"],
+                            options=["mark_only", "remove_sample"],
                         ),
                     }
                 ),

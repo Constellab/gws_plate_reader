@@ -11,6 +11,7 @@ from gws_core import (
     OutputSpec,
     OutputSpecs,
     ResourceSet,
+    SelectParam,
     StrParam,
     Table,
     Tag,
@@ -460,17 +461,17 @@ class CellCultureSubsampling(Task):
                 default_value="FERMENTEUR",
                 optional=True,
             ),
-            "method": StrParam(
+            "method": SelectParam(
                 human_name="Interpolation method",
                 short_description="Method: linear, nearest, quadratic, cubic, pchip, akima, makima, cubic_spline, univariate_spline, spline",
                 default_value="makima",
-                allowed_values=list(SUPPORTED_METHODS),
+                options=list(SUPPORTED_METHODS),
             ),
-            "grid_strategy": StrParam(
+            "grid_strategy": SelectParam(
                 human_name="Grid strategy",
                 short_description="Strategy for time grid generation",
                 default_value="global_auto",
-                allowed_values=["global_auto", "per_file", "reference"],
+                options=["global_auto", "per_file", "reference"],
             ),
             "n_points": IntParam(
                 human_name="Number of points",
@@ -487,11 +488,11 @@ class CellCultureSubsampling(Task):
                 min_value=1,
                 max_value=5,
             ),
-            "edge_strategy": StrParam(
+            "edge_strategy": SelectParam(
                 human_name="Edge handling strategy",
                 short_description="How to handle data beyond original time range",
                 default_value="nan",
-                allowed_values=["nearest", "linear", "nan"],
+                options=["nearest", "linear", "nan"],
             ),
             "reference_index": IntParam(
                 human_name="Reference resource index",

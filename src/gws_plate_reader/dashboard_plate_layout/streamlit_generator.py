@@ -10,8 +10,8 @@ from gws_core import (
     InputSpecs,
     OutputSpec,
     OutputSpecs,
+    SelectParam,
     StreamlitResource,
-    StrParam,
     Table,
     Task,
     TaskInputs,
@@ -39,8 +39,8 @@ class GenerateDashboardPlateLayout(AppConfig):
 class StreamlitGeneratorPlateLayout(Task):
     config_specs: ConfigSpecs = ConfigSpecs(
         {
-            "number_wells": StrParam(
-                allowed_values=["48", "96"],
+            "number_wells": SelectParam(
+                options=["48", "96"],
                 human_name="Number of wells",
                 default_value="48",
                 optional=False,

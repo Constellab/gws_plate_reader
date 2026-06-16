@@ -26,7 +26,7 @@ _SOURCE_FERMENTOR = "Fermentor"
 # ─────────────────────────────────────────────
 # Tags for saved comparison recipes
 # ─────────────────────────────────────────────
-TAG_BIOPROCESS_COMPARISON = "comparison"       # value for TAG_BIOPROCESS
+TAG_BIOPROCESS_COMPARISON = "comparison"  # value for TAG_BIOPROCESS
 TAG_COMPARISON_BIO_QC_ID = "comparison_bio_qc_id"
 TAG_COMPARISON_FERM_QC_ID = "comparison_ferm_qc_id"
 
@@ -259,6 +259,14 @@ def _render_comparison_plot(
     col_to_axis_idx = {col: idx for idx, col in enumerate(all_unique_cols)}
     num_axes = len(all_unique_cols)
 
+    # Track which source(s) each column belongs to (for y-axis titles)
+    col_sources: dict[str, list[str]] = {}
+    for col in selected_bio_cols:
+        col_sources.setdefault(col, []).append(_SOURCE_BIOLECTOR)
+    for col in selected_ferm_cols:
+        if _SOURCE_FERMENTOR not in col_sources.get(col, []):
+            col_sources.setdefault(col, []).append(_SOURCE_FERMENTOR)
+
     bio_df = df_all[df_all["Source"] == _SOURCE_BIOLECTOR].copy()
     ferm_df = df_all[df_all["Source"] == _SOURCE_FERMENTOR].copy()
 
@@ -294,7 +302,7 @@ def _render_comparison_plot(
                     line={"color": color, "width": 2, "shape": "spline"},
                     marker={"size": 5, "symbol": "circle", "color": color},
                     legendgroup=f"{_SOURCE_BIOLECTOR}_{bio_col}",
-                    legendgrouptitle_text=f"🧫 {_SOURCE_BIOLECTOR} — {bio_col}",
+                    legendgrouptitle_text=f"{_SOURCE_BIOLECTOR} - {bio_col}",
                     yaxis=yaxis_ref,
                     hovertemplate=(
                         f"<b>{trace_name}</b><br>"
@@ -334,7 +342,7 @@ def _render_comparison_plot(
                     line={"color": color, "width": 2, "dash": "dash", "shape": "spline"},
                     marker={"size": 5, "symbol": "diamond", "color": color},
                     legendgroup=f"{_SOURCE_FERMENTOR}_{ferm_col}",
-                    legendgrouptitle_text=f"🧪 {_SOURCE_FERMENTOR} — {ferm_col}",
+                    legendgrouptitle_text=f"{_SOURCE_FERMENTOR} - {ferm_col}",
                     yaxis=yaxis_ref,
                     hovertemplate=(
                         f"<b>{trace_name}</b><br>"
@@ -351,14 +359,21 @@ def _render_comparison_plot(
 
     for axis_idx, col_name in enumerate(all_unique_cols):
         axis_color = _AXIS_COLORS[axis_idx % len(_AXIS_COLORS)]
+        sources = col_sources.get(col_name, [])
+        if sources == [_SOURCE_BIOLECTOR]:
+            axis_title = f"{_SOURCE_BIOLECTOR} - {col_name}"
+        elif sources == [_SOURCE_FERMENTOR]:
+            axis_title = f"{_SOURCE_FERMENTOR} - {col_name}"
+        else:
+            axis_title = f"{_SOURCE_BIOLECTOR}/{_SOURCE_FERMENTOR} - {col_name}"
         if axis_idx == 0:
             yaxis_layouts["yaxis"] = {
-                "title": {"text": col_name, "font": {"color": axis_color}},
+                "title": {"text": axis_title, "font": {"color": axis_color}},
                 "tickfont": {"color": axis_color},
             }
         elif axis_idx == 1:
             yaxis_layouts["yaxis2"] = {
-                "title": {"text": col_name, "font": {"color": axis_color}},
+                "title": {"text": axis_title, "font": {"color": axis_color}},
                 "tickfont": {"color": axis_color},
                 "overlaying": "y",
                 "side": "right",
@@ -366,7 +381,7 @@ def _render_comparison_plot(
         else:
             position = 1.0 - (axis_idx - 2) * right_margin_per_axis
             yaxis_layouts[f"yaxis{axis_idx + 1}"] = {
-                "title": {"text": col_name, "font": {"color": axis_color}},
+                "title": {"text": axis_title, "font": {"color": axis_color}},
                 "tickfont": {"color": axis_color},
                 "overlaying": "y",
                 "side": "right",
@@ -383,7 +398,7 @@ def _render_comparison_plot(
     fig.update_layout(
         **yaxis_layouts,
         xaxis={"title": x_label, "domain": [0, plot_domain_right]},
-        title=f"🧫 {', '.join(selected_bio_cols)}  vs  🧪 {', '.join(selected_ferm_cols)}",
+        title=f"{_SOURCE_BIOLECTOR} ({', '.join(selected_bio_cols)})  vs  {_SOURCE_FERMENTOR} ({', '.join(selected_ferm_cols)})",
         legend={
             "groupclick": "toggleitem",
             "orientation": "h",
@@ -398,4 +413,3 @@ def _render_comparison_plot(
     )
 
     st.plotly_chart(fig, use_container_width=True)
-

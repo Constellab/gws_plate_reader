@@ -1027,7 +1027,7 @@
     "comparison_select_at_least_one_ferm": "⚠️ Veuillez sélectionner au moins un lot et un échantillon Fermenteur.",
     "comparison_select_at_least_one_bio_col": "⚠️ Veuillez sélectionner au moins une colonne Biolector.",
     "comparison_select_at_least_one_ferm_col": "⚠️ Veuillez sélectionner au moins une colonne Fermenteur.",
-    "comparison_too_many_columns": "⚠️ Trop de colonnes sélectionnées. Le nombre total de colonnes uniques (Biolector + Fermenteur) ne doit pas dépasser 4.",
+    "comparison_too_many_columns": "⚠️ Trop de colonnes sélectionnées. Le nombre total de colonnes uniques (Biolector + Fermenteur) ne doit pas dépasser 3.",
     "comparison_column_not_found": "❌ La colonne '{col}' est introuvable dans les données.",
     "comparison_bio_batches": "Lots Biolector",
     "comparison_bio_samples": "Échantillons Biolector",

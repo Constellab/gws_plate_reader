@@ -647,40 +647,7 @@ def _render_comparison_visualization(
     if not ferm_index_cols:
         ferm_index_cols = ferm_data_cols
 
-    # Column selectors
-    st.subheader(translate_service.translate("comparison_column_selection"))
-    col_sel1, col_sel2, col_sel3, col_sel4 = st.columns(4)
-    with col_sel1:
-        selected_bio_index = st.selectbox(
-            f"🧫 {translate_service.translate('comparison_bio_index_col')}",
-            options=bio_index_cols,
-            key="recipe_cmp_bio_index_col",
-        )
-    with col_sel2:
-        bio_y_options = bio_data_cols if bio_data_cols else bio_index_cols
-        selected_bio_cols = st.multiselect(
-            f"🧫 {translate_service.translate('comparison_bio_y_col')}",
-            options=bio_y_options,
-            default=bio_y_options[:1],
-            max_selections=4,
-            key="recipe_cmp_bio_y_cols",
-        )
-    with col_sel3:
-        selected_ferm_index = st.selectbox(
-            f"🧪 {translate_service.translate('comparison_ferm_index_col')}",
-            options=ferm_index_cols,
-            key="recipe_cmp_ferm_index_col",
-        )
-    with col_sel4:
-        ferm_y_options = ferm_data_cols if ferm_data_cols else ferm_index_cols
-        selected_ferm_cols = st.multiselect(
-            f"🧪 {translate_service.translate('comparison_ferm_y_col')}",
-            options=ferm_y_options,
-            default=ferm_y_options[:1],
-            max_selections=4,
-            key="recipe_cmp_ferm_y_cols",
-        )
-
+    # ── Build data ──────────────────────────────────────────────────────────
     with st.spinner(translate_service.translate("comparison_building_data")):
         bio_rows = _build_data_rows(
             bio_resource_set, cell_culture_state, _SOURCE_BIOLECTOR, recipe.name
@@ -697,11 +664,6 @@ def _render_comparison_visualization(
         return
 
     df_all = pd.DataFrame(bio_rows + ferm_rows)
-
-    # Filter controls
-    st.subheader(translate_service.translate("comparison_filters"))
-    filter_col_bio, filter_col_ferm = st.columns(2)
-
     bio_df_raw = df_all[df_all["Source"] == _SOURCE_BIOLECTOR]
     ferm_df_raw = df_all[df_all["Source"] == _SOURCE_FERMENTOR]
     all_bio_batches = sorted(bio_df_raw["Batch"].dropna().unique().tolist())
@@ -709,35 +671,133 @@ def _render_comparison_visualization(
     all_ferm_batches = sorted(ferm_df_raw["Batch"].dropna().unique().tolist())
     all_ferm_samples = sorted(ferm_df_raw["Sample"].dropna().unique().tolist())
 
-    with filter_col_bio:
-        st.markdown(f"**🧫 {translate_service.translate('comparison_biolector_filters')}**")
-        selected_bio_batches = st.multiselect(
-            translate_service.translate("comparison_select_batches"),
-            options=all_bio_batches,
-            default=all_bio_batches,
-            key="recipe_cmp_bio_batches",
+    # ── Initialise session state ────────────────────────────────────────────
+    for key, options in [
+        ("recipe_cmp_bio_batches", all_bio_batches),
+        ("recipe_cmp_bio_samples", all_bio_samples),
+        ("recipe_cmp_ferm_batches", all_ferm_batches),
+        ("recipe_cmp_ferm_samples", all_ferm_samples),
+    ]:
+        if key not in st.session_state or any(v not in options for v in st.session_state[key]):
+            st.session_state[key] = []
+
+    # ── Controls: two cards side by side ───────────────────────────────────
+    card_bio, card_ferm = st.columns(2)
+
+    with card_bio:
+        st.markdown("#### 🧫 Biolector")
+
+        bio_y_options = bio_data_cols if bio_data_cols else bio_index_cols
+        if "recipe_cmp_bio_index_col" in st.session_state:
+            _cur_bio_idx = st.session_state["recipe_cmp_bio_index_col"]
+            bio_y_options = [c for c in bio_y_options if c != _cur_bio_idx]
+
+        selected_bio_index = st.selectbox(
+            translate_service.translate("comparison_bio_index_col"),
+            options=bio_index_cols,
+            index=0,
+            key="recipe_cmp_bio_index_col",
         )
-        selected_bio_samples = st.multiselect(
-            translate_service.translate("comparison_select_samples"),
-            options=all_bio_samples,
-            default=all_bio_samples,
-            key="recipe_cmp_bio_samples",
+        bio_y_options = [
+            c
+            for c in (bio_data_cols if bio_data_cols else bio_index_cols)
+            if c != selected_bio_index
+        ]
+        selected_bio_cols = st.multiselect(
+            translate_service.translate("comparison_bio_y_col"),
+            options=bio_y_options,
+            key="recipe_cmp_bio_y_cols",
         )
 
-    with filter_col_ferm:
-        st.markdown(f"**🧪 {translate_service.translate('comparison_fermentor_filters')}**")
-        selected_ferm_batches = st.multiselect(
-            translate_service.translate("comparison_select_batches"),
-            options=all_ferm_batches,
-            default=all_ferm_batches,
-            key="recipe_cmp_ferm_batches",
+        st.markdown(f"**{translate_service.translate('comparison_biolector_filters')}**")
+        bio_batch_sel, bio_batch_btn = st.columns([3, 1])
+        with bio_batch_btn:
+            if st.button(
+                translate_service.translate("select_all_batches"),
+                key="sel_all_bio_batches",
+                width="stretch",
+            ):
+                st.session_state["recipe_cmp_bio_batches"] = all_bio_batches
+        with bio_batch_sel:
+            selected_bio_batches = st.multiselect(
+                translate_service.translate("comparison_select_batches"),
+                options=all_bio_batches,
+                key="recipe_cmp_bio_batches",
+            )
+
+        bio_sample_sel, bio_sample_btn = st.columns([3, 1])
+        with bio_sample_btn:
+            if st.button(
+                translate_service.translate("select_all_samples"),
+                key="sel_all_bio_samples",
+                width="stretch",
+            ):
+                st.session_state["recipe_cmp_bio_samples"] = all_bio_samples
+        with bio_sample_sel:
+            selected_bio_samples = st.multiselect(
+                translate_service.translate("comparison_select_samples"),
+                options=all_bio_samples,
+                key="recipe_cmp_bio_samples",
+            )
+
+    with card_ferm:
+        st.markdown("#### 🧪 Fermentor")
+
+        ferm_y_options = ferm_data_cols if ferm_data_cols else ferm_index_cols
+        if "recipe_cmp_ferm_index_col" in st.session_state:
+            _cur_ferm_idx = st.session_state["recipe_cmp_ferm_index_col"]
+            ferm_y_options = [c for c in ferm_y_options if c != _cur_ferm_idx]
+
+        selected_ferm_index = st.selectbox(
+            translate_service.translate("comparison_ferm_index_col"),
+            options=ferm_index_cols,
+            index=0,
+            key="recipe_cmp_ferm_index_col",
         )
-        selected_ferm_samples = st.multiselect(
-            translate_service.translate("comparison_select_samples"),
-            options=all_ferm_samples,
-            default=all_ferm_samples,
-            key="recipe_cmp_ferm_samples",
+        ferm_y_options = [
+            c
+            for c in (ferm_data_cols if ferm_data_cols else ferm_index_cols)
+            if c != selected_ferm_index
+        ]
+        selected_ferm_cols = st.multiselect(
+            translate_service.translate("comparison_ferm_y_col"),
+            options=ferm_y_options,
+            key="recipe_cmp_ferm_y_cols",
         )
+
+        st.markdown(f"**{translate_service.translate('comparison_fermentor_filters')}**")
+        ferm_batch_sel, ferm_batch_btn = st.columns([3, 1])
+        with ferm_batch_btn:
+            if st.button(
+                translate_service.translate("select_all_batches"),
+                key="sel_all_ferm_batches",
+                width="stretch",
+            ):
+                st.session_state["recipe_cmp_ferm_batches"] = all_ferm_batches
+        with ferm_batch_sel:
+            selected_ferm_batches = st.multiselect(
+                translate_service.translate("comparison_select_batches"),
+                options=all_ferm_batches,
+                key="recipe_cmp_ferm_batches",
+            )
+
+        ferm_sample_sel, ferm_sample_btn = st.columns([3, 1])
+        with ferm_sample_btn:
+            if st.button(
+                translate_service.translate("select_all_samples"),
+                key="sel_all_ferm_samples",
+                width="stretch",
+            ):
+                st.session_state["recipe_cmp_ferm_samples"] = all_ferm_samples
+        with ferm_sample_sel:
+            selected_ferm_samples = st.multiselect(
+                translate_service.translate("comparison_select_samples"),
+                options=all_ferm_samples,
+                key="recipe_cmp_ferm_samples",
+            )
+
+    # ── Validation ─────────────────────────────────────────────────────────
+    st.markdown("---")
 
     if not selected_bio_batches or not selected_bio_samples:
         st.warning(translate_service.translate("comparison_select_at_least_one_bio"))
@@ -745,14 +805,13 @@ def _render_comparison_visualization(
     if not selected_ferm_batches or not selected_ferm_samples:
         st.warning(translate_service.translate("comparison_select_at_least_one_ferm"))
         return
-
     if not selected_bio_cols:
         st.warning(translate_service.translate("comparison_select_at_least_one_bio_col"))
         return
     if not selected_ferm_cols:
         st.warning(translate_service.translate("comparison_select_at_least_one_ferm_col"))
         return
-    if len(set(selected_bio_cols + selected_ferm_cols)) > 4:
+    if len(set(selected_bio_cols + selected_ferm_cols)) > 3:
         st.warning(translate_service.translate("comparison_too_many_columns"))
         return
 
@@ -762,8 +821,6 @@ def _render_comparison_visualization(
         if col not in df_all.columns:
             st.error(translate_service.translate("comparison_column_not_found").format(col=col))
             return
-
-    st.markdown("---")
 
     _render_comparison_plot(
         df_all,

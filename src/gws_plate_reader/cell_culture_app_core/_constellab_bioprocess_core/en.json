@@ -1027,7 +1027,7 @@
     "comparison_select_at_least_one_ferm": "⚠️ Please select at least one Fermentor batch and sample.",
     "comparison_select_at_least_one_bio_col": "⚠️ Please select at least one Biolector column.",
     "comparison_select_at_least_one_ferm_col": "⚠️ Please select at least one Fermentor column.",
-    "comparison_too_many_columns": "⚠️ Too many columns selected. The total number of unique columns (Biolector + Fermentor) must not exceed 4.",
+    "comparison_too_many_columns": "⚠️ Too many columns selected. The total number of unique columns (Biolector + Fermentor) must not exceed 3.",
     "comparison_column_not_found": "❌ Column '{col}' not found in the data.",
     "comparison_bio_batches": "Biolector batches",
     "comparison_bio_samples": "Biolector samples",

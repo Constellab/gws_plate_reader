@@ -603,65 +603,89 @@ def _render_comparison_visualization(
         st.error(translate_service.translate("comparison_select_both_qc"))
         return
 
-    # Load ResourceSets from the comparison scenario's own outputs (reproducible).
-    # Fall back to loading from QC scenarios for older comparisons without a protocol.
-    with st.spinner(translate_service.translate("comparison_loading_data")):
-        bio_resource_set = None
-        ferm_resource_set = None
-        try:
-            cmp_proxy = ScenarioProxy.from_existing_scenario(recipe.id)
-            cmp_protocol = cmp_proxy.get_protocol()
-            bio_resource_set = cmp_protocol.get_output(COMPARISON_BIO_OUTPUT)
-            ferm_resource_set = cmp_protocol.get_output(COMPARISON_FERM_OUTPUT)
-        except Exception:
-            pass
+    # ── Cache heavy data loading in session state (keyed by QC IDs) ─────────
+    # This avoids rebuilding data on every Streamlit rerun triggered by widget
+    # interactions (batch / sample selection changes), matching the pattern used
+    # in the fermentor visualization step.
+    _cache_key = f"cmp_data_{recipe.bio_qc_id}_{recipe.ferm_qc_id}"
+    _cached = st.session_state.get(_cache_key)
 
-        if bio_resource_set is None and recipe.bio_qc_id:
-            bio_qc = Scenario.get_by_id(recipe.bio_qc_id)
-            if bio_qc:
-                bio_resource_set = _get_resource_set_from_qc(bio_qc, cell_culture_state)
-        if ferm_resource_set is None and recipe.ferm_qc_id:
-            ferm_qc = Scenario.get_by_id(recipe.ferm_qc_id)
-            if ferm_qc:
-                ferm_resource_set = _get_resource_set_from_qc(ferm_qc, cell_culture_state)
+    if _cached is None:
+        # Load ResourceSets from the comparison scenario's own outputs (reproducible).
+        # Fall back to loading from QC scenarios for older comparisons without a protocol.
+        with st.spinner(translate_service.translate("comparison_loading_data")):
+            bio_resource_set = None
+            ferm_resource_set = None
+            try:
+                cmp_proxy = ScenarioProxy.from_existing_scenario(recipe.id)
+                cmp_protocol = cmp_proxy.get_protocol()
+                bio_resource_set = cmp_protocol.get_output(COMPARISON_BIO_OUTPUT)
+                ferm_resource_set = cmp_protocol.get_output(COMPARISON_FERM_OUTPUT)
+            except Exception:
+                pass
 
-    if bio_resource_set is None:
-        st.error(translate_service.translate("comparison_cannot_load_biolector_data"))
-        return
-    if ferm_resource_set is None:
-        st.error(translate_service.translate("comparison_cannot_load_fermentor_data"))
-        return
+            if bio_resource_set is None and recipe.bio_qc_id:
+                bio_qc = Scenario.get_by_id(recipe.bio_qc_id)
+                if bio_qc:
+                    bio_resource_set = _get_resource_set_from_qc(bio_qc, cell_culture_state)
+            if ferm_resource_set is None and recipe.ferm_qc_id:
+                ferm_qc = Scenario.get_by_id(recipe.ferm_qc_id)
+                if ferm_qc:
+                    ferm_resource_set = _get_resource_set_from_qc(ferm_qc, cell_culture_state)
 
-    bio_index_cols, bio_data_cols = _get_index_and_data_columns(bio_resource_set)
-    ferm_index_cols, ferm_data_cols = _get_index_and_data_columns(ferm_resource_set)
+        if bio_resource_set is None:
+            st.error(translate_service.translate("comparison_cannot_load_biolector_data"))
+            return
+        if ferm_resource_set is None:
+            st.error(translate_service.translate("comparison_cannot_load_fermentor_data"))
+            return
 
-    if not bio_index_cols and not bio_data_cols:
-        st.error(translate_service.translate("comparison_no_columns_biolector"))
-        return
-    if not ferm_index_cols and not ferm_data_cols:
-        st.error(translate_service.translate("comparison_no_columns_fermentor"))
-        return
+        bio_index_cols, bio_data_cols = _get_index_and_data_columns(bio_resource_set)
+        ferm_index_cols, ferm_data_cols = _get_index_and_data_columns(ferm_resource_set)
 
-    if not bio_index_cols:
-        bio_index_cols = bio_data_cols
-    if not ferm_index_cols:
-        ferm_index_cols = ferm_data_cols
+        if not bio_index_cols and not bio_data_cols:
+            st.error(translate_service.translate("comparison_no_columns_biolector"))
+            return
+        if not ferm_index_cols and not ferm_data_cols:
+            st.error(translate_service.translate("comparison_no_columns_fermentor"))
+            return
 
-    # ── Build data ──────────────────────────────────────────────────────────
-    with st.spinner(translate_service.translate("comparison_building_data")):
-        bio_rows = _build_data_rows(
-            bio_resource_set, cell_culture_state, _SOURCE_BIOLECTOR, recipe.name
-        )
-        ferm_rows = _build_data_rows(
-            ferm_resource_set, cell_culture_state, _SOURCE_FERMENTOR, recipe.name
-        )
+        if not bio_index_cols:
+            bio_index_cols = bio_data_cols
+        if not ferm_index_cols:
+            ferm_index_cols = ferm_data_cols
 
-    if not bio_rows:
-        st.error(translate_service.translate("comparison_no_data_biolector"))
-        return
-    if not ferm_rows:
-        st.error(translate_service.translate("comparison_no_data_fermentor"))
-        return
+        with st.spinner(translate_service.translate("comparison_building_data")):
+            bio_rows = _build_data_rows(
+                bio_resource_set, cell_culture_state, _SOURCE_BIOLECTOR, recipe.name
+            )
+            ferm_rows = _build_data_rows(
+                ferm_resource_set, cell_culture_state, _SOURCE_FERMENTOR, recipe.name
+            )
+
+        if not bio_rows:
+            st.error(translate_service.translate("comparison_no_data_biolector"))
+            return
+        if not ferm_rows:
+            st.error(translate_service.translate("comparison_no_data_fermentor"))
+            return
+
+        st.session_state[_cache_key] = {
+            "bio_index_cols": bio_index_cols,
+            "bio_data_cols": bio_data_cols,
+            "ferm_index_cols": ferm_index_cols,
+            "ferm_data_cols": ferm_data_cols,
+            "bio_rows": bio_rows,
+            "ferm_rows": ferm_rows,
+        }
+        _cached = st.session_state[_cache_key]
+
+    bio_index_cols = _cached["bio_index_cols"]
+    bio_data_cols = _cached["bio_data_cols"]
+    ferm_index_cols = _cached["ferm_index_cols"]
+    ferm_data_cols = _cached["ferm_data_cols"]
+    bio_rows = _cached["bio_rows"]
+    ferm_rows = _cached["ferm_rows"]
 
     df_all = pd.DataFrame(bio_rows + ferm_rows)
     bio_df_raw = df_all[df_all["Source"] == _SOURCE_BIOLECTOR]

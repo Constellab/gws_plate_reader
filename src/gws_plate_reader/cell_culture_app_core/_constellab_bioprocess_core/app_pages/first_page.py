@@ -2,6 +2,9 @@ import streamlit as st
 from gws_core import Scenario, ScenarioSearchBuilder, Tag
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.app_pages.comparison_page import (
+    TAG_BIOPROCESS_COMPARISON,
+)
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
 )
@@ -29,7 +32,7 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         # Header with title, refresh button and create new analysis button
         cols_config = [1, "fit-content"]
         if not cell_culture_state.get_is_standalone():
-            cols_config = [1, "fit-content", "fit-content"]
+            cols_config = [1, "fit-content", "fit-content", "fit-content"]
 
         header_cols = StreamlitContainers.columns_with_fit_content(
             key="button_new", cols=cols_config, vertical_align_items="center"
@@ -242,15 +245,40 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                     recipe_data["analyses_scenarios"].append(scenario)
                     break
 
-        # Pass load, selection, and quality check scenarios - the table function will filter and group them correctly
+        # Query comparison scenarios to include in the same table
+        comparison_scenarios = (
+            ScenarioSearchBuilder()
+            .add_tag_filter(
+                Tag(
+                    key=cell_culture_state.TAG_BIOPROCESS,
+                    value=TAG_BIOPROCESS_COMPARISON,
+                )
+            )
+            .add_is_archived_filter(False)
+            .search_all()
+        )
+        comparison_scenario_ids = {sc.id for sc in comparison_scenarios}
+
+        # Pass all scenarios - the table function will filter and group them correctly
         list_scenario_user: list[Scenario] = (
-            load_scenarios + selection_scenarios + quality_check_scenarios
+            load_scenarios + selection_scenarios + quality_check_scenarios + comparison_scenarios
         )
 
         # Use the new centralized function to render the table
         selected_scenario_id = render_recipe_table(list_scenario_user, cell_culture_state)
 
         if selected_scenario_id:
+            # If a comparison recipe was clicked, build a ComparisonRecipe and go to analysis page
+            if selected_scenario_id in comparison_scenario_ids:
+                for sc in comparison_scenarios:
+                    if sc.id == selected_scenario_id:
+                        recipe_instance = cell_culture_state.create_recipe_from_scenario(sc)
+                        cell_culture_state.set_selected_recipe_instance(recipe_instance)
+                        router = StreamlitRouter.load_from_session()
+                        router.navigate("analysis")
+                        st.rerun()
+                        break
+
             # Find the selected recipe name
             selected_recipe_name = None
             selected_load_scenario = None

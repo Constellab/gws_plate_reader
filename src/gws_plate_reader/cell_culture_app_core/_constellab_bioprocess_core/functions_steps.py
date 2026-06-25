@@ -281,6 +281,14 @@ def create_recipe_table_data(
             )
             continue
 
+    # order table_data by Created date descending
+    table_data.sort(
+        key=lambda x: pd.to_datetime(x["Created"], format="%d/%m/%Y %H:%M")
+        if x["Created"]
+        else pd.Timestamp.min,
+        reverse=True,
+    )
+
     return table_data
 
 

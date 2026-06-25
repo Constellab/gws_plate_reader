@@ -18,6 +18,7 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.app_page
     _get_recipe_name,
     _get_resource_set_from_qc,
     _render_comparison_plot,
+    _render_comparison_stats,
 )
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
@@ -857,6 +858,15 @@ def _render_comparison_visualization(
         selected_ferm_batches,
         selected_ferm_samples,
         translate_service,
+    )
+    _render_comparison_stats(
+        df_all,
+        selected_bio_cols,
+        selected_ferm_cols,
+        selected_bio_batches,
+        selected_bio_samples,
+        selected_ferm_batches,
+        selected_ferm_samples,
     )
 
 

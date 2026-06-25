@@ -413,3 +413,59 @@ def _render_comparison_plot(
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_comparison_stats(
+    df_all: pd.DataFrame,
+    selected_bio_cols: list[str],
+    selected_ferm_cols: list[str],
+    selected_bio_batches: list[str],
+    selected_bio_samples: list[str],
+    selected_ferm_batches: list[str],
+    selected_ferm_samples: list[str],
+) -> None:
+    """Render comparison statistics (mean and standard deviation)."""
+
+    st.subheader("Comparison Statistics")
+
+    # Filter data
+    bio_df = df_all[
+        (df_all["Source"] == _SOURCE_BIOLECTOR)
+        & (df_all["Batch"].isin(selected_bio_batches))
+        & (df_all["Sample"].isin(selected_bio_samples))
+    ]
+
+    ferm_df = df_all[
+        (df_all["Source"] == _SOURCE_FERMENTOR)
+        & (df_all["Batch"].isin(selected_ferm_batches))
+        & (df_all["Sample"].isin(selected_ferm_samples))
+    ]
+
+    # Build table
+    rows = []
+
+    for measure in sorted(set(selected_bio_cols + selected_ferm_cols)):
+        rows.append(
+            {
+                "Measure": measure,
+                "Biolector Mean": bio_df[measure].mean() if measure in bio_df else None,
+                "Biolector Std": bio_df[measure].std() if measure in bio_df else None,
+                "Fermentor Mean": ferm_df[measure].mean() if measure in ferm_df else None,
+                "Fermentor Std": ferm_df[measure].std() if measure in ferm_df else None,
+            }
+        )
+
+    stats_df = pd.DataFrame(rows)
+
+    st.dataframe(
+        stats_df.style.format(
+            {
+                "Biolector Mean": "{:.3f}",
+                "Biolector Std": "{:.3f}",
+                "Fermentor Mean": "{:.3f}",
+                "Fermentor Std": "{:.3f}",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )

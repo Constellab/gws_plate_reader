@@ -135,6 +135,29 @@ def create_recipe_table_data(
                     else translate_service.translate("summary_scenario").format(id=scenario.id[:8])
                 )
 
+            # Check if this is a comparison scenario - add directly as its own row
+            bioprocess_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_BIOPROCESS)
+            is_comparison = any(tag.tag_value == "comparison" for tag in bioprocess_tags)
+            if is_comparison:
+                table_data.append(
+                    {
+                        "id": scenario.id,
+                        "Recipe Name": recipe_name,
+                        "Type": f"🔎 {translate_service.translate('type_comparison')}",
+                        "Status": "",
+                        "Folder": scenario.folder.name
+                        if scenario.folder
+                        else translate_service.translate("summary_root_folder"),
+                        "Created": scenario.created_at.strftime("%d/%m/%Y %H:%M")
+                        if scenario.created_at
+                        else "",
+                        "Created By": scenario.created_by.full_name if scenario.created_by else "",
+                        "_status_raw": "comparison",
+                        "_is_comparison": True,
+                    }
+                )
+                continue
+
             # Check if this is a load scenario (data processing)
             fermentor_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_BIOPROCESS)
             is_load_scenario = any(
@@ -258,6 +281,14 @@ def create_recipe_table_data(
             )
             continue
 
+    # order table_data by Created date descending
+    table_data.sort(
+        key=lambda x: pd.to_datetime(x["Created"], format="%d/%m/%Y %H:%M")
+        if x["Created"]
+        else pd.Timestamp.min,
+        reverse=True,
+    )
+
     return table_data
 
 
@@ -366,7 +397,12 @@ def render_recipe_table(
 
         # Check if the load scenario finished successfully before allowing navigation
         selected_row = next((row for row in table_data if row.get("id") == row_id), None)
-        if selected_row and selected_row.get("_status_raw") != ScenarioStatus.SUCCESS.value:
+        # Comparison rows are always clickable (they have no pipeline to check)
+        if (
+            selected_row
+            and not selected_row.get("_is_comparison")
+            and selected_row.get("_status_raw") != ScenarioStatus.SUCCESS.value
+        ):
             st.warning(translate_service.translate("recipe_not_ready"))
             return None
 

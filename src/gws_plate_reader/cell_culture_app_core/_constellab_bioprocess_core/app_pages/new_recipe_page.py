@@ -15,8 +15,10 @@ from gws_core import (
     ProtocolProxy,
     ResourceModel,
     ResourceOrigin,
+    Scenario,
     ScenarioCreationType,
     ScenarioProxy,
+    ScenarioStatus,
     StringHelper,
     Tag,
 )
@@ -24,8 +26,22 @@ from gws_core.impl.file.file_decompress_task import FileDecompressTask
 from gws_core.impl.table.tasks.table_importer import TableImporter
 from gws_core.resource.resource_set.resource_set_tasks import ResourceStacker
 from gws_plate_reader.biolector_xt_data_parser.biolector_xt_load_data import BiolectorXTLoadData
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.app_pages.comparison_page import (
+    TAG_BIOPROCESS_COMPARISON,
+    TAG_COMPARISON_BIO_QC_ID,
+    TAG_COMPARISON_FERM_QC_ID,
+    _get_data_processing_scenarios,
+    _get_pipeline_id,
+    _get_qc_scenarios_for_pipeline,
+    _get_recipe_name,
+    _is_biolector,
+)
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
+)
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.comparison_recipe import (
+    COMPARISON_BIO_OUTPUT,
+    COMPARISON_FERM_OUTPUT,
 )
 from gws_plate_reader.cell_culture_app_core.bioprocess_load_data import (
     ConstellabBioprocessLoadData,
@@ -61,10 +77,11 @@ def render_new_recipe_page(cell_culture_state: CellCultureState) -> None:
         st.markdown("---")
 
         # Tab menu
-        tab_fermentor, tab_biolector = st.tabs(
+        tab_fermentor, tab_biolector, tab_comparison = st.tabs(
             [
                 f"{translate_service.translate('tab_fermentor_recipe')}",
                 f"{translate_service.translate('tab_biolector_recipe')}",
+                f"{translate_service.translate('tab_comparison_recipe')}",
             ]
         )
 
@@ -73,6 +90,233 @@ def render_new_recipe_page(cell_culture_state: CellCultureState) -> None:
 
         with tab_biolector:
             render_new_recipe_microplate(cell_culture_state)
+
+        with tab_comparison:
+            render_comparison_redirect(cell_culture_state)
+
+
+def render_comparison_redirect(cell_culture_state: CellCultureState) -> None:
+    """Full comparison recipe creation form embedded in the Comparison tab."""
+
+    translate_service = cell_culture_state.get_translate_service()
+    router = StreamlitRouter.load_from_session()
+
+    # ── Recipe name ────────────────────────────────────────────
+    st.subheader(f"{translate_service.translate('recipe_details')}")
+    comparison_name = st.text_input(
+        translate_service.translate("recipe_name_label"),
+        key="comparison_recipe_name_input",
+        placeholder=translate_service.translate("comparison_save_name_placeholder"),
+    )
+
+    st.markdown("---")
+
+    # ── Load available data_processing scenarios ───────────────
+    with st.spinner(translate_service.translate("comparison_loading_recipes")):
+        load_scenarios = _get_data_processing_scenarios(cell_culture_state)
+
+    biolector_recipes: dict[str, Scenario] = {}
+    fermentor_recipes: dict[str, Scenario] = {}
+
+    for sc in load_scenarios:
+        recipe_name_label = _get_recipe_name(sc, cell_culture_state)
+        if sc.status != ScenarioStatus.SUCCESS:
+            recipe_name_label = f"⚠️ {recipe_name_label}"
+        if _is_biolector(sc, cell_culture_state):
+            biolector_recipes[recipe_name_label] = sc
+        else:
+            fermentor_recipes[recipe_name_label] = sc
+
+    if not biolector_recipes and not fermentor_recipes:
+        st.warning(translate_service.translate("comparison_no_recipes_found"))
+        return
+
+    # ── Selectors: 2-column layout ─────────────────────────────
+    col_bio, col_ferm = st.columns(2)
+    selected_bio_qc: Scenario | None = None
+    selected_ferm_qc: Scenario | None = None
+
+    with col_bio:
+        st.subheader(f"🧫 {translate_service.translate('comparison_biolector_recipe')}")
+        if not biolector_recipes:
+            st.info(translate_service.translate("comparison_no_biolector_recipes"))
+        else:
+            selected_bio_label = st.selectbox(
+                translate_service.translate("comparison_select_recipe"),
+                options=list(biolector_recipes.keys()),
+                key="new_cmp_bio_recipe_selector",
+            )
+            selected_bio_load_sc = biolector_recipes[selected_bio_label]
+
+            bio_pipeline_id = _get_pipeline_id(selected_bio_load_sc, cell_culture_state)
+            bio_qc_list = (
+                _get_qc_scenarios_for_pipeline(bio_pipeline_id, cell_culture_state)
+                if bio_pipeline_id
+                else []
+            )
+            if not bio_qc_list:
+                st.warning(translate_service.translate("comparison_no_qc_found"))
+            else:
+                bio_qc_options = {sc.title: sc for sc in bio_qc_list}
+                selected_bio_qc_label = st.selectbox(
+                    translate_service.translate("comparison_select_qc"),
+                    options=list(bio_qc_options.keys()),
+                    key="new_cmp_bio_qc_selector",
+                )
+                selected_bio_qc = bio_qc_options[selected_bio_qc_label]
+
+    with col_ferm:
+        st.subheader(f"🧪 {translate_service.translate('comparison_fermentor_recipe')}")
+        if not fermentor_recipes:
+            st.info(translate_service.translate("comparison_no_fermentor_recipes"))
+        else:
+            selected_ferm_label = st.selectbox(
+                translate_service.translate("comparison_select_recipe"),
+                options=list(fermentor_recipes.keys()),
+                key="new_cmp_ferm_recipe_selector",
+            )
+            selected_ferm_load_sc = fermentor_recipes[selected_ferm_label]
+
+            ferm_pipeline_id = _get_pipeline_id(selected_ferm_load_sc, cell_culture_state)
+            ferm_qc_list = (
+                _get_qc_scenarios_for_pipeline(ferm_pipeline_id, cell_culture_state)
+                if ferm_pipeline_id
+                else []
+            )
+            if not ferm_qc_list:
+                st.warning(translate_service.translate("comparison_no_qc_found"))
+            else:
+                ferm_qc_options = {sc.title: sc for sc in ferm_qc_list}
+                selected_ferm_qc_label = st.selectbox(
+                    translate_service.translate("comparison_select_qc"),
+                    options=list(ferm_qc_options.keys()),
+                    key="new_cmp_ferm_qc_selector",
+                )
+                selected_ferm_qc = ferm_qc_options[selected_ferm_qc_label]
+
+    # ── QC status warnings ─────────────────────────────────────
+    if selected_bio_qc and selected_bio_qc.status != ScenarioStatus.SUCCESS:
+        st.warning(translate_service.translate("comparison_qc_not_successful"))
+    if selected_ferm_qc and selected_ferm_qc.status != ScenarioStatus.SUCCESS:
+        st.warning(translate_service.translate("comparison_qc_not_successful"))
+
+    st.markdown("---")
+
+    # ── Create recipe button ───────────────────────────────────
+    can_create = (
+        selected_bio_qc is not None
+        and selected_bio_qc.status == ScenarioStatus.SUCCESS
+        and selected_ferm_qc is not None
+        and selected_ferm_qc.status == ScenarioStatus.SUCCESS
+    )
+
+    if st.button(
+        translate_service.translate("create_recipe_button"),
+        type="primary",
+        width="stretch",
+        key="comparison_create_recipe_button",
+        disabled=not can_create,
+    ):
+        if not comparison_name or not comparison_name.strip():
+            st.error(translate_service.translate("comparison_save_name_required"))
+            return
+
+        try:
+            name_stripped = comparison_name.strip()
+            pipeline_id = StringHelper.generate_uuid()
+            parsed_name = Tag.parse_tag(name_stripped)
+
+            scenario: ScenarioProxy = ScenarioProxy(
+                None,
+                folder=None,
+                title=f"{name_stripped} - Biolector/Fermentor Comparison",
+                creation_type=ScenarioCreationType.MANUAL,
+            )
+            scenario.add_tag(
+                Tag(
+                    cell_culture_state.TAG_BIOPROCESS,
+                    TAG_BIOPROCESS_COMPARISON,
+                    is_propagable=False,
+                )
+            )
+            scenario.add_tag(
+                Tag(
+                    cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME,
+                    parsed_name,
+                    is_propagable=False,
+                )
+            )
+            scenario.add_tag(
+                Tag(
+                    cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID,
+                    pipeline_id,
+                    is_propagable=False,
+                )
+            )
+            if selected_bio_qc is None or selected_ferm_qc is None:
+                st.error(translate_service.translate("comparison_select_both_qc"))
+                return
+            scenario.add_tag(Tag(TAG_COMPARISON_BIO_QC_ID, selected_bio_qc.id, is_propagable=False))
+            scenario.add_tag(
+                Tag(TAG_COMPARISON_FERM_QC_ID, selected_ferm_qc.id, is_propagable=False)
+            )
+
+            # Attach the actual interpolated ResourceSets to the scenario protocol so
+            # the data is stored and the comparison is reproducible even if QC
+            # scenarios are later modified or deleted.
+            bio_qc_protocol = ScenarioProxy.from_existing_scenario(
+                selected_bio_qc.id
+            ).get_protocol()
+            ferm_qc_protocol = ScenarioProxy.from_existing_scenario(
+                selected_ferm_qc.id
+            ).get_protocol()
+            bio_rs_model = bio_qc_protocol.get_output_resource_model(
+                cell_culture_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
+            )
+            ferm_rs_model = ferm_qc_protocol.get_output_resource_model(
+                cell_culture_state.QUALITY_CHECK_SCENARIO_INTERPOLATED_OUTPUT_NAME
+            )
+
+            if bio_rs_model is None:
+                raise ValueError(
+                    translate_service.translate("comparison_cannot_load_biolector_data")
+                )
+            if ferm_rs_model is None:
+                raise ValueError(
+                    translate_service.translate("comparison_cannot_load_fermentor_data")
+                )
+
+            protocol = scenario.get_protocol()
+            bio_input = protocol.add_process(
+                InputTask,
+                "bio_resource_set_input",
+                {InputTask.config_name: bio_rs_model.id},
+            )
+            ferm_input = protocol.add_process(
+                InputTask,
+                "ferm_resource_set_input",
+                {InputTask.config_name: ferm_rs_model.id},
+            )
+            protocol.add_output(COMPARISON_BIO_OUTPUT, bio_input >> "resource", flag_resource=True)
+            protocol.add_output(
+                COMPARISON_FERM_OUTPUT, ferm_input >> "resource", flag_resource=True
+            )
+            scenario.add_to_queue()
+
+            st.success(
+                translate_service.translate("recipe_created").format(recipe_name=name_stripped)
+            )
+            with st.spinner(translate_service.translate("view_recipe")):
+                time.sleep(1)
+
+            router.navigate("first-page")
+            st.rerun()
+
+        except Exception as e:
+            st.error(
+                f"{translate_service.translate('error_creating_recipe')}\n\n"
+                f"**{translate_service.translate('error_details')}** {str(e)}"
+            )
 
 
 def render_new_recipe_fermentor(cell_culture_state: CellCultureState) -> None:

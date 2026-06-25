@@ -28,6 +28,7 @@ from .biolector_recipe import (
     BiolectorRecipe,
 )
 from .cell_culture_recipe import CellCultureRecipe
+from .comparison_recipe import ComparisonRecipe
 
 
 class CellCultureState(ABC):
@@ -220,6 +221,10 @@ class CellCultureState(ABC):
         if not scenario:
             raise ValueError("Scenario cannot be None")
         entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
+        # Check for comparison recipe first
+        bioprocess_tags = entity_tag_list.get_tags_by_key(self.TAG_BIOPROCESS)
+        if any(tag.tag_value == "comparison" for tag in bioprocess_tags):
+            return ComparisonRecipe.from_scenario(scenario)
         microplate_tags = entity_tag_list.get_tags_by_key(self.TAG_MICROPLATE_ANALYSIS)
         microplate_analysis = microplate_tags[0].tag_value if microplate_tags else "false"
         if microplate_analysis.lower() == "true":

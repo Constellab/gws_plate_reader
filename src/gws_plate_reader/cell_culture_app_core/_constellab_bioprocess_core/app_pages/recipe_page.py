@@ -3,12 +3,30 @@ Main Analysis Page for Cell Culture Dashboards
 Coordinates the different analysis steps and sub-pages
 """
 
+import pandas as pd
 import streamlit as st
 from gws_core import FrontService, Scenario, ScenarioStatus
+from gws_core.scenario.scenario_proxy import ScenarioProxy
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.app_pages.comparison_page import (
+    _SOURCE_BIOLECTOR,
+    _SOURCE_FERMENTOR,
+    _build_data_rows,
+    _find_load_scenario_for_qc,
+    _get_index_and_data_columns,
+    _get_recipe_name,
+    _get_resource_set_from_qc,
+    _render_comparison_plot,
+    _render_comparison_stats,
+)
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
+)
+from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.comparison_recipe import (
+    COMPARISON_BIO_OUTPUT,
+    COMPARISON_FERM_OUTPUT,
+    ComparisonRecipe,
 )
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
     display_scenario_task_configs,
@@ -522,10 +540,408 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> StreamlitT
     return button_menu
 
 
+def _build_comparison_tree_menu(translate_service) -> StreamlitTreeMenu:
+    """Build the left-panel tree menu for a comparison recipe."""
+    tree_menu = StreamlitTreeMenu(key="comparison_recipe_navigation_menu")
+    tree_menu.add_item(
+        StreamlitTreeMenuItem(label=translate_service.translate("overview"), key="apercu")
+    )
+    tree_menu.add_item(
+        StreamlitTreeMenuItem(
+            label=translate_service.translate("comparison_page_title"), key="comparison_plot"
+        )
+    )
+    return tree_menu
+
+
+def _render_comparison_overview(
+    recipe: ComparisonRecipe,
+    cell_culture_state: CellCultureState,
+    translate_service,
+) -> None:
+    """Render the Overview step for a comparison recipe."""
+    st.title(f"{recipe.name} - {translate_service.translate('overview')}")
+    st.markdown("---")
+
+    if not recipe.bio_qc_id or not recipe.ferm_qc_id:
+        st.error(translate_service.translate("comparison_select_both_qc"))
+        return
+
+    bio_qc_scenario = Scenario.get_by_id(recipe.bio_qc_id)
+    ferm_qc_scenario = Scenario.get_by_id(recipe.ferm_qc_id)
+
+    # Resolve parent recipe names
+    bio_load_sc = _find_load_scenario_for_qc(recipe.bio_qc_id, cell_culture_state)
+    ferm_load_sc = _find_load_scenario_for_qc(recipe.ferm_qc_id, cell_culture_state)
+    bio_recipe_name = _get_recipe_name(bio_load_sc, cell_culture_state) if bio_load_sc else None
+    ferm_recipe_name = _get_recipe_name(ferm_load_sc, cell_culture_state) if ferm_load_sc else None
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("#### 🧫 Biolector")
+        if bio_recipe_name:
+            st.markdown(f"**{translate_service.translate('recipe_overview')}:** {bio_recipe_name}")
+        bio_title = bio_qc_scenario.title if bio_qc_scenario else recipe.bio_qc_id[:8]
+        st.markdown(f"**QC:** {bio_title}")
+    with col2:
+        st.markdown("#### 🧪 Fermentor")
+        if ferm_recipe_name:
+            st.markdown(f"**{translate_service.translate('recipe_overview')}:** {ferm_recipe_name}")
+        ferm_title = ferm_qc_scenario.title if ferm_qc_scenario else recipe.ferm_qc_id[:8]
+        st.markdown(f"**QC:** {ferm_title}")
+
+
+def _render_comparison_visualization(
+    recipe: ComparisonRecipe,
+    cell_culture_state: CellCultureState,
+    translate_service,
+) -> None:
+    """Render the Comparison Visualization step for a comparison recipe."""
+    st.title(f"{recipe.name} - {translate_service.translate('comparison_page_title')}")
+    st.markdown("---")
+
+    if not recipe.bio_qc_id or not recipe.ferm_qc_id:
+        st.error(translate_service.translate("comparison_select_both_qc"))
+        return
+
+    # ── Cache heavy data loading in session state (keyed by QC IDs) ─────────
+    # This avoids rebuilding data on every Streamlit rerun triggered by widget
+    # interactions (batch / sample selection changes), matching the pattern used
+    # in the fermentor visualization step.
+    _cache_key = f"cmp_data_{recipe.bio_qc_id}_{recipe.ferm_qc_id}"
+    _cached = st.session_state.get(_cache_key)
+
+    if _cached is None:
+        # Load ResourceSets from the comparison scenario's own outputs (reproducible).
+        # Fall back to loading from QC scenarios for older comparisons without a protocol.
+        with st.spinner(translate_service.translate("comparison_loading_data")):
+            bio_resource_set = None
+            ferm_resource_set = None
+            try:
+                cmp_proxy = ScenarioProxy.from_existing_scenario(recipe.id)
+                cmp_protocol = cmp_proxy.get_protocol()
+                bio_resource_set = cmp_protocol.get_output(COMPARISON_BIO_OUTPUT)
+                ferm_resource_set = cmp_protocol.get_output(COMPARISON_FERM_OUTPUT)
+            except Exception:
+                pass
+
+            if bio_resource_set is None and recipe.bio_qc_id:
+                bio_qc = Scenario.get_by_id(recipe.bio_qc_id)
+                if bio_qc:
+                    bio_resource_set = _get_resource_set_from_qc(bio_qc, cell_culture_state)
+            if ferm_resource_set is None and recipe.ferm_qc_id:
+                ferm_qc = Scenario.get_by_id(recipe.ferm_qc_id)
+                if ferm_qc:
+                    ferm_resource_set = _get_resource_set_from_qc(ferm_qc, cell_culture_state)
+
+        if bio_resource_set is None:
+            st.error(translate_service.translate("comparison_cannot_load_biolector_data"))
+            return
+        if ferm_resource_set is None:
+            st.error(translate_service.translate("comparison_cannot_load_fermentor_data"))
+            return
+
+        bio_index_cols, bio_data_cols = _get_index_and_data_columns(bio_resource_set)
+        ferm_index_cols, ferm_data_cols = _get_index_and_data_columns(ferm_resource_set)
+
+        if not bio_index_cols and not bio_data_cols:
+            st.error(translate_service.translate("comparison_no_columns_biolector"))
+            return
+        if not ferm_index_cols and not ferm_data_cols:
+            st.error(translate_service.translate("comparison_no_columns_fermentor"))
+            return
+
+        if not bio_index_cols:
+            bio_index_cols = bio_data_cols
+        if not ferm_index_cols:
+            ferm_index_cols = ferm_data_cols
+
+        with st.spinner(translate_service.translate("comparison_building_data")):
+            bio_rows = _build_data_rows(
+                bio_resource_set, cell_culture_state, _SOURCE_BIOLECTOR, recipe.name
+            )
+            ferm_rows = _build_data_rows(
+                ferm_resource_set, cell_culture_state, _SOURCE_FERMENTOR, recipe.name
+            )
+
+        if not bio_rows:
+            st.error(translate_service.translate("comparison_no_data_biolector"))
+            return
+        if not ferm_rows:
+            st.error(translate_service.translate("comparison_no_data_fermentor"))
+            return
+
+        st.session_state[_cache_key] = {
+            "bio_index_cols": bio_index_cols,
+            "bio_data_cols": bio_data_cols,
+            "ferm_index_cols": ferm_index_cols,
+            "ferm_data_cols": ferm_data_cols,
+            "bio_rows": bio_rows,
+            "ferm_rows": ferm_rows,
+        }
+        _cached = st.session_state[_cache_key]
+
+    bio_index_cols = _cached["bio_index_cols"]
+    bio_data_cols = _cached["bio_data_cols"]
+    ferm_index_cols = _cached["ferm_index_cols"]
+    ferm_data_cols = _cached["ferm_data_cols"]
+    bio_rows = _cached["bio_rows"]
+    ferm_rows = _cached["ferm_rows"]
+
+    df_all = pd.DataFrame(bio_rows + ferm_rows)
+    bio_df_raw = df_all[df_all["Source"] == _SOURCE_BIOLECTOR]
+    ferm_df_raw = df_all[df_all["Source"] == _SOURCE_FERMENTOR]
+    all_bio_batches = sorted(bio_df_raw["Batch"].dropna().unique().tolist())
+    all_bio_samples = sorted(bio_df_raw["Sample"].dropna().unique().tolist())
+    all_ferm_batches = sorted(ferm_df_raw["Batch"].dropna().unique().tolist())
+    all_ferm_samples = sorted(ferm_df_raw["Sample"].dropna().unique().tolist())
+
+    # ── Initialise session state ────────────────────────────────────────────
+    for key, options in [
+        ("recipe_cmp_bio_batches", all_bio_batches),
+        ("recipe_cmp_bio_samples", all_bio_samples),
+        ("recipe_cmp_ferm_batches", all_ferm_batches),
+        ("recipe_cmp_ferm_samples", all_ferm_samples),
+    ]:
+        if key not in st.session_state or any(v not in options for v in st.session_state[key]):
+            st.session_state[key] = []
+
+    # ── Controls: two cards side by side ───────────────────────────────────
+    card_bio, card_ferm = st.columns(2)
+
+    with card_bio:
+        st.markdown("#### 🧫 Biolector")
+
+        bio_y_options = bio_data_cols if bio_data_cols else bio_index_cols
+        if "recipe_cmp_bio_index_col" in st.session_state:
+            _cur_bio_idx = st.session_state["recipe_cmp_bio_index_col"]
+            bio_y_options = [c for c in bio_y_options if c != _cur_bio_idx]
+
+        selected_bio_index = st.selectbox(
+            translate_service.translate("comparison_bio_index_col"),
+            options=bio_index_cols,
+            index=0,
+            key="recipe_cmp_bio_index_col",
+        )
+        bio_y_options = [
+            c
+            for c in (bio_data_cols if bio_data_cols else bio_index_cols)
+            if c != selected_bio_index
+        ]
+        selected_bio_cols = st.multiselect(
+            translate_service.translate("comparison_bio_y_col"),
+            options=bio_y_options,
+            key="recipe_cmp_bio_y_cols",
+        )
+
+        st.markdown(f"**{translate_service.translate('comparison_biolector_filters')}**")
+        bio_batch_sel, bio_batch_btn = st.columns([3, 1])
+        with bio_batch_btn:
+            if st.button(
+                translate_service.translate("select_all_batches"),
+                key="sel_all_bio_batches",
+                width="stretch",
+            ):
+                st.session_state["recipe_cmp_bio_batches"] = all_bio_batches
+        with bio_batch_sel:
+            selected_bio_batches = st.multiselect(
+                translate_service.translate("comparison_select_batches"),
+                options=all_bio_batches,
+                key="recipe_cmp_bio_batches",
+            )
+
+        bio_sample_sel, bio_sample_btn = st.columns([3, 1])
+        with bio_sample_btn:
+            if st.button(
+                translate_service.translate("select_all_samples"),
+                key="sel_all_bio_samples",
+                width="stretch",
+            ):
+                st.session_state["recipe_cmp_bio_samples"] = all_bio_samples
+        with bio_sample_sel:
+            selected_bio_samples = st.multiselect(
+                translate_service.translate("comparison_select_samples"),
+                options=all_bio_samples,
+                key="recipe_cmp_bio_samples",
+            )
+
+    with card_ferm:
+        st.markdown("#### 🧪 Fermentor")
+
+        ferm_y_options = ferm_data_cols if ferm_data_cols else ferm_index_cols
+        if "recipe_cmp_ferm_index_col" in st.session_state:
+            _cur_ferm_idx = st.session_state["recipe_cmp_ferm_index_col"]
+            ferm_y_options = [c for c in ferm_y_options if c != _cur_ferm_idx]
+
+        selected_ferm_index = st.selectbox(
+            translate_service.translate("comparison_ferm_index_col"),
+            options=ferm_index_cols,
+            index=0,
+            key="recipe_cmp_ferm_index_col",
+        )
+        ferm_y_options = [
+            c
+            for c in (ferm_data_cols if ferm_data_cols else ferm_index_cols)
+            if c != selected_ferm_index
+        ]
+        selected_ferm_cols = st.multiselect(
+            translate_service.translate("comparison_ferm_y_col"),
+            options=ferm_y_options,
+            key="recipe_cmp_ferm_y_cols",
+        )
+
+        st.markdown(f"**{translate_service.translate('comparison_fermentor_filters')}**")
+        ferm_batch_sel, ferm_batch_btn = st.columns([3, 1])
+        with ferm_batch_btn:
+            if st.button(
+                translate_service.translate("select_all_batches"),
+                key="sel_all_ferm_batches",
+                width="stretch",
+            ):
+                st.session_state["recipe_cmp_ferm_batches"] = all_ferm_batches
+        with ferm_batch_sel:
+            selected_ferm_batches = st.multiselect(
+                translate_service.translate("comparison_select_batches"),
+                options=all_ferm_batches,
+                key="recipe_cmp_ferm_batches",
+            )
+
+        ferm_sample_sel, ferm_sample_btn = st.columns([3, 1])
+        with ferm_sample_btn:
+            if st.button(
+                translate_service.translate("select_all_samples"),
+                key="sel_all_ferm_samples",
+                width="stretch",
+            ):
+                st.session_state["recipe_cmp_ferm_samples"] = all_ferm_samples
+        with ferm_sample_sel:
+            selected_ferm_samples = st.multiselect(
+                translate_service.translate("comparison_select_samples"),
+                options=all_ferm_samples,
+                key="recipe_cmp_ferm_samples",
+            )
+
+    # ── Validation ─────────────────────────────────────────────────────────
+    st.markdown("---")
+
+    if not selected_bio_batches or not selected_bio_samples:
+        st.warning(translate_service.translate("comparison_select_at_least_one_bio"))
+        return
+    if not selected_ferm_batches or not selected_ferm_samples:
+        st.warning(translate_service.translate("comparison_select_at_least_one_ferm"))
+        return
+    if not selected_bio_cols:
+        st.warning(translate_service.translate("comparison_select_at_least_one_bio_col"))
+        return
+    if not selected_ferm_cols:
+        st.warning(translate_service.translate("comparison_select_at_least_one_ferm_col"))
+        return
+    if len(set(selected_bio_cols + selected_ferm_cols)) > 3:
+        st.warning(translate_service.translate("comparison_too_many_columns"))
+        return
+
+    for col in (
+        [selected_bio_index] + selected_bio_cols + [selected_ferm_index] + selected_ferm_cols
+    ):
+        if col not in df_all.columns:
+            st.error(translate_service.translate("comparison_column_not_found").format(col=col))
+            return
+
+    _render_comparison_plot(
+        df_all,
+        selected_bio_index,
+        selected_ferm_index,
+        selected_bio_cols,
+        selected_ferm_cols,
+        selected_bio_batches,
+        selected_bio_samples,
+        selected_ferm_batches,
+        selected_ferm_samples,
+        translate_service,
+    )
+    _render_comparison_stats(
+        df_all,
+        selected_bio_cols,
+        selected_ferm_cols,
+        selected_bio_batches,
+        selected_bio_samples,
+        selected_ferm_batches,
+        selected_ferm_samples,
+    )
+
+
+def _render_comparison_recipe_page(
+    recipe: ComparisonRecipe, cell_culture_state: CellCultureState
+) -> None:
+    """Render the visualisation view for a saved Biolector / Fermentor comparison recipe."""
+
+    translate_service = cell_culture_state.get_translate_service()
+    router = StreamlitRouter.load_from_session()
+
+    style = """
+    [CLASS_NAME] {
+        padding: 40px;
+    }
+    """
+
+    with StreamlitContainers.container_full_min_height(
+        "container-center_comparison_recipe_page", additional_style=style
+    ):
+        left_col, right_col = st.columns([1, 4])
+
+        with left_col:
+            if st.button(
+                translate_service.translate("recipes_list"),
+                icon=":material/arrow_back:",
+                width="stretch",
+            ):
+                router.navigate("first-page")
+                st.rerun()
+
+            # Preserve current menu selection across reruns
+            if "comparison_recipe_navigation_menu" in st.session_state:
+                current_key = st.session_state["comparison_recipe_navigation_menu"].get("item_key")
+                if current_key:
+                    st.session_state["last_known_comparison_menu_selection"] = current_key
+
+            st.markdown("---")
+
+            tree_menu = _build_comparison_tree_menu(translate_service)
+
+            # Restore last known selection if menu is not yet initialised
+            if not st.session_state.get("comparison_recipe_navigation_menu", {}).get("item_key"):
+                last = st.session_state.get("last_known_comparison_menu_selection")
+                if last:
+                    try:
+                        tree_menu.set_selected_item(last)
+                    except Exception:
+                        pass
+
+            selected_item = tree_menu.render()
+            selected_key = selected_item.key if selected_item else "apercu"
+
+        with right_col:
+            if selected_key == "apercu":
+                _render_comparison_overview(recipe, cell_culture_state, translate_service)
+            else:
+                _render_comparison_visualization(recipe, cell_culture_state, translate_service)
+
+
 def render_recipe_page(cell_culture_state: CellCultureState) -> None:
     """Render the analysis page with tree navigation structure"""
 
     translate_service = cell_culture_state.get_translate_service()
+
+    # Get Recipe instance early to detect comparison recipes
+    recipe = cell_culture_state.get_selected_recipe_instance()
+    if not recipe:
+        st.error(translate_service.translate("no_recipe_selected"))
+        return
+
+    # Comparison recipes have their own simple visualisation page
+    if isinstance(recipe, ComparisonRecipe):
+        _render_comparison_recipe_page(recipe, cell_culture_state)
+        return
 
     style = """
     [CLASS_NAME] {
@@ -537,12 +953,6 @@ def render_recipe_page(cell_culture_state: CellCultureState) -> None:
         "container-center_analysis_page", additional_style=style
     ):  # Create two columns like ubiome
         left_col, right_col = st.columns([1, 4])
-
-        # Get Recipe instance from state (created in first_page)
-        recipe = cell_culture_state.get_selected_recipe_instance()
-        if not recipe:
-            st.error(translate_service.translate("no_recipe_selected"))
-            return
 
         with left_col:
             # Add return button at the top

@@ -588,7 +588,7 @@ class CellCultureQualityCheck(Task):
                         ),
                     }
                 ),
-                optional=True,
+                min_number_of_occurrences=0,
                 human_name="Range validation checks",
                 short_description="List of column range validations to apply",
             ),
@@ -629,7 +629,7 @@ class CellCultureQualityCheck(Task):
                         ),
                     }
                 ),
-                optional=True,
+                min_number_of_occurrences=0,
                 human_name="Minimum data point checks",
                 short_description="List of minimum data point count validations per column",
             ),

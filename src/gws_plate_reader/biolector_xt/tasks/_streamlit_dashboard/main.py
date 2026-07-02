@@ -4,7 +4,7 @@ from gws_streamlit_main import StreamlitMainState
 # Initialize GWS - MUST be at the top
 StreamlitMainState.initialize()
 
-from gws_core import Credentials, CredentialsType
+from gws_core import Credentials, CredentialsDataOther
 from pandas import DataFrame
 
 from gws_plate_reader.biolector_xt.biolector_xt_mock_service import BiolectorXTMockService
@@ -31,7 +31,7 @@ def get_service(params: dict) -> BiolectorXTServiceI:
     else:
         credentials_name = params.get("credentials_name")
 
-        credentials = Credentials.find_by_name_and_check(credentials_name, CredentialsType.OTHER)
+        credentials = Credentials.find_by_name_and_check(credentials_name, CredentialsDataOther)
 
         data = CredentialsDataBiolector.from_json(credentials.get_data_object().data)
         return BiolectorXTService(data)

@@ -6,7 +6,6 @@ from gws_core import (
     ConfigSpecs,
     CredentialsDataOther,
     CredentialsParam,
-    CredentialsType,
     File,
     FileHelper,
     Folder,
@@ -42,7 +41,7 @@ class BiolectorDownloadExperiment(Task):
                 human_name="Experiment ID",
                 short_description="The ID of the BiolectorXT experiment to download",
             ),
-            "credentials": CredentialsParam(credentials_type=CredentialsType.OTHER),
+            "credentials": CredentialsParam(credentials_type=CredentialsDataOther),
             "mock_service": BoolParam(
                 human_name="Mock Service",
                 short_description="Use the mock service to simulate the interaction with Biolector XT",

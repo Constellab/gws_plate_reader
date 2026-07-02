@@ -8,7 +8,6 @@ from gws_core import (
     ConfigSpecs,
     CredentialsDataOther,
     CredentialsParam,
-    CredentialsType,
     OutputSpec,
     OutputSpecs,
     StreamlitResource,
@@ -57,7 +56,7 @@ class BiolectorDashboard(Task):
 
     config_specs: ConfigSpecs = ConfigSpecs(
         {
-            "credentials": CredentialsParam(credentials_type=CredentialsType.OTHER),
+            "credentials": CredentialsParam(credentials_type=CredentialsDataOther),
             "mock_service": BoolParam(
                 human_name="Mock Service",
                 short_description="Use the mock service to simulate the interaction with Biolector XT (for development purpose)",

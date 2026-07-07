@@ -3,10 +3,15 @@ import streamlit as st
 from gws_core import (
     Scenario,
     ScenarioProxy,
+    ScenarioSearchBuilder,
     ScenarioStatus,
+    Tag,
 )
+from gws_core.entity_navigator.entity_navigator_service import EntityNavigatorService
 from gws_core.protocol.protocol_model import ProtocolModel
+from gws_core.scenario.scenario_service import ScenarioService
 from gws_core.tag.entity_tag_list import EntityTagList
+from gws_core.tag.tag import TagOrigin
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_culture_state import (
     CellCultureState,
@@ -154,6 +159,8 @@ def create_recipe_table_data(
                         "Created By": scenario.created_by.full_name if scenario.created_by else "",
                         "_status_raw": "comparison",
                         "_is_comparison": True,
+                        "_action_rename": "✏️",
+                        "_action_delete": "🗑️",
                     }
                 )
                 continue
@@ -268,6 +275,8 @@ def create_recipe_table_data(
                 else "",
                 "Created By": recipe_data["created_by"],
                 "_status_raw": load_scenario.status.value,
+                "_action_rename": "✏️",
+                "_action_delete": "🗑️",
             }
 
             table_data.append(row_data)
@@ -340,13 +349,31 @@ def create_slickgrid_columns(translate_service: StreamlitTranslateService) -> li
             "filterable": True,
             "width": 120,
         },
+        {
+            "id": "_action_rename",
+            "name": "✏️",
+            "field": "_action_rename",
+            "sortable": False,
+            "filterable": False,
+            "width": 36,
+            "resizable": False,
+        },
+        {
+            "id": "_action_delete",
+            "name": "🗑️",
+            "field": "_action_delete",
+            "sortable": False,
+            "filterable": False,
+            "width": 36,
+            "resizable": False,
+        },
     ]
     return columns
 
 
 def render_recipe_table(
     scenarios: list[Scenario], cell_culture_state: CellCultureState
-) -> str | None | list[dict]:
+) -> tuple[str, str] | None:
     """Render the cell culture recipe table using SlickGrid and return selected scenario ID."""
 
     translate_service = cell_culture_state.get_translate_service()
@@ -391,25 +418,101 @@ def render_recipe_table(
         on_click="rerun",
     )
 
-    # Handle row selection like in ubiome
+    # Handle row selection — map the numeric column index back to a column id string
+    # so the caller can distinguish navigation clicks from action-column clicks.
     if grid_response is not None:
-        row_id, _ = grid_response  # _ is column, not needed for analysis selection
-
-        # Check if the load scenario finished successfully before allowing navigation
-        selected_row = next((row for row in table_data if row.get("id") == row_id), None)
-        # Comparison rows are always clickable (they have no pipeline to check)
-        if (
-            selected_row
-            and not selected_row.get("_is_comparison")
-            and selected_row.get("_status_raw") != ScenarioStatus.SUCCESS.value
-        ):
-            st.warning(translate_service.translate("recipe_not_ready"))
-            return None
-
-        # Return the selected scenario ID
-        return row_id
+        row_id, col_idx = grid_response
+        action_col_ids = {"_action_rename", "_action_delete"}
+        col_id_by_index = {
+            i: col["id"] for i, col in enumerate(columns) if col["id"] in action_col_ids
+        }
+        clicked_col_id = col_id_by_index.get(col_idx, "navigate")
+        return row_id, clicked_col_id
 
     return None
+
+
+def rename_recipe_scenarios(
+    recipe_id: str,
+    new_name: str,
+    cell_culture_state: CellCultureState,
+) -> None:
+    """Rename a recipe: updates the TAG_BIOPROCESS_RECIPE_NAME tag and rebuilds
+    the scenario title by replacing only the first part (before " - ").
+
+    :param recipe_id: ID of the load (or comparison) scenario for the recipe
+    :param new_name: New recipe name (the part the user typed)
+    :param cell_culture_state: The current cell culture state
+    """
+    new_name_parsed = Tag.parse_tag(new_name.strip())
+    recipe_tag = Tag(key=cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME, value=new_name_parsed)
+    user_origin = TagOrigin.current_user_origin()
+
+    # Update the scenario title: keep any " - suffix", replace only the first part
+    main_scenario = Scenario.get_by_id_and_check(recipe_id)
+    current_title = main_scenario.title or ""
+    new_title = (
+        f"{new_name_parsed} - {current_title.split(' - ', 1)[1]}"
+        if " - " in current_title
+        else new_name_parsed
+    )
+    ScenarioService.update_scenario_title(recipe_id, new_title)
+
+    # Update the tag on the main scenario
+    main_tags = EntityTagList.find_by_entity(
+        TagEntityType.SCENARIO, recipe_id, default_origin=user_origin
+    )
+    main_tags.replace_tag(recipe_tag)
+
+    # Also update the tag on all related scenarios sharing the same pipeline_id
+    pipeline_id_tags = main_tags.get_tags_by_key(cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID)
+    pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else None
+    if pipeline_id:
+        related = (
+            ScenarioSearchBuilder()
+            .add_tag_filter(
+                Tag(key=cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID, value=pipeline_id)
+            )
+            .add_is_archived_filter(False)
+            .search_all()
+        )
+        for scenario in related:
+            if scenario.id == recipe_id:
+                continue
+            EntityTagList.find_by_entity(
+                TagEntityType.SCENARIO, scenario.id, default_origin=user_origin
+            ).replace_tag(recipe_tag)
+
+
+def delete_recipe_scenarios(
+    recipe_id: str,
+    cell_culture_state: CellCultureState,
+) -> None:
+    """Delete all scenarios associated with a recipe.
+
+    :param recipe_id: ID of the load (or comparison) scenario for the recipe
+    :param cell_culture_state: The current cell culture state
+    """
+    entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, recipe_id)
+    pipeline_id_tags = entity_tag_list.get_tags_by_key(
+        cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID
+    )
+    pipeline_id = pipeline_id_tags[0].tag_value if pipeline_id_tags else None
+
+    scenarios_to_delete = (
+        ScenarioSearchBuilder()
+        .add_tag_filter(Tag(key=cell_culture_state.TAG_BIOPROCESS_PIPELINE_ID, value=pipeline_id))
+        .add_is_archived_filter(False)
+        .search_all()
+        if pipeline_id
+        else [Scenario.get_by_id_and_check(recipe_id)]
+    )
+
+    for scenario in scenarios_to_delete:
+        try:
+            EntityNavigatorService.delete_scenario(scenario.id)
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def display_scenario_task_configs(

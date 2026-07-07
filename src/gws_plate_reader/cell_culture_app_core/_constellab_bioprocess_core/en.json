@@ -1047,5 +1047,14 @@
     "comparison_save_success": "✅ Comparison recipe '{name}' saved! Redirecting to the recipe list...",
     "comparison_save_error": "❌ Error saving comparison recipe: {error}",
     "comparison_recipes_section_title": "Saved Comparisons (Biolector / Fermentor)",
-    "comparison_open_button": "Open"
+    "rename_recipe": "Rename",
+    "delete_recipe": "Delete",
+    "rename_recipe_label": "New name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm_delete_recipe": "Are you sure you want to delete the recipe **{recipe_name}**? This action cannot be undone.",
+    "confirm_delete": "Confirm",
+    "recipe_name_cannot_be_empty": "Recipe name cannot be empty.",
+    "error_renaming_recipe": "Error renaming recipe: {error}",
+    "error_deleting_recipe": "Error deleting recipe: {error}"
 }

@@ -1,5 +1,6 @@
 import streamlit as st
 from gws_core import Scenario, ScenarioSearchBuilder, Tag
+from gws_core.scenario.scenario_enums import ScenarioStatus
 from gws_core.tag.entity_tag_list import EntityTagList
 from gws_core.tag.tag_entity_type import TagEntityType
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.app_pages.comparison_page import (
@@ -10,9 +11,100 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
 )
 from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.functions_steps import (
     create_recipe_table_data,
+    delete_recipe_scenarios,
+    rename_recipe_scenarios,
     render_recipe_table,
 )
 from gws_streamlit_main import StreamlitContainers, StreamlitRouter
+
+# ---------------------------------------------------------------------------
+# Modal dialogs (must be at module level for Streamlit to manage their state)
+# ---------------------------------------------------------------------------
+
+_CC_DIALOG_STATE_KEY = "_cc_dialog_state"
+_CC_DIALOG_RECIPE_ID_KEY = "cell_culture_selected_recipe_id"
+_CC_DIALOG_RECIPE_NAME_KEY = "_cc_dialog_recipe_name"
+_CC_DIALOG_ACTION_KEY = "cell_culture_recipe_action"
+
+
+@st.dialog("Rename Recipe")
+def _render_rename_dialog() -> None:
+    """Modal dialog for renaming a recipe."""
+    recipe_id: str = st.session_state[_CC_DIALOG_RECIPE_ID_KEY]
+    recipe_name: str = st.session_state.get(_CC_DIALOG_RECIPE_NAME_KEY, "")
+    cell_culture_state: CellCultureState = st.session_state[_CC_DIALOG_STATE_KEY]
+    translate_service = cell_culture_state.get_translate_service()
+
+    new_name = st.text_input(
+        translate_service.translate("rename_recipe_label"),
+        value=recipe_name,
+    )
+
+    col_save, col_cancel = st.columns(2)
+    with col_save:
+        if st.button(
+            translate_service.translate("save"),
+            type="primary",
+            use_container_width=True,
+        ):
+            if not (new_name or "").strip():
+                st.error(translate_service.translate("recipe_name_cannot_be_empty"))
+            else:
+                try:
+                    rename_recipe_scenarios(
+                        recipe_id,
+                        (new_name or "").strip(),
+                        cell_culture_state,
+                    )
+                    st.session_state[_CC_DIALOG_ACTION_KEY] = None
+                    st.session_state[_CC_DIALOG_RECIPE_ID_KEY] = None
+                    st.session_state["cell_culture_recipes_refresh"] = (
+                        st.session_state.get("cell_culture_recipes_refresh", 0) + 1
+                    )
+                    st.rerun()
+                except Exception as e:  # noqa: BLE001
+                    st.error(
+                        translate_service.translate("error_renaming_recipe").format(error=str(e))
+                    )
+    with col_cancel:
+        if st.button(translate_service.translate("cancel"), use_container_width=True):
+            st.session_state[_CC_DIALOG_ACTION_KEY] = None
+            st.session_state[_CC_DIALOG_RECIPE_ID_KEY] = None
+            st.rerun()
+
+
+@st.dialog("Delete Recipe")
+def _render_delete_dialog() -> None:
+    """Modal dialog for confirming recipe deletion."""
+    recipe_id: str = st.session_state[_CC_DIALOG_RECIPE_ID_KEY]
+    recipe_name: str = st.session_state.get(_CC_DIALOG_RECIPE_NAME_KEY, "")
+    cell_culture_state: CellCultureState = st.session_state[_CC_DIALOG_STATE_KEY]
+    translate_service = cell_culture_state.get_translate_service()
+
+    st.warning(translate_service.translate("confirm_delete_recipe").format(recipe_name=recipe_name))
+
+    col_confirm, col_cancel = st.columns(2)
+    with col_confirm:
+        if st.button(
+            translate_service.translate("confirm_delete"),
+            type="primary",
+            use_container_width=True,
+        ):
+            try:
+                delete_recipe_scenarios(recipe_id, cell_culture_state)
+                st.session_state[_CC_DIALOG_ACTION_KEY] = None
+                st.session_state[_CC_DIALOG_RECIPE_ID_KEY] = None
+                st.session_state["cell_culture_recipes_refresh"] = (
+                    st.session_state.get("cell_culture_recipes_refresh", 0) + 1
+                )
+                st.rerun()
+            except Exception as e:  # noqa: BLE001
+                st.error(translate_service.translate("error_deleting_recipe").format(error=str(e)))
+    with col_cancel:
+        if st.button(translate_service.translate("cancel"), use_container_width=True):
+            st.session_state[_CC_DIALOG_ACTION_KEY] = None
+            st.session_state[_CC_DIALOG_RECIPE_ID_KEY] = None
+            st.rerun()
 
 
 def render_first_page(cell_culture_state: CellCultureState) -> None:
@@ -265,11 +357,34 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
         )
 
         # Use the new centralized function to render the table
-        selected_scenario_id = render_recipe_table(list_scenario_user, cell_culture_state)
+        grid_selection = render_recipe_table(list_scenario_user, cell_culture_state)
 
-        if selected_scenario_id:
-            # If a comparison recipe was clicked, build a ComparisonRecipe and go to analysis page
-            if selected_scenario_id in comparison_scenario_ids:
+        if grid_selection is not None:
+            selected_scenario_id, clicked_column = grid_selection
+
+            if (
+                clicked_column in ("_action_rename", "_action_delete")
+                and not cell_culture_state.get_is_standalone()
+            ):
+                # Action icon column clicked — resolve recipe name then open dialog
+                action = "rename" if clicked_column == "_action_rename" else "delete"
+                table_data_for_dialog = create_recipe_table_data(
+                    list_scenario_user, cell_culture_state, translate_service
+                )
+                action_row = next(
+                    (r for r in table_data_for_dialog if r.get("id") == selected_scenario_id),
+                    None,
+                )
+                st.session_state[_CC_DIALOG_RECIPE_ID_KEY] = selected_scenario_id
+                st.session_state[_CC_DIALOG_ACTION_KEY] = action
+                st.session_state[_CC_DIALOG_RECIPE_NAME_KEY] = (
+                    action_row["Recipe Name"] if action_row else ""
+                )
+                st.session_state[_CC_DIALOG_STATE_KEY] = cell_culture_state
+                st.rerun()
+
+            elif selected_scenario_id in comparison_scenario_ids:
+                # Comparison recipe clicked — navigate directly
                 for sc in comparison_scenarios:
                     if sc.id == selected_scenario_id:
                         recipe_instance = cell_culture_state.create_recipe_from_scenario(sc)
@@ -279,82 +394,101 @@ def render_first_page(cell_culture_state: CellCultureState) -> None:
                         st.rerun()
                         break
 
-            # Find the selected recipe name
-            selected_recipe_name = None
-            selected_load_scenario = None
-
-            # Check if selected_scenario_id corresponds to a load scenario
-            for scenario in load_scenarios:
-                if scenario.id == selected_scenario_id:
-                    entity_tag_list = EntityTagList.find_by_entity(
-                        TagEntityType.SCENARIO, scenario.id
-                    )
-                    recipe_name_tags = entity_tag_list.get_tags_by_key(
-                        cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
-                    )
-                    selected_recipe_name = (
-                        recipe_name_tags[0].tag_value if recipe_name_tags else scenario.title
-                    )
-                    selected_load_scenario = scenario
-                    break
-
-            # If not found, try to find by recipe name from table
-            if not selected_recipe_name:
-                table_data = create_recipe_table_data(
+            else:
+                # Check if the load scenario finished successfully
+                table_data_nav = create_recipe_table_data(
                     list_scenario_user, cell_culture_state, translate_service
                 )
                 selected_row = next(
-                    (row for row in table_data if row.get("id") == selected_scenario_id), None
+                    (row for row in table_data_nav if row.get("id") == selected_scenario_id),
+                    None,
                 )
-                if selected_row:
-                    selected_recipe_name = selected_row["Recipe Name"]
-                    # Find the matching unique_key in recipes_dict
-                    for _unique_key, recipe_data in recipes_dict.items():
-                        if recipe_data["load_scenario"].id == selected_scenario_id:
-                            selected_load_scenario = recipe_data["load_scenario"]
+                if selected_row and selected_row.get("_status_raw") != ScenarioStatus.SUCCESS.value:
+                    st.warning(translate_service.translate("recipe_not_ready"))
+                else:
+                    selected_recipe_name = None
+                    selected_load_scenario = None
+
+                    for scenario in load_scenarios:
+                        if scenario.id == selected_scenario_id:
+                            entity_tag_list = EntityTagList.find_by_entity(
+                                TagEntityType.SCENARIO, scenario.id
+                            )
+                            recipe_name_tags = entity_tag_list.get_tags_by_key(
+                                cell_culture_state.TAG_BIOPROCESS_RECIPE_NAME
+                            )
+                            selected_recipe_name = (
+                                recipe_name_tags[0].tag_value
+                                if recipe_name_tags
+                                else scenario.title
+                            )
+                            selected_load_scenario = scenario
                             break
 
-            if selected_recipe_name and selected_load_scenario:
-                # Find the unique_key for this load scenario
-                matching_unique_key = None
-                for unique_key, recipe_data in recipes_dict.items():
-                    if recipe_data["load_scenario"].id == selected_load_scenario.id:
-                        matching_unique_key = unique_key
-                        break
-
-                if matching_unique_key:
-                    # Create Recipe instance from load scenario only using the state's recipe class
-                    recipe_instance = cell_culture_state.create_recipe_from_scenario(
-                        selected_load_scenario
-                    )
-
-                    # Add selection scenarios if they exist
-                    recipe_data = recipes_dict[matching_unique_key]
-                    if recipe_data["selection_scenarios"]:
-                        recipe_instance.add_selection_scenarios(recipe_data["selection_scenarios"])
-
-                    # Add quality check scenarios if they exist
-                    if (
-                        "quality_check_scenarios" in recipe_data
-                        and recipe_data["quality_check_scenarios"]
-                    ):
-                        recipe_instance.add_scenarios_by_step(
-                            "quality_check", recipe_data["quality_check_scenarios"]
+                    if not selected_recipe_name:
+                        table_data_nav = create_recipe_table_data(
+                            list_scenario_user, cell_culture_state, translate_service
                         )
-
-                    # Add analyses scenarios if they exist
-                    if "analyses_scenarios" in recipe_data and recipe_data["analyses_scenarios"]:
-                        recipe_instance.add_scenarios_by_step(
-                            "analyses", recipe_data["analyses_scenarios"]
+                        selected_row_data = next(
+                            (
+                                row
+                                for row in table_data_nav
+                                if row.get("id") == selected_scenario_id
+                            ),
+                            None,
                         )
+                        if selected_row_data:
+                            selected_recipe_name = selected_row_data["Recipe Name"]
+                            for _unique_key, recipe_data in recipes_dict.items():
+                                if recipe_data["load_scenario"].id == selected_scenario_id:
+                                    selected_load_scenario = recipe_data["load_scenario"]
+                                    break
 
-                    # Store the complete instance in state
-                    cell_culture_state.set_selected_recipe_instance(recipe_instance)
+                    if selected_recipe_name and selected_load_scenario:
+                        matching_unique_key = None
+                        for unique_key, recipe_data in recipes_dict.items():
+                            if recipe_data["load_scenario"].id == selected_load_scenario.id:
+                                matching_unique_key = unique_key
+                                break
 
-                    # Navigate to analysis page
-                    router = StreamlitRouter.load_from_session()
-                    router.navigate("analysis")
-                    st.rerun()
+                        if matching_unique_key:
+                            recipe_instance = cell_culture_state.create_recipe_from_scenario(
+                                selected_load_scenario
+                            )
+                            recipe_data = recipes_dict[matching_unique_key]
+                            if recipe_data["selection_scenarios"]:
+                                recipe_instance.add_selection_scenarios(
+                                    recipe_data["selection_scenarios"]
+                                )
+                            if (
+                                "quality_check_scenarios" in recipe_data
+                                and recipe_data["quality_check_scenarios"]
+                            ):
+                                recipe_instance.add_scenarios_by_step(
+                                    "quality_check", recipe_data["quality_check_scenarios"]
+                                )
+                            if (
+                                "analyses_scenarios" in recipe_data
+                                and recipe_data["analyses_scenarios"]
+                            ):
+                                recipe_instance.add_scenarios_by_step(
+                                    "analyses", recipe_data["analyses_scenarios"]
+                                )
+                            cell_culture_state.set_selected_recipe_instance(recipe_instance)
+                            router = StreamlitRouter.load_from_session()
+                            router.navigate("analysis")
+                            st.rerun()
+
+        # Open the appropriate modal dialog when an action icon was clicked
+        if (
+            st.session_state.get(_CC_DIALOG_ACTION_KEY)
+            and st.session_state.get(_CC_DIALOG_RECIPE_ID_KEY)
+            and not cell_culture_state.get_is_standalone()
+        ):
+            if st.session_state[_CC_DIALOG_ACTION_KEY] == "rename":
+                _render_rename_dialog()
+            elif st.session_state[_CC_DIALOG_ACTION_KEY] == "delete":
+                _render_delete_dialog()
 
         # Show info message and getting started if no recipes
         if not recipes_dict:

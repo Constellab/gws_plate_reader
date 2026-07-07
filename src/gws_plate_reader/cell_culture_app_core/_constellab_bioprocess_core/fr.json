@@ -1047,5 +1047,14 @@
     "comparison_save_success": "✅ Recette de comparaison '{name}' enregistrée ! Redirection vers la liste des recettes...",
     "comparison_save_error": "❌ Erreur lors de l'enregistrement de la recette de comparaison : {error}",
     "comparison_recipes_section_title": "Comparaisons enregistrées (Biolector / Fermenteur)",
-    "comparison_open_button": "Ouvrir"
+    "rename_recipe": "Renommer",
+    "delete_recipe": "Supprimer",
+    "rename_recipe_label": "Nouveau nom",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "confirm_delete_recipe": "Êtes-vous sûr de vouloir supprimer la recette **{recipe_name}** ? Cette action est irréversible.",
+    "confirm_delete": "Confirmer",
+    "recipe_name_cannot_be_empty": "Le nom de la recette ne peut pas être vide.",
+    "error_renaming_recipe": "Erreur lors du renommage : {error}",
+    "error_deleting_recipe": "Erreur lors de la suppression : {error}"
 }

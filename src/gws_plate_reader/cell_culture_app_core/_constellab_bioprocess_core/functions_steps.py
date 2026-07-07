@@ -144,12 +144,21 @@ def create_recipe_table_data(
             bioprocess_tags = entity_tag_list.get_tags_by_key(cell_culture_state.TAG_BIOPROCESS)
             is_comparison = any(tag.tag_value == "comparison" for tag in bioprocess_tags)
             if is_comparison:
+                bio_qc_tags = entity_tag_list.get_tags_by_key("comparison_bio_qc_id")
+                ferm_qc_tags = entity_tag_list.get_tags_by_key("comparison_ferm_qc_id")
+                comparison_done = bool(bio_qc_tags and ferm_qc_tags)
+                comparison_status = (
+                    f"{get_status_emoji(ScenarioStatus.SUCCESS)} {get_status_prettify(ScenarioStatus.SUCCESS, translate_service)}"
+                    if comparison_done
+                    else ""
+                )
+                comparison_status_raw = ScenarioStatus.SUCCESS.value if comparison_done else "comparison"
                 table_data.append(
                     {
                         "id": scenario.id,
                         "Recipe Name": recipe_name,
                         "Type": f"🔎 {translate_service.translate('type_comparison')}",
-                        "Status": "",
+                        "Status": comparison_status,
                         "Folder": scenario.folder.name
                         if scenario.folder
                         else translate_service.translate("summary_root_folder"),
@@ -157,7 +166,7 @@ def create_recipe_table_data(
                         if scenario.created_at
                         else "",
                         "Created By": scenario.created_by.full_name if scenario.created_by else "",
-                        "_status_raw": "comparison",
+                        "_status_raw": comparison_status_raw,
                         "_is_comparison": True,
                         "_action_rename": "✏️",
                         "_action_delete": "🗑️",

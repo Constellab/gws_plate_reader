@@ -540,16 +540,17 @@ def build_analysis_tree_menu(cell_culture_state: CellCultureState) -> StreamlitT
     return button_menu
 
 
-def _build_comparison_tree_menu(translate_service) -> StreamlitTreeMenu:
+def _build_comparison_tree_menu(recipe: ComparisonRecipe, translate_service) -> StreamlitTreeMenu:
     """Build the left-panel tree menu for a comparison recipe."""
     tree_menu = StreamlitTreeMenu(key="comparison_recipe_navigation_menu")
     tree_menu.add_item(
         StreamlitTreeMenuItem(label=translate_service.translate("overview"), key="apercu")
     )
+    comparison_done = bool(recipe.bio_qc_id and recipe.ferm_qc_id)
+    comparison_emoji = get_status_emoji(ScenarioStatus.SUCCESS) if comparison_done else ""
+    comparison_label = f"{comparison_emoji} {translate_service.translate('comparison_page_title')}".strip()
     tree_menu.add_item(
-        StreamlitTreeMenuItem(
-            label=translate_service.translate("comparison_page_title"), key="comparison_plot"
-        )
+        StreamlitTreeMenuItem(label=comparison_label, key="comparison_plot")
     )
     return tree_menu
 
@@ -597,7 +598,18 @@ def _render_comparison_visualization(
     translate_service,
 ) -> None:
     """Render the Comparison Visualization step for a comparison recipe."""
-    st.title(f"{recipe.name} - {translate_service.translate('comparison_page_title')}")
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        st.title(f"{recipe.name} - {translate_service.translate('comparison_page_title')}")
+    with col2:
+        if not cell_culture_state.get_is_standalone():
+            st.markdown('<div style="padding-top: 1.5rem;"></div>', unsafe_allow_html=True)
+            scenario_url = FrontService().get_scenario_url(recipe.id)
+            st.link_button(
+                translate_service.translate("view_scenario"),
+                scenario_url,
+                icon=":material/open_in_new:",
+            )
     st.markdown("---")
 
     if not recipe.bio_qc_id or not recipe.ferm_qc_id:
@@ -906,7 +918,7 @@ def _render_comparison_recipe_page(
 
             st.markdown("---")
 
-            tree_menu = _build_comparison_tree_menu(translate_service)
+            tree_menu = _build_comparison_tree_menu(recipe, translate_service)
 
             # Restore last known selection if menu is not yet initialised
             if not st.session_state.get("comparison_recipe_navigation_menu", {}).get("item_key"):

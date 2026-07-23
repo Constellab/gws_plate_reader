@@ -18,7 +18,14 @@
 
 ## ✅ Features
 
-Plate reader is a brick that allows you to analyze data from a plate reader. It offers connectivity to equipments and interactive dashboard to control the equipment or analyse generated data. For now it supports the BioLector XT equipment.
+Gencovery brick to connect to plate reader equipment, parse and quality-check cultivation data, and analyse and visualize growth/cell-culture experiments in Constellab. It supports the BioLector XT and Tecan equipment.
+- Connect directly to a BioLector XT device (list/upload protocols, start/stop/pause/resume runs, download finished experiments) through an interactive Streamlit dashboard, with a mock service for development without a physical instrument
+- Parse raw BioLector XT (CSV export) or Tecan plate-reader data, together with a plate layout, into per-well tables, with QC visualizations (data-coverage Venn diagrams) of well/medium/label coverage
+- Manage microplate layouts with an interactive dashboard for assigning lab tags to wells (click-select, or whole rows/columns)
+- Extract growth-curve features by fitting sigmoid growth models (Logistic, Gompertz, Modified Gompertz, Richards, Weibull, Baranyi-Roberts) or by non-parametric spline-based growth-rate inference
+- Quality-check and prepare cell-culture data: outlier/range/missing-data detection, subsampling with configurable interpolation (linear, cubic, pchip, akima, spline, …), and merging feature/metadata tables for downstream analysis (e.g. UMAP)
+- Run PCA on culture medium composition tables, with scores, PC1/PC2 scatter and biplot visualizations
+- Explore experiments through interactive dashboards: per-observer table/plot/growth-rate analysis views for BioLector and Tecan data, and a full bioprocess dashboard (file upload, automated processing, QC, multi-chart visualization, descriptive stats, batch comparison)
 
 
 ## 📄 Documentation

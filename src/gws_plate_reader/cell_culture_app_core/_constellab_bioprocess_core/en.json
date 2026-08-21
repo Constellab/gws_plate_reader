@@ -933,6 +933,7 @@
     "toast_scenario_launched": "Scenario launched! Processing in progress...",
     "launched_scenarios": "Previously launched scenarios",
     "mean_selected_batches": "Mean of selected batches",
+    "mean_single_batch_warning": "{column}: mean computed on a single batch ({batch}) — no standard deviation available, and the curve is not necessarily representative of the condition.",
     "standalone_mode_function_blocked": "You are in standalone mode. This function is not available. Contact us if you would like the application with all its features in your lab.",
     "unknown_error": "Unknown error",
     "optimization_dashboard_description": "The interactive Streamlit dashboard allows you to explore the results of the Optimization analysis:\n- **Summary**: Best solution found and key metrics\n- **3D Surface Explorer**: Interactive exploration of the search space\n- **Feature Importance**: Importance of variables in the model\n- **Observed vs Predicted**: Predictive model validation\n- **Data Explorer**: All generated solutions",

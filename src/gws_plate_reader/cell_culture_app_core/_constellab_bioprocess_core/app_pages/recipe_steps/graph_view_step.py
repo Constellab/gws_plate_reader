@@ -14,6 +14,9 @@ from gws_plate_reader.cell_culture_app_core._constellab_bioprocess_core.cell_cul
     CellCultureState,
 )
 
+# A standard deviation requires at least two batch/sample series
+MIN_SERIES_FOR_STD = 2
+
 
 def render_graph_view_step(
     recipe: CellCultureRecipe,
@@ -384,8 +387,18 @@ def render_graph_view_step(
                                 ]
 
                                 if data_cols:
+                                    # Warn when the mean relies on a single batch/sample column
+                                    if len(data_cols) < MIN_SERIES_FOR_STD:
+                                        st.warning(
+                                            translate_service.translate(
+                                                "mean_single_batch_warning"
+                                            ).format(column=column_name, batch=data_cols[0])
+                                        )
+
                                     df_mean = filtered_column_df[data_cols].mean(axis=1)
-                                    df_std = filtered_column_df[data_cols].std(axis=1)
+                                    # std is NaN when a row has less than 2 values: keep the row
+                                    # with a null dispersion instead of dropping the whole curve
+                                    df_std = filtered_column_df[data_cols].std(axis=1).fillna(0)
 
                                     clean_data = pd.DataFrame(
                                         {
@@ -393,7 +406,7 @@ def render_graph_view_step(
                                             "mean": df_mean,
                                             "std": df_std,
                                         }
-                                    ).dropna()
+                                    ).dropna(subset=["mean"])
 
                                     if not clean_data.empty:
                                         fig.add_trace(
@@ -729,6 +742,14 @@ def render_graph_view_step(
                                 ]
 
                                 if data_cols:
+                                    # Warn when the mean relies on a single batch/sample column
+                                    if len(data_cols) < MIN_SERIES_FOR_STD:
+                                        st.warning(
+                                            translate_service.translate(
+                                                "mean_single_batch_warning"
+                                            ).format(column=column_name, batch=data_cols[0])
+                                        )
+
                                     # Calculate mean and std across all batch_sample combinations
                                     df_mean = filtered_column_df[data_cols].mean(axis=1)
                                     df_std = filtered_column_df[data_cols].std(axis=1).fillna(0)

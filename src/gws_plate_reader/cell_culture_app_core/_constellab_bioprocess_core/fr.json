@@ -934,6 +934,7 @@
     "toast_scenario_launched": "Scénario lancé ! Traitement en cours...",
     "launched_scenarios": "Scénarios précédemment lancés",
     "mean_selected_batches": "Moyenne des batchs sélectionnés",
+    "mean_single_batch_warning": "{column} : moyenne calculée sur un seul batch ({batch}) — pas d'écart-type disponible, et la courbe n'est pas forcément représentative de la condition.",
     "standalone_mode_function_blocked": "Vous êtes en mode standalone. Cette fonctionnalité n'est pas disponible. Contactez-nous si vous souhaitez disposer de l'application avec toutes ses fonctionnalités dans votre lab.",
     "unknown_error": "Erreur inconnue",
     "optimization_dashboard_description": "Le dashboard Streamlit interactif vous permet d'explorer les résultats de l'analyse Optimization :\n- **Summary** : Meilleure solution trouvée et métriques\n- **3D Surface Explorer** : Exploration interactive de l'espace de recherche\n- **Feature Importance** : Importance des variables dans le modèle\n- **Observed vs Predicted** : Validation du modèle prédictif\n- **Data Explorer** : Toutes les solutions trouvées",

@@ -422,7 +422,8 @@ def render_optimization_step(
     # Filter target options: only allowed feature extraction columns + base metadata columns
     allowed_feature_columns = {"param_A", "param_lag", "param_mu", "param_y0", "t50", "t95"}
     allowed_target_columns = sorted(
-        col for col in all_numeric_columns
+        col
+        for col in all_numeric_columns
         if col not in feature_extraction_columns or col in allowed_feature_columns
     )
 
@@ -445,7 +446,7 @@ def render_optimization_step(
                 help=translate_service.translate("objective_help"),
             )
 
-        targets_thresholds.append({"targets": target, "thresholds": int(threshold)})
+        targets_thresholds.append({"targets": target, "thresholds": threshold})
 
     col_add, col_remove = st.columns(2)
     with col_add:

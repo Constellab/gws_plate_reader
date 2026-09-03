@@ -173,26 +173,6 @@ class CellCultureRecipe(ABC):
         """
         return self.get_scenarios_for_step("analyses")
 
-    def get_analyses_scenarios_for_selection(self, selection_id: str) -> list[Scenario]:
-        """
-        Get analyses scenarios linked to a specific selection scenario
-
-        :param selection_id: ID of the parent selection scenario
-        :return: List of analyses scenarios for this selection
-        """
-        all_analyses_scenarios = self.get_analyses_scenarios()
-
-        # Filter by parent selection ID tag
-        filtered_scenarios = []
-        for scenario in all_analyses_scenarios:
-            entity_tag_list = EntityTagList.find_by_entity(TagEntityType.SCENARIO, scenario.id)
-            parent_selection_tags = entity_tag_list.get_tags_by_key(_TAG_ANALYSES_PARENT_SELECTION)
-
-            if parent_selection_tags and parent_selection_tags[0].tag_value == selection_id:
-                filtered_scenarios.append(scenario)
-
-        return filtered_scenarios
-
     def reload_scenarios(self) -> None:
         """
         Reload all scenarios from database to get updated status and sort them by creation date

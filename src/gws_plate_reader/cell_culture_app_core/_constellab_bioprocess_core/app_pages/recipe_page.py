@@ -65,27 +65,6 @@ from .recipe_steps import (
 )
 
 
-# Helper functions similar to ubiome
-def has_successful_scenario(step_name: str, scenarios_by_step: dict[str, list[Scenario]]) -> bool:
-    """Check if steps are completed (have successful scenarios)"""
-    if step_name not in scenarios_by_step:
-        return False
-    return any(s.status == ScenarioStatus.SUCCESS for s in scenarios_by_step[step_name])
-
-
-def get_step_icon(
-    step_name: str,
-    scenarios_by_step: dict[str, list[Scenario]],
-    list_scenarios: list[Scenario] | None = None,
-) -> str:
-    """Get icon for step - check_circle if step has scenarios, empty otherwise."""
-    if step_name not in scenarios_by_step:
-        return ""
-    if not list_scenarios:
-        return ""
-    return "check_circle"
-
-
 def has_running_scenarios(recipe) -> bool:
     """Check if recipe has scenarios that are not in a terminal state (SUCCESS, ERROR, PARTIALLY_RUN)"""
     terminal_statuses = {ScenarioStatus.SUCCESS, ScenarioStatus.ERROR, ScenarioStatus.PARTIALLY_RUN}
@@ -548,10 +527,10 @@ def _build_comparison_tree_menu(recipe: ComparisonRecipe, translate_service) -> 
     )
     comparison_done = bool(recipe.bio_qc_id and recipe.ferm_qc_id)
     comparison_emoji = get_status_emoji(ScenarioStatus.SUCCESS) if comparison_done else ""
-    comparison_label = f"{comparison_emoji} {translate_service.translate('comparison_page_title')}".strip()
-    tree_menu.add_item(
-        StreamlitTreeMenuItem(label=comparison_label, key="comparison_plot")
+    comparison_label = (
+        f"{comparison_emoji} {translate_service.translate('comparison_page_title')}".strip()
     )
+    tree_menu.add_item(StreamlitTreeMenuItem(label=comparison_label, key="comparison_plot"))
     return tree_menu
 
 

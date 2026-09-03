@@ -388,25 +388,11 @@ class CellCultureState(ABC):
             # Return empty dict if there's an error accessing outputs
             return None
 
-    def get_medium_csv_input_resource_model(self) -> ResourceModel | None:
-        """
-        Get the medium CSV input resource model from the load scenario.
-
-        :return: The medium CSV input resource model or None if not found
-        """
-        return self.get_load_scenario_input_resource_model(self.MEDIUM_CSV_INPUT_KEY)
-
     def add_scenarios_to_recipe(self, step: str, scenarios: list[Scenario]) -> None:
         """Add scenarios to the current Recipe instance for a specific step."""
         recipe = self.get_selected_recipe_instance()
         if recipe:
             recipe.add_scenarios_by_step(step, scenarios)
-
-    def update_recipe_with_selection_scenarios(self, selection_scenarios: list[Scenario]) -> None:
-        """Update the current Recipe instance with selection scenarios."""
-        recipe = self.get_selected_recipe_instance()
-        if recipe:
-            recipe.add_selection_scenarios(selection_scenarios)
 
     # Utility methods
     def has_selected_resources(self) -> bool:
@@ -418,21 +404,6 @@ class CellCultureState(ABC):
         """Get the count of selected resources."""
         return len(self.get_selected_resources())
 
-    def reset_all_data(self) -> None:
-        """Reset all data in the session state."""
-        st.session_state[self.PROCESSING_RESULTS_KEY] = None
-        st.session_state[self.PROCESSING_COMPLETED_KEY] = False
-        st.session_state[self.SELECTION_DATA_KEY] = []
-        st.session_state[self.SELECTED_RESOURCES_KEY] = []
-        st.session_state[self.SELECTED_RESOURCE_SET_KEY] = None
-        st.session_state[self.SELECTED_RECIPE_INSTANCE_KEY] = None
-
-    def reset_selection(self) -> None:
-        """Reset only the selection data."""
-        st.session_state[self.SELECTION_DATA_KEY] = []
-        st.session_state[self.SELECTED_RESOURCES_KEY] = []
-        st.session_state[self.SELECTED_RESOURCE_SET_KEY] = None
-
     # Scenario utility methods
     def add_selection_scenario(self, scenario: Scenario) -> None:
         """Add a new selection scenario to the current recipe."""
@@ -442,24 +413,9 @@ class CellCultureState(ABC):
             current_scenarios.append(scenario)
             recipe.add_scenarios_by_step("selection", current_scenarios)
 
-    def get_latest_selection_scenario(self) -> Scenario | None:
-        """Get the most recent selection scenario."""
-        selection_scenarios = self.get_selection_scenarios()
-        if not selection_scenarios:
-            return None
-        return selection_scenarios[0]  # Assume sorted by creation date
-
-    def has_load_scenario(self) -> bool:
-        """Check if a load scenario is available."""
-        return self.get_main_scenario() is not None
-
     def has_selection_scenarios(self) -> bool:
         """Check if any selection scenarios are available."""
         return len(self.get_selection_scenarios()) > 0
-
-    def get_selection_scenarios_count(self) -> int:
-        """Get the count of selection scenarios."""
-        return len(self.get_selection_scenarios())
 
     # Navigation methods (can be overridden by subclasses)
     def get_selected_step(self) -> str:
@@ -469,14 +425,6 @@ class CellCultureState(ABC):
     def set_selected_step(self, step: str) -> None:
         """Set the currently selected analysis step."""
         st.session_state["selected_step"] = step
-
-    def set_selected_folder_id(self, folder_id: str) -> None:
-        """Set the selected folder ID."""
-        st.session_state["selected_folder_id"] = folder_id
-
-    def get_selected_folder_id(self) -> str | None:
-        """Get the selected folder ID."""
-        return st.session_state.get("selected_folder_id")
 
     def save_df_as_table(self, df: pd.DataFrame, table_name: str, scenario: Scenario):
         """Save a DataFrame as a Table in the given scenario."""
@@ -678,30 +626,6 @@ class CellCultureState(ABC):
             return sorted(set(data_columns))
         except Exception:
             return []
-
-    def get_column_label_with_unit(self, resource_set: ResourceSet, column_name: str) -> str:
-        """
-        Get a formatted label for a column including its unit if available.
-
-        :param resource_set: ResourceSet containing tables
-        :param column_name: Name of the column
-        :return: Formatted label like "Column Name (unit)" or just "Column Name"
-        """
-        try:
-            resources = resource_set.get_resources()
-
-            for resource in resources.values():
-                if isinstance(resource, Table) and column_name in resource.get_column_names():
-                    col_tags = resource.get_column_tags_by_name(column_name)
-                    unit = col_tags.get("unit")
-
-                    if unit:
-                        return f"{column_name} ({unit})"
-                    return column_name
-
-            return column_name
-        except Exception:
-            return column_name
 
     def build_selected_column_df_from_resource_set(
         self, resource_set: ResourceSet, index_column: str, selected_column: str
